@@ -1,0 +1,18 @@
+node_modules/
+.DS_Store
+.idea/
+.vscode/
+dist/
+build/
+.gradle/
+*.iml
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+apps/web/src/shared/api/generated/
+openapi.json
+
+# TypeScript build output for root-level config files
+apps/web/*.js
+apps/web/*.d.ts

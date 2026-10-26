@@ -1,0 +1,18 @@
+{
+  "name": "woonie",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.6.0",
+  "scripts": {
+    "dev": "concurrently -n web,api -c cyan,blue \"pnpm --filter @woonie/web dev\" \"pnpm api:dev\"",
+    "dev:infra": "concurrently -n web,api -c cyan,blue \"pnpm --filter @woonie/web dev\" \"pnpm api:dev:infra\"",
+    "api:dev": "./apps/api/gradlew -p apps/api bootRun --args='--spring.profiles.active=local'",
+    "api:dev:infra": "./apps/api/gradlew -p apps/api bootRun --args='--spring.profiles.active=docker'",
+    "build": "pnpm --filter @woonie/web build && ./apps/api/gradlew -p apps/api build",
+    "test": "pnpm --filter @woonie/web test && ./apps/api/gradlew -p apps/api test",
+    "api:generate": "pnpm --filter @woonie/web api:generate"
+  },
+  "devDependencies": {
+    "concurrently": "9.2.1"
+  }
+}

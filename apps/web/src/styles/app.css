@@ -1,0 +1,43 @@
+@import "tailwindcss";
+@import "./theme.css";
+@import "./components.css";
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--color-woori-canvas);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  color: var(--color-woori-ink);
+  background:
+    radial-gradient(circle at 15% 0%, rgb(54 169 225 / 10%), transparent 32rem),
+    var(--color-woori-canvas);
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+@keyframes scan {
+  0%, 100% {
+    transform: translateY(-24px);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translateY(24px);
+    opacity: 1;
+  }
+}
