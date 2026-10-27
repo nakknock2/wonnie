@@ -121,9 +121,14 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
   const resetRef = useRef(() => {});
   const busy = typing || fetchingSubscriptions || backend.sending;
   const serverMessages = historyAfter === null ? backend.messages : backend.messages.filter((m) => m.createdAt > historyAfter);
-  const visibleMessages = mergeChatMessages(messages, serverMessages, backend.pendingMessage ? [backend.pendingMessage] : []);
+  const visibleMessages = mergeChatMessages(messages, serverMessages,
+    [backend.pendingMessage, backend.pendingAssistantMessage].filter(Boolean));
 
   useEffect(() => { if (open) setHistoryAfter(null); }, [open]);
+
+  useEffect(() => {
+    if (backend.restoreInput !== null && backend.restoreInput !== undefined) setInput(backend.restoreInput);
+  }, [backend.restoreInput]);
 
   const later = (fn, ms) => timers.current.push(setTimeout(fn, ms));
   useEffect(() => () => { timers.current.forEach(clearTimeout); scanGeneration.current += 1; }, []);
@@ -159,7 +164,7 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
   useEffect(() => {
     const el = convRef.current;
     if (el && visibleMessages.length) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
-  }, [messages, backend.messages, backend.pendingMessage, busy]);
+  }, [messages, backend.messages, backend.pendingMessage, backend.pendingAssistantMessage, busy]);
 
   /* ----- 시나리오 단계 ----- */
   const startScan = useCallback(async () => {
@@ -674,7 +679,7 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
                 {m.kind !== 'proposal' && <span className="wc-time">{m.time}</span>}
               </div>
             )))}
-            {busy && (
+            {busy && !backend.pendingAssistantMessage?.text && (
               <div className="wc-message assistant">
                 <div className="wc-bubble wc-bubble--assistant wc-typing" aria-label="WONNIE가 답변을 준비하고 있어요"><span /><span /><span /></div>
               </div>

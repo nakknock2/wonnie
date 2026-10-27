@@ -43,11 +43,25 @@ public class AssistantMessage {
     private LocalDateTime readAt;
 
     public static AssistantMessage userMessage(String conversationId, String customerId, String content) {
-        return create(conversationId, customerId, "USER", "USER_INPUT", content, null);
+        return userMessage(UUID.randomUUID().toString(), conversationId, customerId, content);
+    }
+
+    public static AssistantMessage userMessage(String id, String conversationId, String customerId, String content) {
+        return createWithId(id, conversationId, customerId, "USER", "USER_INPUT", content, null);
     }
 
     public static AssistantMessage assistantReply(String conversationId, String customerId, String content, LocalDateTime createdAt) {
-        var message = create(conversationId, customerId, "ASSISTANT", "ASSISTANT_REPLY", content, null);
+        return assistantReply(UUID.randomUUID().toString(), conversationId, customerId, content, createdAt);
+    }
+
+    public static AssistantMessage assistantReply(
+            String id,
+            String conversationId,
+            String customerId,
+            String content,
+            LocalDateTime createdAt
+    ) {
+        var message = createWithId(id, conversationId, customerId, "ASSISTANT", "ASSISTANT_REPLY", content, null);
         message.createdAt = createdAt;
         message.readAt = createdAt;
         return message;
@@ -69,8 +83,20 @@ public class AssistantMessage {
             String content,
             String sourceKey
     ) {
+        return createWithId(UUID.randomUUID().toString(), conversationId, customerId, role, source, content, sourceKey);
+    }
+
+    private static AssistantMessage createWithId(
+            String id,
+            String conversationId,
+            String customerId,
+            String role,
+            String source,
+            String content,
+            String sourceKey
+    ) {
         var message = new AssistantMessage();
-        message.id = UUID.randomUUID().toString();
+        message.id = id;
         message.conversationId = conversationId;
         message.customerId = customerId;
         message.role = role;

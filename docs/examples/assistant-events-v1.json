@@ -1,0 +1,90 @@
+[
+  {
+    "version": 1,
+    "eventId": "10000000-0000-4000-8000-000000000001",
+    "type": "connected",
+    "occurredAt": "2026-10-27T08:00:00Z",
+    "conversationId": "conversation-1",
+    "requestId": null,
+    "messageId": null,
+    "data": { "connectionId": "connection-1", "unreadCount": 1 }
+  },
+  {
+    "version": 1,
+    "eventId": "10000000-0000-4000-8000-000000000002",
+    "type": "message.created",
+    "occurredAt": "2026-10-27T08:00:00Z",
+    "conversationId": "conversation-1",
+    "requestId": null,
+    "messageId": "notice-1",
+    "data": {
+      "message": { "id": "notice-1", "role": "ASSISTANT", "source": "PRICE_INCREASE", "content": "구독료가 변경됐어요.", "createdAt": "2026-10-27T17:00:00" }
+    }
+  },
+  {
+    "version": 1,
+    "eventId": "10000000-0000-4000-8000-000000000003",
+    "type": "unread-count.changed",
+    "occurredAt": "2026-10-27T08:00:00Z",
+    "conversationId": "conversation-1",
+    "requestId": null,
+    "messageId": null,
+    "data": { "unreadCount": 0 }
+  },
+  {
+    "version": 1,
+    "eventId": "10000000-0000-4000-8000-000000000004",
+    "type": "reply.started",
+    "occurredAt": "2026-10-27T08:00:00Z",
+    "conversationId": "conversation-1",
+    "requestId": "20000000-0000-4000-8000-000000000001",
+    "messageId": "assistant-1",
+    "data": { "userMessageId": "user-1" }
+  },
+  {
+    "version": 1,
+    "eventId": "10000000-0000-4000-8000-000000000005",
+    "type": "reply.delta",
+    "occurredAt": "2026-10-27T08:00:00Z",
+    "conversationId": "conversation-1",
+    "requestId": "20000000-0000-4000-8000-000000000001",
+    "messageId": "assistant-1",
+    "data": { "sequence": 1, "delta": "안녕하세요 🌱\n " }
+  },
+  {
+    "version": 1,
+    "eventId": "10000000-0000-4000-8000-000000000006",
+    "type": "reply.completed",
+    "occurredAt": "2026-10-27T08:00:00Z",
+    "conversationId": "conversation-1",
+    "requestId": "20000000-0000-4000-8000-000000000001",
+    "messageId": "assistant-1",
+    "data": {
+      "exchange": {
+        "userMessage": { "id": "user-1", "role": "USER", "source": "USER_INPUT", "content": "안녕", "createdAt": "2026-10-27T17:00:00" },
+        "assistantMessage": { "id": "assistant-1", "role": "ASSISTANT", "source": "ASSISTANT_REPLY", "content": "안녕하세요 🌱", "createdAt": "2026-10-27T17:00:00" }
+      },
+      "unreadCount": 0
+    }
+  },
+  {
+    "version": 1,
+    "eventId": "10000000-0000-4000-8000-000000000007",
+    "type": "reply.failed",
+    "occurredAt": "2026-10-27T08:00:00Z",
+    "conversationId": "conversation-1",
+    "requestId": "20000000-0000-4000-8000-000000000002",
+    "messageId": "assistant-2",
+    "data": { "code": "ASSISTANT_UNAVAILABLE", "message": "답변을 생성하지 못했어요. 다시 시도해 주세요.", "retryable": true }
+  },
+  {
+    "version": 1,
+    "eventId": "10000000-0000-4000-8000-000000000008",
+    "type": "reply.cancelled",
+    "occurredAt": "2026-10-27T08:00:00Z",
+    "conversationId": "conversation-1",
+    "requestId": "20000000-0000-4000-8000-000000000003",
+    "messageId": "assistant-3",
+    "data": { "reason": "USER_REQUESTED" }
+  }
+]

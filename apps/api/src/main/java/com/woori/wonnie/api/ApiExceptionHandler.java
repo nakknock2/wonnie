@@ -2,6 +2,8 @@ package com.woori.wonnie.api;
 
 import com.woori.wonnie.api.ApiDtos.ApiError;
 import com.woori.wonnie.assistant.AssistantUnavailableException;
+import com.woori.wonnie.assistant.AssistantRequestConflictException;
+import com.woori.wonnie.assistant.AssistantRequestNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +23,18 @@ public class ApiExceptionHandler {
         log.error("ASSISTANT_UNAVAILABLE method={} path={} stage={} cause={}",
                 request.getMethod(), request.getRequestURI(), exception.getStage(), diagnostic(exception));
         return new ApiError("ASSISTANT_UNAVAILABLE", exception.getMessage());
+    }
+
+    @ExceptionHandler(AssistantRequestConflictException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ApiError assistantRequestConflict(AssistantRequestConflictException exception) {
+        return new ApiError("REQUEST_ID_CONFLICT", exception.getMessage());
+    }
+
+    @ExceptionHandler(AssistantRequestNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ApiError assistantRequestNotFound(AssistantRequestNotFoundException exception) {
+        return new ApiError("REQUEST_NOT_FOUND", exception.getMessage());
     }
 
     // Provider errors can include credentials. Log the cause chain, without request/chat bodies or raw Throwables.

@@ -13,7 +13,11 @@ const request = async (path, { timeout = 15000, signal, ...options } = {}) => {
       signal: controller.signal,
     });
     const payload = response.status === 204 ? null : await response.json().catch(() => null);
-    if (!response.ok) throw new Error(payload?.message || `요청을 처리하지 못했어요. (HTTP ${response.status})`);
+    if (!response.ok) {
+      const error = new Error(payload?.message || `요청을 처리하지 못했어요. (HTTP ${response.status})`);
+      error.status = response.status;
+      throw error;
+    }
     if (response.status !== 204 && (payload === null || typeof payload !== 'object' || Array.isArray(payload))) {
       throw new Error('API 응답 형식이 올바르지 않아요. 프론트의 /api 프록시 설정을 확인해 주세요.');
     }
@@ -32,11 +36,17 @@ const request = async (path, { timeout = 15000, signal, ...options } = {}) => {
 export const wonnieApi = {
   conversation: (signal) => request('/api/assistant/conversation', { signal }),
   unreadCount: (signal) => request('/api/assistant/unread-count', { signal }),
-  markRead: () => request('/api/assistant/conversation/read', { method: 'POST' }),
+  markRead: (signal) => request('/api/assistant/conversation/read', { method: 'POST', signal }),
   sendMessage: (message, topic) => request('/api/assistant/messages', {
     method: 'POST', timeout: 120000,
     body: JSON.stringify({ message, ...(topic ? { topic } : {}) }),
   }),
+  submitAssistantRequest: (requestId, message, topic) => request('/api/assistant/requests', {
+    method: 'POST',
+    body: JSON.stringify({ requestId, message, ...(topic ? { topic } : {}) }),
+  }),
+  assistantRequestStatus: (requestId, signal) => request(`/api/assistant/requests/${encodeURIComponent(requestId)}`, { signal }),
+  cancelAssistantRequest: (requestId) => request(`/api/assistant/requests/${encodeURIComponent(requestId)}/cancel`, { method: 'POST' }),
   subscriptions: (signal) => request('/api/finance/subscriptions', { signal }),
   dashboard: (signal) => request('/api/dashboard', { signal }),
 };

@@ -1,5 +1,7 @@
 # 카드·구독 MCP 상담 아키텍처
 
+SSE 이벤트 계약, `/api/assistant/events` 연결 관리, 커밋 이후 알림·읽음 이벤트 발행, 프론트 EventSource 연결은 [Assistant SSE 프로토콜 v1](assistant-sse-protocol.md)에 정의한다. 기존 REST API는 대화 조회·읽음 처리·질문 전송에 계속 사용한다.
+
 ```mermaid
 flowchart LR
     Web[React 채팅] --> API[API: 대화 저장 / Spring AI ChatClient]

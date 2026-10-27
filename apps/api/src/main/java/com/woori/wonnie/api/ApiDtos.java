@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 public final class ApiDtos {
 
@@ -54,6 +55,35 @@ public final class ApiDtos {
     public record AssistantRequest(
             @NotBlank @Size(max = 4000) String message,
             @Size(max = 200) String topic
+    ) {
+    }
+
+    public record AssistantStreamRequest(
+            @NotNull UUID requestId,
+            @NotBlank @Size(max = 4000) String message,
+            @Size(max = 200) String topic
+    ) {
+    }
+
+    public record AssistantRequestAcceptedResponse(
+            UUID requestId,
+            String conversationId,
+            String userMessageId,
+            String assistantMessageId,
+            String status
+    ) {
+    }
+
+    public record AssistantRequestStatusResponse(
+            UUID requestId,
+            String conversationId,
+            String userMessageId,
+            String assistantMessageId,
+            String status,
+            long lastSequence,
+            String partialAnswer,
+            String failureCode,
+            AssistantMessageExchange exchange
     ) {
     }
 
