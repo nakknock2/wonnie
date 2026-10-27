@@ -32,7 +32,7 @@ export default function DemoPanel({ demo, canRemind, onRemind, canPrice, onPrice
         <button type="button" onClick={onAdvance} title="데모 날짜를 하루 넘겨요">
           <span>📅</span><b>하루 넘기기</b>
         </button>
-        <button type="button" className="dp-alt" onClick={onScenarios} title="팀 시나리오별 절약 제안(9종) 시연">
+        <button type="button" className="dp-alt" onClick={onScenarios} title="팀 시나리오별 절약 제안(6종) 시연">
           <span>🧩</span><b>절약 제안 시나리오</b>
         </button>
         <button type="button" className="dp-ghost" onClick={onRestart} title="처음 상태로">

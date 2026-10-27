@@ -40,5 +40,7 @@ management:
 app:
   auth:
     frontend-url: https://wonnie.minngyuseong.com
+  calendar:
+    webhook-url: https://api.wonnie.minngyuseong.com/api/calendar/webhook
   messaging:
     enabled: true

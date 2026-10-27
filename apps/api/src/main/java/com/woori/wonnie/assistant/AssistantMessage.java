@@ -34,6 +34,9 @@ public class AssistantMessage {
     @Column(nullable = false, length = 4000)
     private String content;
 
+    @Column(length = 8000)
+    private String metadata;
+
     @Column(name = "source_key", unique = true, length = 180)
     private String sourceKey;
 
@@ -73,6 +76,14 @@ public class AssistantMessage {
 
     public static AssistantMessage financeNotice(String conversationId, String customerId, String content, String sourceKey) {
         return create(conversationId, customerId, "ASSISTANT", "FINANCE_NOTICE", content, sourceKey);
+    }
+
+    public static AssistantMessage calendarPauseRecommendation(
+            String conversationId, String customerId, String content, String metadata, String sourceKey
+    ) {
+        var message = create(conversationId, customerId, "ASSISTANT", "CALENDAR_PAUSE", content, sourceKey);
+        message.metadata = metadata;
+        return message;
     }
 
     private static AssistantMessage create(

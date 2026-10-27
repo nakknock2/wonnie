@@ -1,5 +1,6 @@
 package com.woori.wonnie.api;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.woori.wonnie.subscription.SubscriptionStatus;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
@@ -106,6 +107,7 @@ public final class ApiDtos {
             String role,
             String source,
             String content,
+            @JsonInclude(JsonInclude.Include.NON_NULL) String metadata,
             LocalDateTime createdAt
     ) {
     }

@@ -39,7 +39,11 @@ function reducer(s, a) {
         balance: s.balance - a.amount,
         savingsBalance: s.savingsBalance + a.amount,
         savedTotal: s.savedTotal + a.amount,
-        savedItems: [...s.savedItems, { id: WATCHA.id, name: WATCHA.name, amount: a.amount }],
+        savedItems: [...s.savedItems, {
+          id: a.subscription?.id ?? WATCHA.id,
+          name: a.subscription?.name ?? WATCHA.name,
+          amount: a.amount,
+        }],
       };
     case 'NOTIF_SET': return { ...s, notif: { ...s.notif, ...a.value, asked: true } };
     case 'PRICE_SENT': return { ...s, priceSent: true };

@@ -28,7 +28,7 @@ public class GoogleOidcSecurityConfig {
         return http
                 .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**", "/logout"))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/actuator/health", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/actuator/health", "/swagger-ui/**", "/v3/api-docs/**", "/api/calendar/webhook").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions.defaultAuthenticationEntryPointFor(
                         new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),

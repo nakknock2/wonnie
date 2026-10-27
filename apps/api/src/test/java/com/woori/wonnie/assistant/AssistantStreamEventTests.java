@@ -67,6 +67,6 @@ class AssistantStreamEventTests {
     }
 
     private static AssistantMessageResponse message(String id, String role, String source, String content) {
-        return new AssistantMessageResponse(id, role, source, content, LocalDateTime.of(2026, 10, 27, 17, 0));
+        return new AssistantMessageResponse(id, role, source, content, null, LocalDateTime.of(2026, 10, 27, 17, 0));
     }
 }

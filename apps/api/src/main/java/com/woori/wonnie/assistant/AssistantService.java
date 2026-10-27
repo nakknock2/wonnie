@@ -295,6 +295,16 @@ public class AssistantService {
         publishNoticeAfterCommit(customerId, conversation.getId(), message);
     }
 
+    @Transactional
+    public void addCalendarPauseNotice(String customerId, String content, String metadata, String sourceKey) {
+        if (messageRepository.existsBySourceKey(sourceKey)) return;
+        var conversation = getOrCreateConversation(customerId);
+        var message = messageRepository.save(AssistantMessage.calendarPauseRecommendation(
+                conversation.getId(), customerId, content, metadata, sourceKey));
+        conversation.touch();
+        publishNoticeAfterCommit(customerId, conversation.getId(), message);
+    }
+
     private void publishNoticeAfterCommit(String customerId, String conversationId, AssistantMessage message) {
         var messageResponse = toResponse(message);
         var unreadCount = messageRepository.countByConversationIdAndRoleAndReadAtIsNull(
@@ -338,7 +348,7 @@ public class AssistantService {
 
     private static AssistantMessageResponse toResponse(AssistantMessage message) {
         return new AssistantMessageResponse(
-                message.getId(), message.getRole(), message.getSource(), message.getContent(),
+                message.getId(), message.getRole(), message.getSource(), message.getContent(), message.getMetadata(),
                 message.getCreatedAt().atOffset(java.time.ZoneOffset.UTC).atZoneSameInstant(java.time.ZoneId.of("Asia/Seoul")).toLocalDateTime());
     }
 

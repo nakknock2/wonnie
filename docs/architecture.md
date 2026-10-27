@@ -16,7 +16,11 @@ flowchart LR
     MQ --> Worker[가격 변동 워커]
     Worker --> DB
     Scheduler[고객 선호 시간 안내 스캔] --> DB
+    Google[Google Calendar] -->|변경 webhook| CalendarSync[이번 달 일정 재조회]
+    CalendarDaily[매일 03:15 KST 재검증] --> CalendarSync
+    CalendarSync --> DB
     DB -->|대화 및 읽지 않은 알림| API
+    API -->|SSE 즉시 반영| Web
 ```
 
 ## 역할
@@ -44,12 +48,15 @@ MCP는 첫 호출에 초기화합니다. 허용된 읽기 도구만 모델에 �
 
 가격 관측은 MySQL 프로파일에서 Outbox + RabbitMQ 워커로 처리합니다. 관측 ID와 메시지 사건 키로 중복을 방지하고, 오래된 관측은 현재 상태를 덮어쓰지 않습니다. 로컬 H2는 같은 처리 서비스를 직접 호출합니다.
 
-기타 무료체험·갱신·결제 예정·카드 결제일·만료·포인트·연회비 알림은 시간마다 확인하여 고객 선호 시간에 DB 채팅에 저장합니다. `/api/internal/finance-alerts/scan`은 샘플 데이터 환경의 수동 확인 경로입니다. 기기 푸시, 캘린더 저장, 금융 거래는 연결하지 않았습니다.
+기타 무료체험·갱신·결제 예정·카드 결제일·만료·포인트·연회비 알림은 시간마다 확인하여 고객 선호 시간에 DB 채팅에 저장합니다. `/api/internal/finance-alerts/scan`은 샘플 데이터 환경의 수동 확인 경로입니다.
+
+Google 로그인 사용자는 Calendar Events watch를 등록합니다. Google 변경 webhook이 오면 이번 달 일정을 즉시 다시 읽고, webhook 유실·만료에 대비해 매일 03:15(KST)에 전체 재검증하며 만료 하루 전 watch를 갱신합니다. 시험·디지털 디톡스 기간을 찾으면 활성 OTT·음악·게임 구독 후보를 구조화된 채팅 알림으로 저장합니다. 저장 커밋 후 기존 `message.created`·`unread-count.changed` SSE를 발행하므로 별도 polling은 없습니다. 실제 구독 해지와 금융 거래는 연결하지 않았습니다.
 
 ## 프로파일
 
 - `local`: H2 메모리 DB, 규칙 기반 상담. 샘플 데이터를 직접 확인할 수 있습니다.
 - `docker`: MySQL + RabbitMQ. 상담 생성 방식은 규칙 기반입니다.
 - `local,openai` / `docker,openai`: Spring AI + OpenAI + 독립 MCP 서버로 상담합니다.
+- `google-oidc`: Google 로그인·Calendar OAuth 토큰 영속화·Calendar watch를 켭니다. 외부에서 접근 가능한 HTTPS `app.calendar.webhook-url`이 필요합니다.
 
 OpenAI API 키는 API 프로세스 환경변수만 사용합니다. MCP는 키가 필요하지 않습니다. 현재 모든 금융 데이터와 고객 범위는 데모용이며 실서비스의 인증·권한·외부 공급자 어댑터는 후속 연동 대상입니다.

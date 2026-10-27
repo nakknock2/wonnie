@@ -29,9 +29,6 @@ globalThis.WonnieDemoEngine = (() => {
     const value = normalize(question);
     const current = get(currentId);
     if (/(다른제안|다른시나리오|다음제안|새로운제안)/.test(value)) return { kind: 'next' };
-    if (/(내일정|예시일정|일정보여|일정목록|다가오는일정|캘린더보여|구글캘린더)/.test(value)) {
-      return { kind: 'reply', scenarioId: current.id, intent: 'calendar', text: '구글캘린더는 아직 연결하지 않았어요. 아래 세 가지 예시 일정으로 시험·여행·마감에 맞춘 제안을 시연하고 있어요. 실제 일정이나 사용 빈도를 조회한 것은 아니에요.', rows: globalThis.WONNIE_CALENDAR_DEMO.events.map(e => [e.title, e.start === e.end ? e.start : e.start + ' ~ ' + e.end]), followUps: ['시험 일정에 맞춰 제안해줘', '여행 일정에 맞춰 제안해줘', '마감 일정에 맞춰 제안해줘'] };
-    }
     const direct = current.prompts.find(p => normalize(p.label) === value);
     const matched = direct ? current : scenarios.find(s => s.keywords.some(k => value.includes(normalize(k))));
     const scenario = matched || current;

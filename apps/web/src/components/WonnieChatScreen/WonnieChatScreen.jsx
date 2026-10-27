@@ -4,9 +4,10 @@ import wonnieFace from '../../assets/wonnie-3d-face.png';
 import { ConsentForm } from '../Consent/Consent.jsx';
 import CancelPage from './CancelPage.jsx';
 import TransferSheet from './TransferSheet.jsx';
+import SubscriptionPauseSheet from './SubscriptionPauseSheet.jsx';
 import NotifConsent, { OsPermission } from './NotifConsent.jsx';
 import { ProposalCard, ProposalReply, ScenarioSheet } from './Proposals.jsx';
-import { engine, calendar } from '../../proposals/index.js';
+import { engine } from '../../proposals/index.js';
 import {
   CUSTOMER, SUBSCRIPTIONS, WATCHA, MONTHLY_TOTAL, SAVINGS,
   BASE_DATE, addDays, billDateOf, dueLabel, won, md, mdw, ymd, NOTIF_TYPES, PRICE_CHANGE,
@@ -38,10 +39,6 @@ import './WonnieChatScreen.css';
 const sv = { fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' };
 const Ico = {
   back: <svg viewBox="0 0 24 24" width="24" height="24" {...sv}><path d="M15 5l-7 7 7 7" /></svg>,
-  chat: <svg viewBox="0 0 24 24" width="20" height="20" {...sv} strokeWidth="1.8"><path d="M4 5h16v11H9l-5 4V5Z" /></svg>,
-  hide: <svg viewBox="0 0 24 24" width="20" height="20" {...sv} strokeWidth="1.8"><path d="M3 3l18 18" /><path d="M10.6 5.1A9.8 9.8 0 0 1 12 5c5 0 9 4.5 10 7a12.6 12.6 0 0 1-2.6 3.6M6.6 6.6C4.3 8 2.7 10.2 2 12c1 2.5 5 7 10 7a9.6 9.6 0 0 0 4.4-1.1" /><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /></svg>,
-  reset: <svg viewBox="0 0 24 24" width="20" height="20" {...sv} strokeWidth="1.8"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg>,
-  chevron: <svg viewBox="0 0 24 24" width="24" height="24" {...sv}><path d="M9 5l7 7-7 7" /></svg>,
   plus: <svg viewBox="0 0 24 24" width="24" height="24" {...sv} strokeWidth="1.8"><path d="M12 4v16M4 12h16" /></svg>,
   mic: <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="#2789ec" strokeWidth="1.9" strokeLinecap="round"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6" /></svg>,
   send: <svg viewBox="0 0 24 24" width="23" height="23" {...sv} strokeWidth="1.8"><path d="M21 3 10 14" /><path d="M21 3l-7 18-4-7-7-4 18-7Z" /></svg>,
@@ -98,17 +95,19 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
   const scanningRef = useRef(false);
   const scanGeneration = useRef(0);
   const [input, setInput] = useState('');
-  const [hidden, setHidden] = useState(false);
   const [listening, setListening] = useState(false);
   const [toast, setToast] = useState(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
-  const [declinedOffer, setDeclinedOffer] = useState(false);
+  const [pauseTarget, setPauseTarget] = useState(null);
+  const [transferTarget, setTransferTarget] = useState(WATCHA);
+  const [calendarCancelled, setCalendarCancelled] = useState([]);
+  const [declinedOffers, setDeclinedOffers] = useState([]);
   const [osAsk, setOsAsk] = useState(null);           // 기기 알림 권한 팝업 대기 중인 선택값
   const [priceAnswer, setPriceAnswer] = useState(null);
   const [mode, setMode] = useState('subs');            // 'subs' | 'proposal'
   const [activeId, setActiveId] = useState(null);      // 지금 보고 있는 제안 시나리오
-  const [sheet, setSheet] = useState(null);            // null | 'list' | 'calendar'
+  const [sheet, setSheet] = useState(null);            // null | 'list'
   const convRef = useRef(null);
   const timers = useRef([]);
   const queue = useRef(Promise.resolve());
@@ -263,26 +262,33 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
     }
   }, [push, say, dispatch]);
 
-  const acceptOffer = () => {
+  const acceptOffer = (subscription = WATCHA) => {
+    setTransferTarget(subscription);
     userSays('응, 넣어줘');
     later(() => setTransferOpen(true), 350);
   };
-  const declineOffer = () => {
-    setDeclinedOffer(true);
+  const declineOffer = (subscription = WATCHA) => {
+    setDeclinedOffers((current) => current.includes(subscription.id) ? current : [...current, subscription.id]);
     userSays('다음에');
-    say(mk('assistant', 'text', { text: `알겠어요. 아낀 ${won(WATCHA.price)}은 언제든 적금으로 옮길 수 있어요.` }));
+    say(mk('assistant', 'text', { text: `알겠어요. 아낀 ${won(Number(subscription.price))}은 언제든 적금으로 옮길 수 있어요.` }));
   };
   const onTransferDone = (amount) => {
     setTransferOpen(false);
-    dispatch({ type: 'TRANSFER', amount });
-    say(mk('assistant', 'saved', { amount }), 700);
+    dispatch({ type: 'TRANSFER', amount, subscription: transferTarget });
+    say(mk('assistant', 'saved', { amount, subscription: transferTarget }), 700);
+  };
+
+  const onCalendarCancelled = (subscription) => {
+    setPauseTarget(null);
+    setCalendarCancelled((current) => current.includes(subscription.id) ? current : [...current, subscription.id]);
+    say(mk('assistant', 'text', { text: `${subscription.name} 구독 해지가 완료됐어요 ✅\n다음 결제부터 청구되지 않아요.` }), 350);
+    say(mk('assistant', 'offer', { subscription }), 650);
   };
 
   // 외부 요청 처리 (동의 직후 / D-1 알림 / 날짜 넘김)
   useEffect(() => {
     if (!open || !request || handledReq.current === request.id) return;
     handledReq.current = request.id;
-    setHidden(false);
     if (request.mode === 'picker') { setSheet('list'); return; }
     // 알림·동의 흐름은 김우리 데모 대화로 돌아와서 보여줘요
     if (modeRef.current === 'proposal' && ['scan', 'reminder', 'result', 'price'].includes(request.mode)) { resetRef.current(); setMode('subs'); }
@@ -304,13 +310,14 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
     const onKey = (e) => {
       if (e.key !== 'Escape') return;
       if (sheet) setSheet(null);
+      else if (pauseTarget) setPauseTarget(null);
       else if (cancelOpen) setCancelOpen(false);
       else if (transferOpen) setTransferOpen(false);
       else onClose();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose, cancelOpen, transferOpen, sheet]);
+  }, [open, onClose, cancelOpen, transferOpen, pauseTarget, sheet]);
 
   /* ----- 시나리오별 절약 제안 ----- */
   const startProposal = (scenario) => {
@@ -336,15 +343,7 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
   const proposalAsk = (q) => {
     if (busy) return;
     const scenario = activeId ? engine.get(activeId) : null;
-    // Calendar scenes remain explicitly labeled client-side previews; other questions use the API.
-    if (scenario?.source !== 'calendar-demo') {
-      void sendToBackend(q, scenario?.title);
-      return;
-    }
-    const answer = engine.resolve(q, activeId);
-    if (answer.kind === 'next') { nextProposal(); return; }
-    userSays(q);
-    say(() => { setActiveId(answer.scenarioId); push(mk('assistant', 'proposal-reply', { answer })); }, 600);
+    void sendToBackend(q, scenario?.title);
   };
 
   const ask = (text) => {
@@ -376,16 +375,21 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
     timers.current = [];
     setMessages([]);
     setTyping(false);
-    setHidden(false);
     setInput('');
   };
   resetRef.current = reset;
-  const goHome = () => { reset(); setMode('subs'); };
 
   const today = addDays(BASE_DATE, demo.day);
-  const activeTotal = MONTHLY_TOTAL - (demo.cancelled ? WATCHA.price : 0);
+  const calendarSaved = visibleMessages
+    .filter((message) => message.kind === 'calendar-pause')
+    .flatMap((message) => message.metadata?.recommendations ?? [])
+    .filter((subscription, index, all) => calendarCancelled.includes(subscription.id)
+      && !(demo.cancelled && subscription.id === WATCHA.id)
+      && all.findIndex((candidate) => candidate.id === subscription.id) === index)
+    .reduce((sum, subscription) => sum + Number(subscription.price), 0);
+  const activeTotal = MONTHLY_TOTAL - (demo.cancelled ? WATCHA.price : 0) - calendarSaved;
   const hasMessages = visibleMessages.length > 0 || busy;
-  const tab = open && !cancelOpen && !transferOpen && !osAsk && !sheet ? 0 : -1;
+  const tab = open && !cancelOpen && !transferOpen && !pauseTarget && !osAsk && !sheet ? 0 : -1;
   const lastId = visibleMessages.length ? visibleMessages[visibleMessages.length - 1].id : null;
   const lastProposalId = [...messages].reverse().find((m) => m.kind === 'proposal')?.id;
 
@@ -548,6 +552,31 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
             </button>
           </Reply>
         );
+      case 'calendar-pause': {
+        const recommendations = m.metadata?.recommendations ?? [];
+        return (
+          <Reply intro={`📅 ${m.metadata?.signalLabel ?? '이번 달 일정'}을 확인했어요`}>
+            <div className="wc-bubble wc-bubble--assistant wc-bubble--wide">{m.text}</div>
+            <div className="wc-card wc-calendar-pause">
+              <small>{m.metadata?.periodStart} ~ {m.metadata?.periodEnd}</small>
+              <strong>잠시 중단을 고려할 구독</strong>
+              <div className="wc-calendar-pause__list">
+                {recommendations.map((subscription) => {
+                  const cancelled = calendarCancelled.includes(subscription.id);
+                  return (
+                    <button type="button" key={subscription.id} disabled={cancelled}
+                      onClick={() => setPauseTarget(subscription)} tabIndex={tab}>
+                      <SubIcon sub={subscription} size={36} />
+                      <span><b>{subscription.name}</b><small>월 {won(Number(subscription.price))}</small></span>
+                      <em>{cancelled ? '해지 완료' : '검토하기 ›'}</em>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </Reply>
+        );
+      }
       case 'result':
         return (
           <Reply intro={`오늘은 ${WATCHA.name} 결제일이었어요.`}>
@@ -573,20 +602,25 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
           </Reply>
         );
       case 'offer': {
-        const answered = demo.transferred || declinedOffer || transferOpen;
+        const subscription = m.subscription ?? WATCHA;
+        const answered = demo.savedItems.some((item) => item.id === subscription.id)
+          || declinedOffers.includes(subscription.id)
+          || (transferOpen && transferTarget.id === subscription.id);
         return (
           <Reply intro="워니의 제안">
             <div className="wc-bubble wc-bubble--assistant wc-bubble--wide">
-              <b>{WATCHA.name} {won(WATCHA.price)} 아꼈어요 🎉</b>{'\n'}그만큼 적금에 넣을까요?
+              <b>{subscription.name} {won(Number(subscription.price))} 아꼈어요 🎉</b>{'\n'}그만큼 워니 절약 적금에 넣을까요?
             </div>
             <div className="wc-choices">
-              <button type="button" disabled={answered} onClick={declineOffer} tabIndex={tab}>다음에</button>
-              <button type="button" className="is-primary" disabled={answered} onClick={acceptOffer} tabIndex={tab}>응, 넣어줘</button>
+              <button type="button" disabled={answered} onClick={() => declineOffer(subscription)} tabIndex={tab}>다음에</button>
+              <button type="button" className="is-primary" disabled={answered} onClick={() => acceptOffer(subscription)} tabIndex={tab}>응, 넣어줘</button>
             </div>
           </Reply>
         );
       }
       case 'saved':
+        {
+          const subscription = m.subscription ?? WATCHA;
         return (
           <Reply intro={`${SAVINGS.name}에 ${won(m.amount)}을 넣었어요 🌱`}>
             <div className="wc-card wc-saved">
@@ -597,12 +631,14 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
               <dl>
                 <div><dt>정리한 구독</dt><dd>{demo.savedItems.map((i) => i.name).join(', ') || '-'}</dd></div>
                 <div><dt>월 구독료</dt><dd><s>{won(MONTHLY_TOTAL)}</s> → <b>{won(activeTotal)}</b></dd></div>
-                <div><dt>1년 유지하면</dt><dd className="is-blue">{won(WATCHA.price * 12)} 절약</dd></div>
+                <div><dt>이번에 정리한 구독</dt><dd>{subscription.name}</dd></div>
+                <div><dt>1년 유지하면</dt><dd className="is-blue">{won(Number(subscription.price) * 12)} 절약</dd></div>
                 <div><dt>{SAVINGS.name}</dt><dd>{won(demo.savingsBalance)}</dd></div>
               </dl>
             </div>
           </Reply>
         );
+        }
       case 'charged':
         return (
           <Reply intro={`오늘은 ${WATCHA.name} 결제일이었어요.`}>
@@ -631,25 +667,11 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
           <h1>WONNIE와 대화중</h1>
           <div className="wc-gallery" aria-label="WONNIE"><img src={wonnieImg} alt="" /></div>
         </div>
-        <nav className="wc-tools" aria-label="채팅 도구">
-          <button type="button" onClick={() => setSheet('list')} tabIndex={tab}>{Ico.chat}<span>시나리오</span></button>
-          <button type="button" aria-pressed={hidden} onClick={() => setHidden((v) => !v)} tabIndex={tab}>{Ico.hide}<span>상담숨기기</span></button>
-          <button type="button" onClick={goHome} tabIndex={tab}>{Ico.reset}<span>처음으로</span></button>
-        </nav>
       </header>
 
       <section className={`wc-conversation ${hasMessages ? 'has-messages' : ''}`} ref={convRef} aria-label="대화 내용">
-        <button type="button" className="wc-service-card" onClick={() => showToast('전담직원 상담은 준비 중이에요')} tabIndex={tab}>
-          <span className="wc-service-mark">?</span>
-          <span className="wc-service-copy"><strong>나만의 전담직원</strong><small>상담서비스</small></span>
-          {Ico.chevron}
-        </button>
-
         <div className="wc-date"><span>{ymd(BASE_DATE)}</span></div>
         <div className="wc-connected"><span className="wc-connected-dot" />Wonnie와 연결되었어요</div>
-        <button type="button" className="wp-calsrc" onClick={() => setSheet('calendar')} tabIndex={tab}>
-          <span>캘린더 예시 일정 {calendar.events.length}건</span><small>실제 연결 전 · 일정 보기 ›</small>
-        </button>
 
         <div aria-live="polite">
           {!hasMessages && (
@@ -687,12 +709,6 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
           </div>
         </div>
 
-        {hidden && (
-          <div className="wc-privacy">
-            <p>상담 화면을 숨겼어요</p>
-            <button type="button" onClick={() => setHidden(false)}>대화 다시 보기</button>
-          </div>
-        )}
       </section>
 
       <form className="wc-composer" autoComplete="off" onSubmit={(e) => { e.preventDefault(); if (!input.trim() || busy) return; const text = input; setInput(''); ask(text); }}>
@@ -705,11 +721,12 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
         </div>
       </form>
 
-      <ScenarioSheet open={!!sheet} tab={sheet} activeId={activeId} mode={mode} onClose={() => setSheet(null)}
+      <ScenarioSheet open={!!sheet} activeId={activeId} mode={mode} onClose={() => setSheet(null)}
         onPickSubs={backToSubs} onPickProposal={pickProposal} />
       <OsPermission open={!!osAsk} onAnswer={answerOs} />
       <CancelPage open={cancelOpen} onClose={() => setCancelOpen(false)} onCancelled={onCancelled} />
-      <TransferSheet open={transferOpen} amount={WATCHA.price} balance={demo.balance} onClose={() => setTransferOpen(false)} onDone={onTransferDone} />
+      <SubscriptionPauseSheet open={!!pauseTarget} subscription={pauseTarget} onClose={() => setPauseTarget(null)} onComplete={onCalendarCancelled} />
+      <TransferSheet open={transferOpen} amount={Number(transferTarget.price)} balance={demo.balance} onClose={() => setTransferOpen(false)} onDone={onTransferDone} />
 
       {toast && <div className="wc-toast" role="status">{toast}</div>}
     </div>

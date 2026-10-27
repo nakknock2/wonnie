@@ -29,6 +29,12 @@ describe('backend adapter', () => {
     expect(normalized).toMatchObject({ id: 'server-one', from: 'assistant', kind: 'text', text: '구독료 변동', time: '13:02' });
     expect(mergeChatMessages([normalized], [toChatMessage(message)])).toHaveLength(1);
   });
+  it('turns a structured calendar pause notice into the existing chat card message kind', () => {
+    const metadata = JSON.stringify({ signalLabel: '시험 기간', recommendations: [{ id: 'sub-watcha', name: '왓챠', price: 7900 }] });
+    expect(toChatMessage({ id: 'calendar-one', role: 'ASSISTANT', source: 'CALENDAR_PAUSE',
+      content: '잠시 중단할 구독을 확인했어요.', metadata, createdAt: '2026-10-27T13:02:03' }))
+      .toMatchObject({ kind: 'calendar-pause', metadata: { signalLabel: '시험 기간' } });
+  });
   it('adapts live subscription count, amounts and existing brand appearance', () => {
     const result = toSubscriptionCard({ dataSource: 'DATABASE', data: { projectedMonthlyCostAfterTrials: 50000, subscriptions: [{
       id: 'sub-gym', name: '연간권', amount: 600000, monthlyEquivalent: 50000, billingCycle: '매년', nextPaymentDate: '2026-11-01',

@@ -56,16 +56,23 @@ const kstDate = (value) => {
   return new Date(/(?:Z|[+-]\d{2}:\d{2})$/.test(normalized) ? normalized : `${normalized}+09:00`);
 };
 
-export const toChatMessage = (message) => ({
-  id: `server-${message.id}`,
-  from: message.role === 'USER' ? 'user' : 'assistant',
-  kind: 'text',
-  text: message.content,
-  source: message.source,
-  createdAt: kstDate(message.createdAt).getTime(),
-  time: new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
-    .format(kstDate(message.createdAt)),
-});
+export const toChatMessage = (message) => {
+  let metadata = null;
+  if (typeof message.metadata === 'string' && message.metadata) {
+    try { metadata = JSON.parse(message.metadata); } catch { /* 일반 텍스트로 표시 */ }
+  }
+  return {
+    id: `server-${message.id}`,
+    from: message.role === 'USER' ? 'user' : 'assistant',
+    kind: message.source === 'CALENDAR_PAUSE' && metadata ? 'calendar-pause' : 'text',
+    text: message.content,
+    metadata,
+    source: message.source,
+    createdAt: kstDate(message.createdAt).getTime(),
+    time: new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+      .format(kstDate(message.createdAt)),
+  };
+};
 
 export const mergeChatMessages = (...groups) => {
   const byId = new Map();

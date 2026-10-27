@@ -15,12 +15,15 @@ import java.io.IOException;
 @Component
 public class CustomerProvisioningAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
     private final GoogleCustomerProvisioningService provisioning;
+    private final com.woori.wonnie.calendar.CalendarSyncService calendarSync;
     private final SimpleUrlAuthenticationSuccessHandler redirect;
 
     public CustomerProvisioningAuthenticationSuccessHandler(
             GoogleCustomerProvisioningService provisioning,
+            com.woori.wonnie.calendar.CalendarSyncService calendarSync,
             @Value("${app.auth.frontend-url}") String frontendUrl) {
         this.provisioning = provisioning;
+        this.calendarSync = calendarSync;
         this.redirect = new SimpleUrlAuthenticationSuccessHandler(frontendUrl);
         this.redirect.setAlwaysUseDefaultTargetUrl(true);
     }
@@ -31,7 +34,8 @@ public class CustomerProvisioningAuthenticationSuccessHandler implements Authent
         if (!(authentication instanceof OAuth2AuthenticationToken oauth)) {
             throw new IllegalStateException("Google OAuth2 인증 정보가 없습니다.");
         }
-        provisioning.provisionAndRefresh(oauth);
+        var customerId = provisioning.provisionAndRefresh(oauth);
+        calendarSync.schedule(customerId, oauth.getName());
         redirect.onAuthenticationSuccess(request, response, authentication);
     }
 }

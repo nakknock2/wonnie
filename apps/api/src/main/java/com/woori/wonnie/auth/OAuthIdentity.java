@@ -69,4 +69,12 @@ public class OAuthIdentity {
     public String getCustomerId() {
         return customerId;
     }
+
+    public String getProvider() {
+        return provider;
+    }
+
+    public String getProviderSubject() {
+        return providerSubject;
+    }
 }

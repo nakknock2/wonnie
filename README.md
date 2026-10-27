@@ -29,7 +29,7 @@ pnpm dev:openai
 
 임베딩 모델은 `text-embedding-3-small`이며 기존 `OPENAI_API_KEY`를 사용한다. 첫 채팅에서 지식 문서를 한 번의 배치 요청으로 임베딩한 뒤 메모리에 보관하고, 이후에는 질문만 임베딩한다. 서버 재시작 후 첫 채팅은 다시 색인하므로 시간이 더 걸리고 OpenAI 임베딩 사용료도 발생한다. 별도 벡터 DB·MySQL 테이블은 추가하지 않는다. `SimpleVectorStore`는 해커톤용 메모리 구성이다.
 
-기존 채팅 API·프론트 디자인은 유지한다. 문서의 JSON·버튼 출력 규칙에는 현재 서버의 텍스트 응답 계약을 우선 적용한다. 문서에 적힌 자동 적립·꿀머니 전환·캘린더·설정 변경은 실행하지 않으며, 선알림 생성 경로도 이번 RAG 연결 대상이 아니다.
+기존 채팅 API·프론트 디자인은 유지한다. 문서의 JSON·버튼 출력 규칙에는 현재 서버의 텍스트 응답 계약을 우선 적용한다. RAG 문서에 적힌 자동 적립·꿀머니 전환·설정 변경은 실행하지 않는다. Google Calendar 기반 구독 중단 추천은 RAG가 아니라 별도 동기화·규칙 엔진에서 처리한다.
 
 ```bash
 # 필요할 때만 설정: 임베딩 모델 변경 / RAG 끄기
@@ -62,7 +62,7 @@ pnpm dev:infra
 - 활성 구독 7개·월 61,300원, 무료체험 추정 1개 포함 예상 69,190원.
 - 거래 184건, 카드 2개, 계좌 2개. 정확한 소득·실제 서비스 이용량 등 미연동 값은 미확인으로 안내한다.
 - 최종 진입 화면은 `apps/web/src/main.jsx` → `App.jsx`다. CSS·이미지·배치는 유지한다.
-- 일반 상담·대화 기록·읽음·미확인 알림·구독 조회는 API와 연결한다. 기존 프론트의 해지·이체·캘린더·알림 동의/기기 권한 설정은 시연 동작이다.
+- 일반 상담·대화 기록·읽음·미확인 알림·구독 조회와 Google Calendar의 바쁜 기간 감지는 API와 연결한다. 구독 해지·이체·알림 동의/기기 권한 설정은 시연 동작이다.
 - H2는 API 종료 시 초기화된다. MySQL은 새 볼륨에 대화와 읽음 상태가 남는다.
 
 ## 확인할 주소와 명령
@@ -83,7 +83,7 @@ pnpm --dir apps/web dev
 
 ## 주요 API와 검증
 
-`GET /api/dashboard`, `GET /api/finance/{topic}`, `GET /api/assistant/conversation`, `POST /api/assistant/messages`, `POST /api/assistant/conversation/read`, `GET /api/assistant/unread-count`를 제공한다. 거래 수집기는 `POST /api/internal/subscription-price-observations`로 가격 관측을 전달한다. 이 입력의 `observedAt`은 기존 API처럼 KST의 오프셋 없는 업무 시각이며 큐·DB에는 UTC로 변환한다. 같은 사건은 재처리하지 않는다.
+`GET /api/dashboard`, `GET /api/finance/{topic}`, `GET /api/assistant/conversation`, `GET /api/assistant/events`, `POST /api/assistant/messages`, `POST /api/assistant/conversation/read`, `GET /api/assistant/unread-count`를 제공한다. Google Calendar는 공개 `POST /api/calendar/webhook`에서 Google 채널 ID·비밀 토큰을 검증한 뒤 즉시 재조회하며 매일 03:15(KST)에 전체 재검증한다. 거래 수집기는 `POST /api/internal/subscription-price-observations`로 가격 관측을 전달한다. 이 입력의 `observedAt`은 기존 API처럼 KST의 오프셋 없는 업무 시각이며 큐·DB에는 UTC로 변환한다. 같은 사건은 재처리하지 않는다.
 
 Docker에서는 업무 변경과 Outbox를 함께 기록하고 RabbitMQ 워커가 처리한다. Local은 같은 로직을 동기로 실행한다. Local의 수동 안내 스캔 경로 `POST /api/internal/finance-alerts/scan`은 테스트용이며 Docker에는 노출하지 않는다.
 

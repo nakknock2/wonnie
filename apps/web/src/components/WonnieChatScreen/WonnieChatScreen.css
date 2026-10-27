@@ -39,24 +39,6 @@
 .wc-back:hover { background: #f3f5f7; }
 .wc-gallery { width: 36px; height: 36px; margin-left: 10px; border-radius: 11px; background: #e9f7d4; display: grid; place-items: center; overflow: hidden; }
 .wc-gallery img { width: 32px; height: 33px; object-fit: contain; }
-.wc-tools { height: 54px; display: grid; grid-template-columns: 1fr 1.1fr 0.9fr; align-items: center; }
-.wc-tools button {
-  height: 27px;
-  border-right: 1px solid #e5e9ed !important;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  color: #747d86 !important;
-  font-size: 14px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-.wc-tools button:last-child { border-right: 0 !important; }
-.wc-tools button:hover { color: #303740 !important; }
-.wc-tools button[aria-pressed='true'] { color: var(--wc-blue) !important; }
-
 /* ===== 대화 영역 ===== */
 .wc-conversation {
   flex: 1;
@@ -68,25 +50,6 @@
   scrollbar-width: thin;
   scrollbar-color: #d9e0e7 transparent;
 }
-.wc-service-card {
-  width: 100%;
-  height: 72px;
-  border-radius: 18px !important;
-  background: #ebedf5 !important;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 0 18px !important;
-  text-align: left;
-  color: var(--wc-text);
-  transition: background-color 0.15s;
-}
-.wc-service-card:hover { background: #e3e6f0 !important; }
-.wc-service-mark { width: 34px; height: 34px; flex: 0 0 auto; border-radius: 50%; background: #56bfe4; color: #fff; font-size: 22px; font-weight: 700; display: grid; place-items: center; }
-.wc-service-copy { flex: 1; display: flex; flex-direction: column; gap: 1px; }
-.wc-service-copy strong { font-size: 16px; line-height: 1.4; }
-.wc-service-copy small { font-size: 13px; color: #848d97; }
-
 .wc-date { height: 50px; display: flex; align-items: center; gap: 9px; color: #737c85; font-size: 12px; font-weight: 500; }
 .wc-date::before, .wc-date::after { content: ''; height: 1px; flex: 1; background: #e3e7ec; }
 .wc-connected { width: max-content; margin: 0 auto 18px; padding: 6px 11px; border-radius: 14px; background: #eef1f4; color: #68737d; font-size: 11px; font-weight: 500; display: flex; align-items: center; gap: 7px; }
@@ -330,11 +293,6 @@
 .ts-center h3 { margin: 6px 0 0; font-size: 18px; font-weight: 800; }
 .ts-center p { margin: 0; font-size: 13.5px; color: #6b7684; }
 
-/* 상담 숨기기 */
-.wc-privacy { position: absolute; inset: 0; z-index: 2; background: #f8f9fb; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
-.wc-privacy p { margin: 0; font-size: 16px; font-weight: 700; }
-.wc-privacy button { border-radius: 12px !important; background: var(--wc-blue) !important; color: #fff !important; padding: 10px 16px !important; }
-
 /* ===== 입력창 ===== */
 .wc-composer { height: 100px; flex: 0 0 auto; position: relative; display: flex; align-items: flex-start; gap: 9px; padding: 13px 20px 0 15px; background: #fff; border-top: 1px solid #edf0f3; }
 .wc-attach { width: 30px; height: 52px; flex: 0 0 auto; color: #5d666f; }
@@ -435,6 +393,29 @@
 .wc-plan b { font-weight: 700; }
 .wc-plan small { color: #1fa463; font-weight: 700; margin-left: 6px; }
 
+/* 캘린더 일정 기반 구독 중단 추천 */
+.wc-calendar-pause { display: flex; flex-direction: column; gap: 10px; }
+.wc-calendar-pause > small { color: #6b7684; font-size: 11px; }
+.wc-calendar-pause > strong { font-size: 15px; }
+.wc-calendar-pause__list { display: flex; flex-direction: column; gap: 7px; }
+.wc-screen .wc-calendar-pause__list button {
+  width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px !important;
+  border: 1px solid #e5e8eb !important; border-radius: 13px !important; background: #fafbfc !important; text-align: left;
+}
+.wc-calendar-pause__list button > span:nth-child(2) { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.wc-calendar-pause__list b { font-size: 13px; }
+.wc-calendar-pause__list small { font-size: 11px; color: #8b95a1; }
+.wc-calendar-pause__list em { font-size: 11px; font-style: normal; color: var(--wc-blue); white-space: nowrap; }
+.wc-calendar-pause__list button:disabled { opacity: 0.58; }
+
+.pause-sheet__reason { margin: 8px 0 16px; color: #6b7684; font-size: 13px; line-height: 1.55; }
+.pause-sheet__service { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 14px; background: #f5f7f9; }
+.pause-sheet__service > span { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 12px; color: #fff; font-weight: 800; }
+.pause-sheet__service > div { display: flex; flex-direction: column; gap: 3px; }
+.pause-sheet__service strong { font-size: 15px; }
+.pause-sheet__service small { font-size: 12px; color: #6b7684; }
+.wc-screen .pause-sheet__danger { background: #f04452 !important; }
+
 /* 기기 알림 권한 팝업 (iOS 형태, 모의) */
 .osp { position: absolute; inset: 0; z-index: 9; display: grid; place-items: center; padding: 40px; background: rgba(0, 0, 0, 0.35); animation: wc-in 0.2s ease; }
 .osp-box { width: 270px; border-radius: 14px; overflow: hidden; background: rgba(242, 242, 247, 0.97); backdrop-filter: blur(20px); text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', sans-serif; }
@@ -451,15 +432,6 @@
 /* =====================================================================
  * 시나리오별 절약 제안 (팀 3.agent-proposals 디자인을 상담 화면에 맞춰 이식)
  * ===================================================================== */
-.wc-screen .wp-calsrc {
-  width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px;
-  margin: -2px 0 14px; padding: 8px 10px !important;
-  border: 1px solid #e3ebda !important; border-radius: 11px !important; background: #f1f6eb !important;
-  color: #5c7650; font-size: 11px; text-align: left;
-}
-.wp-calsrc small { font-size: 9.5px; color: #87967e; }
-.wp-calsrc:active { transform: scale(0.99); }
-
 .wp-wrap { width: 100%; }
 .wp-card { width: 100%; background: #fff; border: 1px solid var(--wc-line); border-radius: 22px; padding: 19px 20px 20px; overflow: hidden; text-align: left; }
 .wp-eyebrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 10.5px; font-weight: 700; color: var(--wc-blue); }
@@ -471,10 +443,6 @@
 .wp-desc { margin: 3px 0 12px; font-size: 13px; line-height: 1.72; color: #69747e; word-break: keep-all; }
 .wp-evidence { display: flex; gap: 5px; flex-wrap: wrap; }
 .wp-evidence span { font-size: 10px; color: #5d7696; background: #f0f5fc; padding: 5px 9px; border-radius: 12px; }
-.wp-calctx { display: grid; grid-template-columns: 1fr auto; gap: 3px 6px; margin-top: 10px; padding: 10px 12px; border-radius: 11px; background: #f4f8ef; }
-.wp-calctx span { grid-column: 1 / -1; font-size: 9.5px; color: #8a9a7f; }
-.wp-calctx strong { font-size: 11.5px; color: #5c7650; }
-.wp-calctx small { font-size: 9.5px; color: #7d8c74; align-self: center; }
 .wp-metric { margin: 13px 0; padding: 12px 13px; border-radius: 14px; background: #f5f8fc; }
 .wp-metric > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .wp-metric span { font-size: 11px; color: #697786; }
@@ -522,7 +490,6 @@
 .wp-sheet__head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .wp-sheet__head h2 { margin: 0; font-size: 17px; letter-spacing: -0.04em; }
 .wc-screen .wp-sheet__x { padding: 0 4px !important; font-size: 25px; line-height: 1; color: #87929c; background: none !important; }
-.wp-sheet__lead { margin: 10px 0 14px; font-size: 12px; line-height: 1.7; color: #7d8790; }
 .wp-sheet__note { margin: 12px 0 0; font-size: 10.5px; line-height: 1.6; color: #939da7; }
 .wp-list { display: flex; flex-direction: column; gap: 7px; margin-top: 8px; }
 .wp-list__group { margin: 8px 0 1px; font-size: 11px; font-weight: 700; color: #8a949e; }
@@ -533,10 +500,4 @@
 .wc-screen .wp-list button.is-active { border-color: var(--wc-blue) !important; background: #e8f1ff !important; font-weight: 700; }
 .wc-screen .wp-list button:active { transform: scale(0.99); }
 .wp-list button small { display: block; margin-top: 2px; font-size: 10.5px; font-weight: 400; color: #8a949e; }
-.wp-events { display: flex; flex-direction: column; gap: 10px; }
-.wp-event { padding: 12px 14px; border: 1px solid #e3ebda; border-radius: 13px; background: #f7faf4; }
-.wp-event > small { font-size: 10px; color: #819672; }
-.wp-event > strong { display: block; margin-top: 3px; font-size: 14px; }
-.wp-event > p { margin: 5px 0 9px; font-size: 11px; color: #5b6570; }
-.wc-screen .wp-event > button { padding: 7px 11px !important; border-radius: 12px !important; background: #e8f1ff !important; color: #355577; font-size: 11px; }
 @media (prefers-reduced-motion: reduce) { .wp-sheet__panel, .wp-sheet__dim { animation: none !important; } }
