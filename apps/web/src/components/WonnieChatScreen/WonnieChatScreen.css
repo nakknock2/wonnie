@@ -422,7 +422,7 @@
 .wc-screen .pause-sheet__danger { background: #f04452 !important; }
 
 /* ===== 구독 가입 · 카드 추천 ===== */
-.sc-box { width: 100%; min-width: 0; max-width: 100%; padding: 15px; border: 1px solid #e7eaf0; border-radius: 20px; background: #fff; overflow: hidden; box-shadow: 0 8px 24px rgba(33, 55, 84, 0.06); }
+.sc-box { grid-column: 1 / -1; width: 100%; min-width: 0; max-width: 100%; padding: 15px; border: 1px solid #e7eaf0; border-radius: 20px; background: #fff; overflow: hidden; box-shadow: 0 8px 24px rgba(33, 55, 84, 0.06); }
 .sc-service { display: flex; align-items: center; gap: 11px; }
 .sc-service > i { width: 42px; height: 42px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 12px; background: #e50914; color: #fff; font: 900 23px/1 Arial, sans-serif; font-style: normal; }
 .sc-service > div { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
