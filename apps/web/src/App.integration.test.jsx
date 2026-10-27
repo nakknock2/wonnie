@@ -128,6 +128,50 @@ const sendQuestion = async (chat, text) => {
 };
 
 describe('merged final frontend backend connection', () => {
+  it('shows one waiting bubble until a streamed reply contains visible text', async () => {
+    enableFakeEventSource();
+    render(<App />);
+    const chat = await openChat();
+    const conversation = within(chat).getByRole('region', { name: '대화 내용' });
+    vi.useFakeTimers();
+    const request = await sendQuestion(chat, '구독목록 확인해줘');
+    const source = eventSources[0];
+    const waitingLabel = 'WONNIE가 답변을 준비하고 있어요';
+
+    act(() => source.emit('reply.started', replyEnvelope(
+      'empty-started', 'reply.started', request.requestId, 'reply-new', { userMessageId: 'user-new' },
+    )));
+    expect(conversation.querySelectorAll('.wc-message.assistant')).toHaveLength(1);
+    expect(within(conversation).getByLabelText(waitingLabel)).toBeInTheDocument();
+
+    act(() => source.emit('reply.delta', replyEnvelope(
+      'blank-delta', 'reply.delta', request.requestId, 'reply-new', { sequence: 1, delta: ' \n ' },
+    )));
+    await act(async () => { await vi.advanceTimersByTimeAsync(80); });
+    expect(conversation.querySelectorAll('.wc-message.assistant')).toHaveLength(1);
+    expect(within(conversation).getByLabelText(waitingLabel)).toBeInTheDocument();
+
+    act(() => source.emit('reply.delta', replyEnvelope(
+      'visible-delta', 'reply.delta', request.requestId, 'reply-new', { sequence: 2, delta: '확인한 구독 목록' },
+    )));
+    await act(async () => { await vi.advanceTimersByTimeAsync(240); });
+    expect(within(conversation).getByText('확인한 구독 목록')).toBeInTheDocument();
+    expect(conversation.querySelectorAll('.wc-message.assistant')).toHaveLength(1);
+    expect(within(conversation).queryByLabelText(waitingLabel)).not.toBeInTheDocument();
+
+    const userMessage = stored('user-new', 'USER', '구독목록 확인해줘');
+    const assistantMessage = stored('reply-new', 'ASSISTANT', '확인한 구독 목록입니다.');
+    history = [userMessage, assistantMessage];
+    await act(async () => source.emit('reply.completed', replyEnvelope(
+      'empty-completed', 'reply.completed', request.requestId, 'reply-new',
+      { exchange: { userMessage, assistantMessage }, unreadCount: 0 },
+    )));
+    expect(within(conversation).getByText('확인한 구독 목록입니다.')).toBeInTheDocument();
+    expect(conversation.querySelectorAll('.wc-message.assistant')).toHaveLength(1);
+    expect(within(conversation).queryByLabelText(waitingLabel)).not.toBeInTheDocument();
+    expect(requestLog.filter((entry) => entry.path === '/api/assistant/requests')).toHaveLength(1);
+  });
+
   it('keeps the home and chat layout while loading persisted history and sending to the API', async () => {
     enableFakeEventSource();
     history = [stored('previous', 'ASSISTANT', '서버에 저장된 이전 대화')];
@@ -334,7 +378,7 @@ describe('merged final frontend backend connection', () => {
   });
   it('restores saved consent choices and does not ask again', async () => {
     consentState = { subscriptionDataAgreed: true, notifications: { decided: true, d1: true, priceChange: false } };
-    render(<App />);
+    render(<App showDemoPanel />);
     await waitFor(() => expect(requestLog.some((entry) => entry.path === '/api/consents')).toBe(true));
     await new Promise((resolve) => setTimeout(resolve, 1300));
     expect(screen.queryByRole('dialog', { name: /매달 새는/ })).not.toBeInTheDocument();

@@ -129,9 +129,10 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onCons
   modeRef.current = mode;
   const resetRef = useRef(() => {});
   const busy = typing || fetchingSubscriptions || backend.sending;
+  const hasPendingAssistantText = Boolean(backend.pendingAssistantMessage?.text?.trim());
   const serverMessages = historyAfter === null ? backend.messages : backend.messages.filter((m) => m.createdAt > historyAfter);
   const visibleMessages = mergeChatMessages(messages, serverMessages,
-    [backend.pendingMessage, backend.pendingAssistantMessage].filter(Boolean));
+    [backend.pendingMessage, hasPendingAssistantText ? backend.pendingAssistantMessage : null].filter(Boolean));
 
   useEffect(() => { if (open) setHistoryAfter(null); }, [open]);
 
@@ -791,7 +792,7 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onCons
                 {m.kind !== 'proposal' && <span className="wc-time">{m.time}</span>}
               </div>
             )))}
-            {busy && !backend.pendingAssistantMessage?.text && (
+            {busy && !hasPendingAssistantText && (
               <div className="wc-message assistant">
                 <div className="wc-bubble wc-bubble--assistant wc-typing" aria-label="WONNIE가 답변을 준비하고 있어요"><span /><span /><span /></div>
               </div>
