@@ -102,6 +102,7 @@ describe('merged final frontend backend connection', () => {
     const source = eventSources[0];
     act(() => source.emit('reply.started', replyEnvelope('started-1', 'reply.started', request.requestId, 'reply-new', { userMessageId: 'user-new' })));
     act(() => source.emit('reply.delta', replyEnvelope('delta-1', 'reply.delta', request.requestId, 'reply-new', { sequence: 1, delta: '서버에서 확인한 ' })));
+    expect(within(chat).queryByText('서버에서 확인한')).not.toBeInTheDocument();
     expect(await within(chat).findByText('서버에서 확인한')).toBeInTheDocument();
     const userMessage = stored('user-new', 'USER', '내 카드 혜택 비교해줘');
     const assistantMessage = stored('reply-new', 'ASSISTANT', '서버에서 확인한 상담 답변입니다.');

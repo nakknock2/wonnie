@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { mergeChatMessages, toChatMessage, wonnieApi } from '../services/wonnieApi.js';
 import { ASSISTANT_EVENT_TYPES } from '../services/assistantEvents.ts';
 
+const TYPEWRITER_INTERVAL_MS = 16;
+
 const newRequestId = () => globalThis.crypto?.randomUUID?.()
   || 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (letter) => {
     const random = Math.floor(Math.random() * 16);
@@ -105,6 +107,8 @@ export default function useWonnieBackend(open) {
         job.lastSequence = status.lastSequence;
         const partialAnswer = typeof status.partialAnswer === 'string' ? status.partialAnswer : '';
         if (['RUNNING', 'CANCELLING', 'COMPLETING'].includes(status.status)) {
+          job.typingQueue = [];
+          job.renderedAnswer = partialAnswer;
           setPendingAssistantMessage({
             id: `pending-${requestId}-assistant`, requestId, from: 'assistant', kind: 'text',
             text: partialAnswer, createdAt: job.createdAt + 1, time: job.time,
@@ -134,6 +138,43 @@ export default function useWonnieBackend(open) {
     const controller = new AbortController();
     let source = null;
     let fallbackRequested = false;
+    let typingTimer = null;
+
+    const finishBufferedReply = (job) => {
+      const completion = job.pendingCompletion;
+      if (!completion || activeRequest.current !== job) return;
+      job.pendingCompletion = null;
+      if (!applyCompletedExchange(job.requestId, completion.exchange, completion.unreadCount)) {
+        void refresh().catch(() => {}).finally(() => settleRequest(job.requestId));
+      }
+    };
+
+    const renderNextCharacter = (job) => {
+      typingTimer = null;
+      if (controller.signal.aborted || activeRequest.current !== job) return;
+      const nextCharacter = job.typingQueue?.shift();
+      if (nextCharacter !== undefined) {
+        job.renderedAnswer = (job.renderedAnswer || '') + nextCharacter;
+        setPendingAssistantMessage({
+          id: 'pending-' + job.requestId + '-assistant', requestId: job.requestId,
+          from: 'assistant', kind: 'text', text: job.renderedAnswer,
+          createdAt: job.createdAt + 1, time: job.time,
+        });
+      }
+      if (job.typingQueue?.length) {
+        typingTimer = setTimeout(() => renderNextCharacter(job), TYPEWRITER_INTERVAL_MS);
+      } else {
+        finishBufferedReply(job);
+      }
+    };
+
+    const enqueueTypedDelta = (job, delta) => {
+      if (!Array.isArray(job.typingQueue)) job.typingQueue = [];
+      job.typingQueue.push(...Array.from(delta));
+      if (typingTimer === null) {
+        typingTimer = setTimeout(() => renderNextCharacter(job), TYPEWRITER_INTERVAL_MS);
+      }
+    };
 
     const recover = async () => {
       if (controller.signal.aborted) return;
@@ -280,17 +321,15 @@ export default function useWonnieBackend(open) {
         return;
       }
       job.lastSequence = sequence;
-      setPendingAssistantMessage((current) => ({
-        id: `pending-${job.requestId}-assistant`, requestId: job.requestId, from: 'assistant', kind: 'text',
-        text: (current?.requestId === job.requestId ? current.text : '') + delta,
-        createdAt: job.createdAt + 1, time: job.time,
-      }));
+      enqueueTypedDelta(job, delta);
     });
 
     listen('reply.completed', (envelope) => {
       const exchange = envelope.data.exchange;
-      if (!applyCompletedExchange(envelope.requestId, exchange, envelope.data.unreadCount)) {
-        const job = activeRequest.current;
+      const job = activeRequest.current;
+      if (job?.requestId === envelope.requestId && (job.typingQueue?.length || typingTimer !== null)) {
+        job.pendingCompletion = { exchange, unreadCount: envelope.data.unreadCount };
+      } else if (!applyCompletedExchange(envelope.requestId, exchange, envelope.data.unreadCount)) {
         if (job?.requestId === envelope.requestId) void recoverRequest(job.requestId);
         else void recover();
       }
@@ -319,6 +358,7 @@ export default function useWonnieBackend(open) {
 
     return () => {
       controller.abort();
+      if (typingTimer !== null) clearTimeout(typingTimer);
       source?.close();
       window.removeEventListener('focus', syncOnFocus);
     };
