@@ -116,3 +116,7 @@ pnpm verify:mcp-flow
 OpenAI 통합 테스트는 로컬 HTTP 응답 서버를 사용하고 실제 외부 모델·과금을 사용하지 않습니다. MCP 테스트는 실제 Streamable HTTP 클라이언트와 MCP 서버를 연결합니다.
 
 참고: [OpenAI Function Calling](https://developers.openai.com/api/docs/guides/function-calling), [Spring AI 도구 호출](https://docs.spring.io/spring-ai/reference/api/tools.html).
+
+## 배포
+
+`main` 브랜치에 push되면 테스트와 빌드 후 Oracle 서버에 자동 배포됩니다. 프로덕션 Docker Compose, GitHub Actions 시크릿, DNS와 HTTPS 최초 설정은 [배포 문서](infra/DEPLOYMENT.md)를 참고하세요.

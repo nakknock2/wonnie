@@ -41,5 +41,7 @@ management:
 app:
   finance:
     demo-data-enabled: true
+  auth:
+    frontend-url: http://localhost:5173
   messaging:
     enabled: false

@@ -1,0 +1,119 @@
+name: Deploy production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm and Node.js
+        uses: pnpm/setup@v3
+        with:
+          runtime: node@22
+          cache: true
+          install: false
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+          cache-dependency-path: |
+            apps/api/*.gradle
+            apps/mcp/*.gradle
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Package release
+        run: |
+          tar \
+            --exclude=.git \
+            --exclude=.github \
+            --exclude=node_modules \
+            --exclude='*/node_modules' \
+            --exclude='*/build' \
+            --exclude='*/dist' \
+            --exclude='*/.gradle' \
+            --exclude='*/bin' \
+            -czf "$RUNNER_TEMP/wonnie-${GITHUB_SHA}.tar.gz" .
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Upload release
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          scp \
+            "$RUNNER_TEMP/wonnie-${GITHUB_SHA}.tar.gz" \
+            "${SSH_USER}@${SSH_HOST}:/tmp/wonnie-${GITHUB_SHA}.tar.gz"
+
+      - name: Deploy release
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          ssh "${SSH_USER}@${SSH_HOST}" "bash -s -- '${GITHUB_SHA}'" <<'REMOTE'
+          set -Eeuo pipefail
+
+          sha="$1"
+          case "$sha" in
+            *[!0-9a-f]*|'') echo "Invalid release SHA" >&2; exit 1 ;;
+          esac
+
+          root=/srv/wonnie
+          release="$root/releases/$sha"
+          archive="/tmp/wonnie-$sha.tar.gz"
+
+          test -f "$root/shared/.env"
+          mkdir -p "$release"
+          tar -xzf "$archive" -C "$release"
+          rm -f "$archive"
+
+          cd "$release"
+          docker compose \
+            --project-name wonnie \
+            --env-file "$root/shared/.env" \
+            --file infra/docker-compose.prod.yml \
+            up --detach --build --remove-orphans --wait --wait-timeout 300
+
+          curl --fail --silent --show-error http://127.0.0.1:8083/actuator/health
+          curl --fail --silent --show-error http://127.0.0.1:3003/ >/dev/null
+          ln -sfn "$release" "$root/current"
+          REMOTE
