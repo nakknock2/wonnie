@@ -37,7 +37,17 @@ export default function App({ showDemoPanel = false, user = null }) {
   }, [dispatch]);
 
   useEffect(() => {
-    const syncCalendar = () => { void wonnieApi.syncCalendar().catch(() => {}); };
+    let reconnectingCalendar = false;
+    const syncCalendar = () => {
+      void wonnieApi.syncCalendar().catch((error) => {
+        if (error?.status !== 401 || reconnectingCalendar) return;
+        reconnectingCalendar = true;
+        const url = window.location.hostname === "wonnie.minngyuseong.com"
+          ? "https://api.wonnie.minngyuseong.com/oauth2/authorization/google"
+          : "/oauth2/authorization/google";
+        window.location.assign(url);
+      });
+    };
     syncCalendar();
     window.addEventListener("focus", syncCalendar);
     const interval = setInterval(syncCalendar, 60_000);

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.MediaType;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
 import org.springframework.stereotype.Component;
@@ -56,9 +57,14 @@ class GoogleCalendarProvider implements CalendarProvider {
                     .queryParam("showDeleted", false)
                     .queryParam("maxResults", 2500);
             if (pageToken != null) builder.queryParam("pageToken", pageToken);
-            var body = http.get().uri(builder.build(true).toUri())
-                    .headers(headers -> headers.setBearerAuth(token))
-                    .retrieve().body(String.class);
+            String body;
+            try {
+                body = http.get().uri(builder.build(true).toUri())
+                        .headers(headers -> headers.setBearerAuth(token))
+                        .retrieve().body(String.class);
+            } catch (HttpClientErrorException.Unauthorized error) {
+                throw new CalendarAuthorizationRequiredException(error);
+            }
             try {
                 var root = json.readTree(body);
                 for (var event : root.path("items")) {
@@ -83,16 +89,21 @@ class GoogleCalendarProvider implements CalendarProvider {
             String principalName, String channelId, String channelToken, LocalDateTime expiresAt
     ) {
         if (webhookUrl.isBlank()) return null;
-        var body = http.post().uri(URI.create(EVENTS + "/watch"))
-                .contentType(MediaType.APPLICATION_JSON)
-                .headers(headers -> headers.setBearerAuth(accessToken(principalName)))
-                .body(Map.of(
-                        "id", channelId,
-                        "type", "web_hook",
-                        "address", webhookUrl,
-                        "token", channelToken,
-                        "expiration", expiresAt.toInstant(ZoneOffset.UTC).toEpochMilli()))
-                .retrieve().body(String.class);
+        String body;
+        try {
+            body = http.post().uri(URI.create(EVENTS + "/watch"))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .headers(headers -> headers.setBearerAuth(accessToken(principalName)))
+                    .body(Map.of(
+                            "id", channelId,
+                            "type", "web_hook",
+                            "address", webhookUrl,
+                            "token", channelToken,
+                            "expiration", expiresAt.toInstant(ZoneOffset.UTC).toEpochMilli()))
+                    .retrieve().body(String.class);
+        } catch (HttpClientErrorException.Unauthorized error) {
+            throw new CalendarAuthorizationRequiredException(error);
+        }
         try {
             var root = json.readTree(body);
             var expiration = root.path("expiration").asLong(0);
@@ -108,7 +119,7 @@ class GoogleCalendarProvider implements CalendarProvider {
                 .principal(principalName).build();
         var client = clients.authorize(request);
         if (client == null || client.getAccessToken() == null) {
-            throw new IllegalStateException("Google Calendar 인증을 갱신할 수 없어요.");
+            throw new CalendarAuthorizationRequiredException();
         }
         return client.getAccessToken().getTokenValue();
     }

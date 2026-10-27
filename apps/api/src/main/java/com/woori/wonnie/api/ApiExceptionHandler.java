@@ -1,5 +1,6 @@
 package com.woori.wonnie.api;
 
+import com.woori.wonnie.calendar.CalendarAuthorizationRequiredException;
 import com.woori.wonnie.api.ApiDtos.ApiError;
 import com.woori.wonnie.assistant.AssistantUnavailableException;
 import com.woori.wonnie.assistant.AssistantRequestConflictException;
@@ -37,6 +38,12 @@ public class ApiExceptionHandler {
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ApiError assistantRequestNotFound(AssistantRequestNotFoundException exception) {
         return new ApiError("REQUEST_NOT_FOUND", exception.getMessage());
+    }
+
+    @ExceptionHandler(CalendarAuthorizationRequiredException.class)
+    ResponseEntity<ApiError> calendarAuthorizationRequired(CalendarAuthorizationRequiredException error) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ApiError("CALENDAR_REAUTHORIZATION_REQUIRED", error.getMessage()));
     }
 
     // Provider errors can include credentials. Log the cause chain, without request/chat bodies or raw Throwables.

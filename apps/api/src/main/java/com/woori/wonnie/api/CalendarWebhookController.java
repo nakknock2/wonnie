@@ -32,7 +32,7 @@ public class CalendarWebhookController {
 
     @PostMapping("/sync")
     public ResponseEntity<Void> sync(Authentication authentication) {
-        sync.schedule(currentCustomer.id(), authentication.getName());
+        sync.sync(currentCustomer.id(), authentication.getName());
         return ResponseEntity.noContent().build();
     }
 }
