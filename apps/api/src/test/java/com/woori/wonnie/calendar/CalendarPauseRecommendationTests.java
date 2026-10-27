@@ -5,7 +5,6 @@ import com.woori.wonnie.dashboard.DashboardService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -16,7 +15,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:wonnie-calendar-tests;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE"
 })
-@Transactional
 class CalendarPauseRecommendationTests {
     @Autowired CalendarPauseRecommendationService recommendations;
     @Autowired AssistantService assistant;
@@ -36,7 +34,8 @@ class CalendarPauseRecommendationTests {
                 .filter(message -> "CALENDAR_PAUSE".equals(message.source())).toList();
         assertThat(count).isPositive();
         assertThat(notices).hasSize(1);
-        assertThat(notices.get(0).metadata()).contains("시험 기간", "recommendations", "sub-watcha");
+        assertThat(notices.get(0).metadata()).contains(
+                "시험 기간", "recommendations", "sub-watcha", "#ff0558");
         assertThat(conversation.unreadCount()).isEqualTo(1);
     }
 

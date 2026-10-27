@@ -1,6 +1,7 @@
 package com.woori.wonnie.subscription;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,6 +12,7 @@ import java.util.List;
 public interface SubscriptionRepository extends JpaRepository<Subscription, String> {
     @Query(value = "SELECT today FROM demo_clock WHERE id=1", nativeQuery = true)
     java.time.LocalDate demoToday();
+    @EntityGraph(attributePaths = "service")
     List<Subscription> findAllByCustomerIdOrderByNextPaymentDateAsc(String customerId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

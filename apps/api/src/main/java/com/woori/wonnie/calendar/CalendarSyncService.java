@@ -5,6 +5,8 @@ import com.woori.wonnie.finance.BusinessClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -50,6 +52,15 @@ public class CalendarSyncService {
 
     @Scheduled(cron = "${app.calendar.revalidation-cron:0 15 3 * * *}", zone = "Asia/Seoul")
     public void dailyRevalidation() {
+        revalidateAllGoogleCalendars();
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void revalidateAfterStartup() {
+        revalidateAllGoogleCalendars();
+    }
+
+    private void revalidateAllGoogleCalendars() {
         identities.findAllByProvider("google")
                 .forEach(identity -> schedule(identity.getCustomerId(), identity.getProviderSubject()));
     }

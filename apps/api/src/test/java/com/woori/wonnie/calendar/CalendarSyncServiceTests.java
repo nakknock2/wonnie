@@ -1,6 +1,7 @@
 package com.woori.wonnie.calendar;
 
 import com.woori.wonnie.auth.OAuthIdentityRepository;
+import com.woori.wonnie.auth.OAuthIdentity;
 import com.woori.wonnie.finance.BusinessClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -60,5 +61,23 @@ class CalendarSyncServiceTests {
         assertThat(service.acceptWebhook("channel-1", "secret-token", "forged-state")).isFalse();
 
         verifyNoInteractions(provider, recommendations);
+    }
+
+    @Test
+    void revalidatesEveryGoogleCalendarAfterStartup() {
+        var first = mock(OAuthIdentity.class);
+        var second = mock(OAuthIdentity.class);
+        when(first.getCustomerId()).thenReturn("cust-1");
+        when(first.getProviderSubject()).thenReturn("google-1");
+        when(second.getCustomerId()).thenReturn("cust-2");
+        when(second.getProviderSubject()).thenReturn("google-2");
+        when(identities.findAllByProvider("google")).thenReturn(List.of(first, second));
+        when(clock.today()).thenReturn(LocalDate.of(2026, 10, 28));
+        when(provider.events(anyString(), any(), any())).thenReturn(List.of());
+
+        service.revalidateAfterStartup();
+
+        verify(provider).events("google-1", LocalDate.of(2026, 10, 1), LocalDate.of(2027, 1, 1));
+        verify(provider).events("google-2", LocalDate.of(2026, 10, 1), LocalDate.of(2027, 1, 1));
     }
 }
