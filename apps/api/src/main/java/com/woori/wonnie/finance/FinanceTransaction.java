@@ -7,7 +7,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "finance_transaction")
+@org.hibernate.annotations.Immutable
+@org.hibernate.annotations.Subselect("""
+    SELECT t.id,t.customer_id,t.card_id,t.subscription_id,t.merchant_name_raw AS merchant_label,
+    CASE WHEN t.category='TELECOM' THEN 'LIVING' ELSE t.category END AS category,
+    t.amount,t.original_amount,t.currency,t.exchange_rate,t.approved_at AS authorized_at,
+    t.status AS transaction_status,t.decline_reason FROM card_transaction t
+    """)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
@@ -27,6 +33,9 @@ public class FinanceTransaction {
     @Column(precision = 15, scale = 4)
     private BigDecimal exchangeRate;
     private LocalDateTime authorizedAt;
+    public LocalDateTime getAuthorizedAt() {
+        return authorizedAt.atOffset(java.time.ZoneOffset.UTC).atZoneSameInstant(java.time.ZoneId.of("Asia/Seoul")).toLocalDateTime();
+    }
     private String transactionStatus;
     private String declineReason;
 }

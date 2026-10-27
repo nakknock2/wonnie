@@ -44,12 +44,12 @@ public class OutboxEvent {
         event.payload = payload;
         event.deduplicationKey = deduplicationKey;
         event.status = "PENDING";
-        event.createdAt = LocalDateTime.now();
+        event.createdAt = LocalDateTime.now(java.time.ZoneOffset.UTC);
         return event;
     }
 
     public void markPublished() {
         status = "PUBLISHED";
-        publishedAt = LocalDateTime.now();
+        publishedAt = LocalDateTime.now(java.time.ZoneOffset.UTC);
     }
 }

@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @Entity
 @Getter
-@Table(name = "assistant_message")
+@Table(name = "chat_message")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AssistantMessage {
     @Id
@@ -22,8 +22,10 @@ public class AssistantMessage {
 
     @Column(nullable = false, length = 64)
     private String conversationId;
+    @Column(nullable = false, length = 64)
+    private String customerId;
 
-    @Column(name = "message_role", nullable = false, length = 20)
+    @Column(nullable = false, length = 10)
     private String role;
 
     @Column(nullable = false, length = 32)
@@ -40,27 +42,28 @@ public class AssistantMessage {
 
     private LocalDateTime readAt;
 
-    public static AssistantMessage userMessage(String conversationId, String content) {
-        return create(conversationId, "USER", "USER_INPUT", content, null);
+    public static AssistantMessage userMessage(String conversationId, String customerId, String content) {
+        return create(conversationId, customerId, "USER", "USER_INPUT", content, null);
     }
 
-    public static AssistantMessage assistantReply(String conversationId, String content, LocalDateTime createdAt) {
-        var message = create(conversationId, "ASSISTANT", "ASSISTANT_REPLY", content, null);
+    public static AssistantMessage assistantReply(String conversationId, String customerId, String content, LocalDateTime createdAt) {
+        var message = create(conversationId, customerId, "ASSISTANT", "ASSISTANT_REPLY", content, null);
         message.createdAt = createdAt;
         message.readAt = createdAt;
         return message;
     }
 
-    public static AssistantMessage priceIncrease(String conversationId, String content, String sourceKey) {
-        return create(conversationId, "ASSISTANT", "PRICE_INCREASE", content, sourceKey);
+    public static AssistantMessage priceIncrease(String conversationId, String customerId, String content, String sourceKey) {
+        return create(conversationId, customerId, "ASSISTANT", "PRICE_INCREASE", content, sourceKey);
     }
 
-    public static AssistantMessage financeNotice(String conversationId, String content, String sourceKey) {
-        return create(conversationId, "ASSISTANT", "FINANCE_NOTICE", content, sourceKey);
+    public static AssistantMessage financeNotice(String conversationId, String customerId, String content, String sourceKey) {
+        return create(conversationId, customerId, "ASSISTANT", "FINANCE_NOTICE", content, sourceKey);
     }
 
     private static AssistantMessage create(
             String conversationId,
+            String customerId,
             String role,
             String source,
             String content,
@@ -69,11 +72,12 @@ public class AssistantMessage {
         var message = new AssistantMessage();
         message.id = UUID.randomUUID().toString();
         message.conversationId = conversationId;
+        message.customerId = customerId;
         message.role = role;
         message.source = source;
         message.content = content;
         message.sourceKey = sourceKey;
-        message.createdAt = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
+        message.createdAt = LocalDateTime.now(java.time.ZoneOffset.UTC);
         return message;
     }
 }

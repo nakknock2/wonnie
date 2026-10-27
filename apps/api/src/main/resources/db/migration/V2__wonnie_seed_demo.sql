@@ -1,0 +1,356 @@
+-- Wonnie 최종 통합 데모 시드 / V1__wonnie_schema.sql 이후, 빈 DB에 1회 실행
+-- 원본: 사용자 제공 V2__wonnie_seed_demo.sql. 사업 사실/카드 약관은 검증하지 않은 모의 데이터.
+-- 활성 구독 7개 61,300원, 무료체험 1개 포함 예상 69,190원, 거래 184건을 유지한다.
+-- 원본의 KST 업무 시각은 UTC로 변환하고, 월별 실적은 다시 KST 업무 월로 집계한다.
+-- 기존 DB 갱신용이 아니며 원본 V2와 함께 중복 실행하지 않는다.
+SET time_zone = '+00:00';
+
+SET NAMES utf8mb4;
+
+INSERT INTO demo_clock (id, today) VALUES
+    (1, '2026-10-27');
+
+INSERT INTO customer (id, name, birth_date, region_sido, region_sigungu, occupation, income_band, easy_mode, member_since) VALUES
+    ('cust-kimwoori', '김우리', '1998-03-14', '서울특별시', '마포구', 'OFFICE_WORKER', '30M_40M', FALSE, '2021-05-10');
+
+INSERT INTO customer_preference (customer_id, notify_start_hour, notify_end_hour, muted_rows) VALUES
+    ('cust-kimwoori', 13, 14, '[]');
+
+-- 데모 시작 전 상태: 아무것도 동의하지 않음. 앱의 동의 화면에서 agreed=TRUE로 바꾼다.
+INSERT INTO consent (id, customer_id, consent_type, required, agreed) VALUES
+    ('cons-card-tx-read', 'cust-kimwoori', 'CARD_TX_READ', TRUE, FALSE),
+    ('cons-subscription-analysis', 'cust-kimwoori', 'SUBSCRIPTION_ANALYSIS', TRUE, FALSE),
+    ('cons-ai-notice', 'cust-kimwoori', 'AI_NOTICE', TRUE, FALSE),
+    ('cons-push-d1', 'cust-kimwoori', 'PUSH_D1', FALSE, FALSE),
+    ('cons-calendar-read', 'cust-kimwoori', 'CALENDAR_READ', FALSE, FALSE),
+    ('cons-calendar-write', 'cust-kimwoori', 'CALENDAR_WRITE', FALSE, FALSE),
+    ('cons-marketing', 'cust-kimwoori', 'MARKETING', FALSE, FALSE),
+    ('cons-affiliate-bank-share', 'cust-kimwoori', 'AFFILIATE_BANK_SHARE', FALSE, FALSE);
+
+INSERT INTO service (id, name, category, billing_channel, typical_price, has_trial, trial_days, usage_merchant_group, rag_doc_key, brand_color, initial_text) VALUES
+    ('svc-watcha', '왓챠', 'OTT', 'WEB', 7900, FALSE, NULL, NULL, 'SVC-WATCHA', '#ff0558', 'W'),
+    ('svc-netflix', '넷플릭스', 'OTT', 'WEB', 17000, FALSE, NULL, NULL, 'SVC-NETFLIX', '#e50914', 'N'),
+    ('svc-youtube', '유튜브 프리미엄', 'OTT', 'MIXED', 14900, TRUE, 30, NULL, 'SVC-YOUTUBE-PREMIUM', '#ff0033', '▶'),
+    ('svc-ms365', 'Microsoft 365', 'PRODUCTIVITY', 'WEB', 8900, TRUE, 30, NULL, 'SVC-MS365', '#0078d4', 'M'),
+    ('svc-tving', '티빙', 'OTT', 'WEB', 5500, FALSE, NULL, NULL, 'SVC-TVING', '#ff153c', 'T'),
+    ('svc-naverplus', '네이버플러스 멤버십', 'MEMBERSHIP', 'WEB', 4900, TRUE, 30, 'NAVER_SHOPPING', 'SVC-NAVERPLUS', '#03c75a', 'N+'),
+    ('svc-icloud', 'iCloud+', 'CLOUD', 'APP_STORE', 2200, FALSE, NULL, NULL, 'SVC-ICLOUD', '#4c8bf5', 'i'),
+    ('svc-disney', '디즈니플러스', 'OTT', 'WEB', 9900, FALSE, NULL, NULL, 'SVC-DISNEYPLUS', '#113ccf', 'D+'),
+    ('svc-coupangwow', '쿠팡 와우 멤버십', 'MEMBERSHIP', 'WEB', 7890, TRUE, 30, 'COUPANG', 'SVC-COUPANG-WOW', '#ff4e2f', 'C'),
+    ('svc-baeminclub', '배민클럽', 'MEMBERSHIP', 'APP_STORE', 3990, FALSE, NULL, 'BAEMIN', 'SVC-BAEMIN-CLUB', '#2ac1bc', 'B'),
+    ('svc-chatgpt', 'ChatGPT Plus', 'AI', 'WEB', NULL, FALSE, NULL, NULL, 'SVC-CHATGPT', '#10a37f', 'G'),
+    ('svc-skt', 'SK텔레콤 통신요금', 'TELECOM', 'AUTOPAY', NULL, FALSE, NULL, NULL, 'SVC-TELECOM', '#ea002c', 'S');
+
+INSERT INTO merchant (id, raw_name, category, service_id, is_aggregator, merchant_group) VALUES
+    ('mch-watcha', '왓챠', 'SUBSCRIPTION', 'svc-watcha', FALSE, NULL),
+    ('mch-netflix', 'NETFLIX.COM', 'SUBSCRIPTION', 'svc-netflix', FALSE, NULL),
+    ('mch-youtube', 'GOOGLE*YOUTUBE PREMIUM', 'SUBSCRIPTION', 'svc-youtube', FALSE, NULL),
+    ('mch-ms365', 'MICROSOFT*365', 'SUBSCRIPTION', 'svc-ms365', FALSE, NULL),
+    ('mch-tving', '티빙(TVING)', 'SUBSCRIPTION', 'svc-tving', FALSE, NULL),
+    ('mch-naverplus', '네이버플러스멤버십', 'SUBSCRIPTION', 'svc-naverplus', FALSE, NULL),
+    ('mch-apple', 'APPLE.COM/BILL', 'SUBSCRIPTION', NULL, TRUE, NULL),
+    ('mch-coupangwow', '쿠팡와우멤버십', 'SUBSCRIPTION', 'svc-coupangwow', FALSE, NULL),
+    ('mch-skt', 'SK텔레콤 자동납부', 'TELECOM', 'svc-skt', FALSE, 'TELECOM'),
+    ('mch-naverpay', '네이버페이', 'ONLINE_SHOPPING', NULL, TRUE, 'NAVER_SHOPPING'),
+    ('mch-coupang', '쿠팡', 'ONLINE_SHOPPING', NULL, FALSE, 'COUPANG'),
+    ('mch-baemin', '배달의민족', 'DELIVERY', NULL, FALSE, 'BAEMIN'),
+    ('mch-starbucks', '스타벅스', 'CAFE', NULL, FALSE, NULL),
+    ('mch-mega', '메가MGC커피', 'CAFE', NULL, FALSE, NULL),
+    ('mch-gs25', 'GS25', 'CONVENIENCE', NULL, FALSE, NULL),
+    ('mch-cu', 'CU', 'CONVENIENCE', NULL, FALSE, NULL),
+    ('mch-emart', '이마트', 'GROCERY', NULL, FALSE, NULL),
+    ('mch-daiso', '다이소', 'GROCERY', NULL, FALSE, NULL),
+    ('mch-oliveyoung', '올리브영', 'BEAUTY', NULL, FALSE, NULL),
+    ('mch-kakaot', '카카오T', 'TRANSPORT', NULL, FALSE, NULL),
+    ('mch-subway', '후불교통', 'TRANSPORT', NULL, FALSE, NULL),
+    ('mch-kimbap', '김밥천국', 'RESTAURANT', NULL, FALSE, NULL),
+    ('mch-bistro', '망원동 파스타집', 'RESTAURANT', NULL, FALSE, NULL),
+    ('mch-gukbap', '돼지국밥 합정점', 'RESTAURANT', NULL, FALSE, NULL);
+
+INSERT INTO card_product (id, name, card_type, annual_fee, summary, rag_doc_key) VALUES
+    ('prd-routine', '카드의정석2 ROUTINE', 'CREDIT', 0, '디지털 구독·멤버십 30%, 관리비·공과금·통신·교육·렌탈 15%, 해외 1.5% 할인 (전월실적 50만 원 이상)', 'CARD-ROUTINE'),
+    ('prd-daily', '카드의정석2 DAILY', 'CREDIT', 25000, '국내외 1% 기본 할인, 고정소비 5%, 넷플릭스·유튜브 프리미엄·티빙·디즈니플러스·T우주패스 50% (월 최대 5,000원, 전월실적 50만 원 이상)', 'CARD-DAILY'),
+    ('prd-check', '우리 체크카드(예시)', 'CHECK', 0, '데모용 일반 체크카드 · 구독 할인 혜택 없음', 'CARD-CHECK-SAMPLE');
+
+INSERT INTO card_product_benefit (id, card_product_id, benefit_area, service_id, discount_rate, monthly_cap, min_prev_month_spend, note) VALUES
+    ('ben-routine-netflix', 'prd-routine', 'DIGITAL_SUBSCRIPTION', 'svc-netflix', 30.0, 5000, 500000, '영역별 월 최대 5,000원(실적 100만 원 이상 1만 원) · 대상 서비스 실제 약관 확인 필요'),
+    ('ben-routine-youtube', 'prd-routine', 'DIGITAL_SUBSCRIPTION', 'svc-youtube', 30.0, 5000, 500000, '영역별 월 최대 5,000원(실적 100만 원 이상 1만 원) · 대상 서비스 실제 약관 확인 필요'),
+    ('ben-routine-chatgpt', 'prd-routine', 'DIGITAL_SUBSCRIPTION', 'svc-chatgpt', 30.0, 5000, 500000, '영역별 월 최대 5,000원(실적 100만 원 이상 1만 원) · 대상 서비스 실제 약관 확인 필요'),
+    ('ben-routine-watcha', 'prd-routine', 'DIGITAL_SUBSCRIPTION', 'svc-watcha', 30.0, 5000, 500000, '영역별 월 최대 5,000원(실적 100만 원 이상 1만 원) · 대상 서비스 실제 약관 확인 필요'),
+    ('ben-routine-tving', 'prd-routine', 'DIGITAL_SUBSCRIPTION', 'svc-tving', 30.0, 5000, 500000, '영역별 월 최대 5,000원(실적 100만 원 이상 1만 원) · 대상 서비스 실제 약관 확인 필요'),
+    ('ben-routine-disney', 'prd-routine', 'DIGITAL_SUBSCRIPTION', 'svc-disney', 30.0, 5000, 500000, '영역별 월 최대 5,000원(실적 100만 원 이상 1만 원) · 대상 서비스 실제 약관 확인 필요'),
+    ('ben-routine-ms365', 'prd-routine', 'DIGITAL_SUBSCRIPTION', 'svc-ms365', 30.0, 5000, 500000, '영역별 월 최대 5,000원(실적 100만 원 이상 1만 원) · 대상 서비스 실제 약관 확인 필요'),
+    ('ben-routine-coupangwow', 'prd-routine', 'MEMBERSHIP', 'svc-coupangwow', 30.0, 5000, 500000, '영역별 월 최대 5,000원 · 실제 약관 확인 필요'),
+    ('ben-routine-naverplus', 'prd-routine', 'MEMBERSHIP', 'svc-naverplus', 30.0, 5000, 500000, '영역별 월 최대 5,000원 · 실제 약관 확인 필요'),
+    ('ben-routine-baeminclub', 'prd-routine', 'MEMBERSHIP', 'svc-baeminclub', 30.0, 5000, 500000, '영역별 월 최대 5,000원 · 실제 약관 확인 필요'),
+    ('ben-daily-netflix', 'prd-daily', 'OTT', 'svc-netflix', 50.0, 5000, 500000, '구독 할인 월 최대 5,000원'),
+    ('ben-daily-youtube', 'prd-daily', 'OTT', 'svc-youtube', 50.0, 5000, 500000, '구독 할인 월 최대 5,000원'),
+    ('ben-daily-tving', 'prd-daily', 'OTT', 'svc-tving', 50.0, 5000, 500000, '구독 할인 월 최대 5,000원'),
+    ('ben-daily-disney', 'prd-daily', 'OTT', 'svc-disney', 50.0, 5000, 500000, '구독 할인 월 최대 5,000원');
+
+INSERT INTO bank_account (id, customer_id, account_type, name, account_no, balance, goal_amount, opened_on) VALUES
+    ('acct-won', 'cust-kimwoori', 'CHECKING', 'WON 통장', '1002-123-456789', 1284500, NULL, '2021-05-10'),
+    ('acct-saving', 'cust-kimwoori', 'SAVING', '워니 절약 적금', '1005-987-654321', 0, 100000, '2026-10-27');
+
+INSERT INTO card (id, customer_id, card_product_id, masked_number, expires_on, status, credit_limit, available_limit, billing_day, settlement_account_id, revolving, issued_on, annual_fee_month) VALUES
+    ('card-1234', 'cust-kimwoori', 'prd-routine', '****1234', '2031-05-31', 'ACTIVE', 5000000, 4560000, 14, 'acct-won', FALSE, '2026-06-02', 6),
+    ('card-5678', 'cust-kimwoori', 'prd-check', '****5678', '2026-11-30', 'ACTIVE', NULL, NULL, NULL, 'acct-won', FALSE, '2021-11-15', NULL);
+
+INSERT INTO point_wallet (customer_id, balance, expiring_amount, expiring_on) VALUES
+    ('cust-kimwoori', 8000, 3000, '2026-11-30');
+
+INSERT INTO subscription (id, customer_id, card_id, merchant_id, service_id, display_name, category, billing_cycle, amount, currency, previous_amount, charge_day, first_charged_on, last_charged_on, next_charge_on, status, detection_confidence, user_confirmed) VALUES
+    ('sub-watcha', 'cust-kimwoori', 'card-1234', 'mch-watcha', 'svc-watcha', '왓챠', 'OTT', 'MONTHLY', 7900, 'KRW', NULL, 28, '2025-08-28', '2026-09-28', '2026-10-28', 'ACTIVE', 0.98, FALSE),
+    ('sub-netflix', 'cust-kimwoori', 'card-5678', 'mch-netflix', 'svc-netflix', '넷플릭스', 'OTT', 'MONTHLY', 17000, 'KRW', NULL, 1, '2024-03-01', '2026-10-01', '2026-11-01', 'ACTIVE', 0.99, FALSE),
+    ('sub-youtube', 'cust-kimwoori', 'card-1234', 'mch-youtube', 'svc-youtube', '유튜브 프리미엄', 'OTT', 'MONTHLY', 14900, 'KRW', NULL, 5, '2023-12-05', '2026-10-05', '2026-11-05', 'ACTIVE', 0.99, FALSE),
+    ('sub-ms365', 'cust-kimwoori', 'card-1234', 'mch-ms365', 'svc-ms365', 'Microsoft 365', 'PRODUCTIVITY', 'MONTHLY', 8900, 'KRW', NULL, 8, '2025-03-08', '2026-10-08', '2026-11-08', 'ACTIVE', 0.97, FALSE),
+    ('sub-tving', 'cust-kimwoori', 'card-1234', 'mch-tving', 'svc-tving', '티빙', 'OTT', 'MONTHLY', 5500, 'KRW', 4900, 11, '2025-06-11', '2026-10-11', '2026-11-11', 'ACTIVE', 0.97, FALSE),
+    ('sub-naverplus', 'cust-kimwoori', 'card-1234', 'mch-naverplus', 'svc-naverplus', '네이버플러스 멤버십', 'MEMBERSHIP', 'MONTHLY', 4900, 'KRW', NULL, 15, '2024-09-15', '2026-10-15', '2026-11-15', 'ACTIVE', 0.99, FALSE),
+    ('sub-apple', 'cust-kimwoori', 'card-5678', 'mch-apple', NULL, 'Apple 구독 (어떤 앱인지 확인 필요)', 'CLOUD', 'MONTHLY', 2200, 'KRW', NULL, 20, '2025-01-20', '2026-10-20', '2026-11-20', 'ACTIVE', 0.9, FALSE),
+    ('sub-coupangwow-trial', 'cust-kimwoori', 'card-1234', 'mch-coupangwow', 'svc-coupangwow', '쿠팡 와우 멤버십 (무료체험 추정)', 'MEMBERSHIP', 'MONTHLY', 7890, 'KRW', NULL, 3, NULL, NULL, '2026-11-03', 'TRIAL', 0.75, FALSE);
+
+INSERT INTO card_transaction (id, card_id, customer_id, approved_at, merchant_id, merchant_name_raw, category, amount, currency, original_amount, status, canceled_at, decline_reason, subscription_id) VALUES
+    ('tx-0001', 'card-1234', 'cust-kimwoori', '2026-07-28 04:10:00', 'mch-watcha', '왓챠', 'SUBSCRIPTION', 7900, 'KRW', NULL, 'APPROVED', NULL, NULL, 'sub-watcha'),
+    ('tx-0002', 'card-1234', 'cust-kimwoori', '2026-07-28 11:23:00', 'mch-bistro', '망원동 파스타집', 'RESTAURANT', 33900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0003', 'card-5678', 'cust-kimwoori', '2026-07-29 09:35:00', 'mch-gs25', 'GS25', 'CONVENIENCE', 5300, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0004', 'card-1234', 'cust-kimwoori', '2026-07-29 19:23:00', 'mch-baemin', '배달의민족', 'DELIVERY', 22300, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0005', 'card-1234', 'cust-kimwoori', '2026-07-30 08:18:00', 'mch-oliveyoung', '올리브영', 'BEAUTY', 14900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0006', 'card-5678', 'cust-kimwoori', '2026-07-30 09:02:00', 'mch-gs25', 'GS25', 'CONVENIENCE', 1800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0007', 'card-1234', 'cust-kimwoori', '2026-07-31 14:15:00', 'mch-mega', '메가MGC커피', 'CAFE', 2900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0008', 'card-5678', 'cust-kimwoori', '2026-08-01 04:10:00', 'mch-netflix', 'NETFLIX.COM', 'SUBSCRIPTION', 17000, 'KRW', NULL, 'APPROVED', NULL, NULL, 'sub-netflix'),
+    ('tx-0009', 'card-5678', 'cust-kimwoori', '2026-08-01 08:43:00', 'mch-gs25', 'GS25', 'CONVENIENCE', 5200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0010', 'card-5678', 'cust-kimwoori', '2026-08-02 10:18:00', 'mch-mega', '메가MGC커피', 'CAFE', 2900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0011', 'card-1234', 'cust-kimwoori', '2026-08-02 11:49:00', 'mch-baemin', '배달의민족', 'DELIVERY', 13100, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0012', 'card-5678', 'cust-kimwoori', '2026-08-02 16:16:00', 'mch-kimbap', '김밥천국', 'RESTAURANT', 7900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0013', 'card-1234', 'cust-kimwoori', '2026-08-03 05:00:00', 'mch-subway', '후불교통', 'TRANSPORT', 54400, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0014', 'card-1234', 'cust-kimwoori', '2026-08-03 14:44:00', 'mch-cu', 'CU', 'CONVENIENCE', 1000, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0015', 'card-1234', 'cust-kimwoori', '2026-08-03 16:24:00', 'mch-kakaot', '카카오T', 'TRANSPORT', 6500, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0016', 'card-1234', 'cust-kimwoori', '2026-08-03 17:17:00', 'mch-cu', 'CU', 'CONVENIENCE', 4000, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0017', 'card-1234', 'cust-kimwoori', '2026-08-04 09:27:00', 'mch-emart', '이마트', 'GROCERY', 17400, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0018', 'card-1234', 'cust-kimwoori', '2026-08-04 10:51:00', 'mch-baemin', '배달의민족', 'DELIVERY', 13700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0019', 'card-1234', 'cust-kimwoori', '2026-08-04 15:43:00', 'mch-kakaot', '카카오T', 'TRANSPORT', 8800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0020', 'card-1234', 'cust-kimwoori', '2026-08-05 04:10:00', 'mch-youtube', 'GOOGLE*YOUTUBE PREMIUM', 'SUBSCRIPTION', 14900, 'KRW', NULL, 'APPROVED', NULL, NULL, 'sub-youtube'),
+    ('tx-0021', 'card-1234', 'cust-kimwoori', '2026-08-06 16:29:00', 'mch-starbucks', '스타벅스', 'CAFE', 3100, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0022', 'card-1234', 'cust-kimwoori', '2026-08-07 09:09:00', 'mch-mega', '메가MGC커피', 'CAFE', 2200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0023', 'card-5678', 'cust-kimwoori', '2026-08-07 15:45:00', 'mch-kimbap', '김밥천국', 'RESTAURANT', 7500, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0024', 'card-1234', 'cust-kimwoori', '2026-08-08 04:10:00', 'mch-ms365', 'MICROSOFT*365', 'SUBSCRIPTION', 8900, 'KRW', NULL, 'APPROVED', NULL, NULL, 'sub-ms365'),
+    ('tx-0025', 'card-1234', 'cust-kimwoori', '2026-08-08 09:42:00', 'mch-gukbap', '돼지국밥 합정점', 'RESTAURANT', 6000, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0026', 'card-5678', 'cust-kimwoori', '2026-08-08 19:28:00', 'mch-mega', '메가MGC커피', 'CAFE', 3200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0027', 'card-5678', 'cust-kimwoori', '2026-08-09 15:10:00', 'mch-kimbap', '김밥천국', 'RESTAURANT', 9000, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0028', 'card-1234', 'cust-kimwoori', '2026-08-09 19:20:00', 'mch-oliveyoung', '올리브영', 'BEAUTY', 7900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0029', 'card-1234', 'cust-kimwoori', '2026-08-09 21:31:00', 'mch-kimbap', '김밥천국', 'RESTAURANT', 2900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0030', 'card-5678', 'cust-kimwoori', '2026-08-10 09:20:00', 'mch-mega', '메가MGC커피', 'CAFE', 2200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0031', 'card-1234', 'cust-kimwoori', '2026-08-10 13:34:00', 'mch-starbucks', '스타벅스', 'CAFE', 2800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0032', 'card-1234', 'cust-kimwoori', '2026-08-10 17:25:00', 'mch-gs25', 'GS25', 'CONVENIENCE', 4900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0033', 'card-1234', 'cust-kimwoori', '2026-08-11 04:10:00', 'mch-tving', '티빙(TVING)', 'SUBSCRIPTION', 4900, 'KRW', NULL, 'APPROVED', NULL, NULL, 'sub-tving'),
+    ('tx-0034', 'card-1234', 'cust-kimwoori', '2026-08-11 08:07:00', 'mch-kakaot', '카카오T', 'TRANSPORT', 4800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0035', 'card-1234', 'cust-kimwoori', '2026-08-13 11:17:00', 'mch-baemin', '배달의민족', 'DELIVERY', 15100, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0036', 'card-1234', 'cust-kimwoori', '2026-08-13 19:17:00', 'mch-coupang', '쿠팡', 'ONLINE_SHOPPING', 20300, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0037', 'card-1234', 'cust-kimwoori', '2026-08-14 11:14:00', 'mch-kakaot', '카카오T', 'TRANSPORT', 9300, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0038', 'card-1234', 'cust-kimwoori', '2026-08-14 13:48:00', 'mch-oliveyoung', '올리브영', 'BEAUTY', 14800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0039', 'card-1234', 'cust-kimwoori', '2026-08-15 04:10:00', 'mch-naverplus', '네이버플러스멤버십', 'SUBSCRIPTION', 4900, 'KRW', NULL, 'APPROVED', NULL, NULL, 'sub-naverplus'),
+    ('tx-0040', 'card-1234', 'cust-kimwoori', '2026-08-15 09:42:00', 'mch-bistro', '망원동 파스타집', 'RESTAURANT', 14200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0041', 'card-5678', 'cust-kimwoori', '2026-08-17 10:21:00', 'mch-mega', '메가MGC커피', 'CAFE', 2900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0042', 'card-1234', 'cust-kimwoori', '2026-08-17 16:26:00', 'mch-baemin', '배달의민족', 'DELIVERY', 15900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0043', 'card-1234', 'cust-kimwoori', '2026-08-17 20:15:00', 'mch-naverpay', '네이버페이', 'ONLINE_SHOPPING', 15900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0044', 'card-5678', 'cust-kimwoori', '2026-08-18 18:35:00', 'mch-starbucks', '스타벅스', 'CAFE', 5200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0045', 'card-1234', 'cust-kimwoori', '2026-08-18 20:55:00', 'mch-kakaot', '카카오T', 'TRANSPORT', 5500, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0046', 'card-1234', 'cust-kimwoori', '2026-08-19 14:22:00', 'mch-cu', 'CU', 'CONVENIENCE', 1800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0047', 'card-5678', 'cust-kimwoori', '2026-08-20 04:10:00', 'mch-apple', 'APPLE.COM/BILL', 'SUBSCRIPTION', 2200, 'KRW', NULL, 'APPROVED', NULL, NULL, 'sub-apple'),
+    ('tx-0048', 'card-1234', 'cust-kimwoori', '2026-08-20 11:44:00', 'mch-kakaot', '카카오T', 'TRANSPORT', 7600, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0049', 'card-1234', 'cust-kimwoori', '2026-08-20 17:19:00', 'mch-coupang', '쿠팡', 'ONLINE_SHOPPING', 6900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0050', 'card-1234', 'cust-kimwoori', '2026-08-21 15:58:00', 'mch-emart', '이마트', 'GROCERY', 39500, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0051', 'card-1234', 'cust-kimwoori', '2026-08-22 10:02:00', 'mch-oliveyoung', '올리브영', 'BEAUTY', 16900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0052', 'card-5678', 'cust-kimwoori', '2026-08-22 13:18:00', 'mch-cu', 'CU', 'CONVENIENCE', 3700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0053', 'card-5678', 'cust-kimwoori', '2026-08-22 16:40:00', 'mch-gs25', 'GS25', 'CONVENIENCE', 2200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0054', 'card-5678', 'cust-kimwoori', '2026-08-24 19:58:00', 'mch-gukbap', '돼지국밥 합정점', 'RESTAURANT', 9600, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0055', 'card-1234', 'cust-kimwoori', '2026-08-25 06:00:00', 'mch-skt', 'SK텔레콤 자동납부', 'TELECOM', 69000, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0056', 'card-1234', 'cust-kimwoori', '2026-08-25 09:55:00', 'mch-coupang', '쿠팡', 'ONLINE_SHOPPING', 21700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0057', 'card-5678', 'cust-kimwoori', '2026-08-25 10:12:00', 'mch-mega', '메가MGC커피', 'CAFE', 3200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0058', 'card-1234', 'cust-kimwoori', '2026-08-25 14:31:00', 'mch-coupang', '쿠팡', 'ONLINE_SHOPPING', 8100, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0059', 'card-1234', 'cust-kimwoori', '2026-08-25 20:49:00', 'mch-starbucks', '스타벅스', 'CAFE', 4000, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0060', 'card-1234', 'cust-kimwoori', '2026-08-26 14:26:00', 'mch-cu', 'CU', 'CONVENIENCE', 3900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0061', 'card-1234', 'cust-kimwoori', '2026-08-26 22:43:00', 'mch-kakaot', '카카오T', 'TRANSPORT', 6700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0062', 'card-1234', 'cust-kimwoori', '2026-08-28 04:10:00', 'mch-watcha', '왓챠', 'SUBSCRIPTION', 7900, 'KRW', NULL, 'APPROVED', NULL, NULL, 'sub-watcha'),
+    ('tx-0063', 'card-5678', 'cust-kimwoori', '2026-08-28 18:59:00', 'mch-gs25', 'GS25', 'CONVENIENCE', 8200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0064', 'card-1234', 'cust-kimwoori', '2026-08-28 20:21:00', 'mch-mega', '메가MGC커피', 'CAFE', 1900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0065', 'card-1234', 'cust-kimwoori', '2026-08-30 08:50:00', 'mch-mega', '메가MGC커피', 'CAFE', 2200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0066', 'card-1234', 'cust-kimwoori', '2026-08-30 21:36:00', 'mch-kimbap', '김밥천국', 'RESTAURANT', 3900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0067', 'card-1234', 'cust-kimwoori', '2026-08-31 16:26:00', 'mch-coupang', '쿠팡', 'ONLINE_SHOPPING', 11200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0068', 'card-1234', 'cust-kimwoori', '2026-08-31 16:48:00', 'mch-coupang', '쿠팡', 'ONLINE_SHOPPING', 8700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0069', 'card-5678', 'cust-kimwoori', '2026-08-31 18:34:00', 'mch-mega', '메가MGC커피', 'CAFE', 3800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0070', 'card-5678', 'cust-kimwoori', '2026-09-01 04:10:00', 'mch-netflix', 'NETFLIX.COM', 'SUBSCRIPTION', 17000, 'KRW', NULL, 'APPROVED', NULL, NULL, 'sub-netflix'),
+    ('tx-0071', 'card-1234', 'cust-kimwoori', '2026-09-02 10:32:00', 'mch-kakaot', '카카오T', 'TRANSPORT', 5800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0072', 'card-1234', 'cust-kimwoori', '2026-09-03 05:00:00', 'mch-subway', '후불교통', 'TRANSPORT', 59600, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0073', 'card-1234', 'cust-kimwoori', '2026-09-03 10:04:00', 'mch-cu', 'CU', 'CONVENIENCE', 4000, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0074', 'card-1234', 'cust-kimwoori', '2026-09-04 20:57:00', 'mch-kakaot', '카카오T', 'TRANSPORT', 5900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0075', 'card-1234', 'cust-kimwoori', '2026-09-05 04:10:00', 'mch-youtube', 'GOOGLE*YOUTUBE PREMIUM', 'SUBSCRIPTION', 14900, 'KRW', NULL, 'APPROVED', NULL, NULL, 'sub-youtube'),
+    ('tx-0076', 'card-1234', 'cust-kimwoori', '2026-09-06 11:57:00', 'mch-gukbap', '돼지국밥 합정점', 'RESTAURANT', 6100, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0077', 'card-1234', 'cust-kimwoori', '2026-09-06 18:40:00', 'mch-starbucks', '스타벅스', 'CAFE', 3800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0078', 'card-1234', 'cust-kimwoori', '2026-09-07 08:39:00', 'mch-kakaot', '카카오T', 'TRANSPORT', 5700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0079', 'card-1234', 'cust-kimwoori', '2026-09-07 12:10:00', 'mch-starbucks', '스타벅스', 'CAFE', 4200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0080', 'card-5678', 'cust-kimwoori', '2026-09-07 13:56:00', 'mch-mega', '메가MGC커피', 'CAFE', 2800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0081', 'card-1234', 'cust-kimwoori', '2026-09-07 14:25:00', 'mch-coupang', '쿠팡', 'ONLINE_SHOPPING', 14200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0082', 'card-1234', 'cust-kimwoori', '2026-09-08 04:10:00', 'mch-ms365', 'MICROSOFT*365', 'SUBSCRIPTION', 8900, 'KRW', NULL, 'APPROVED', NULL, NULL, 'sub-ms365'),
+    ('tx-0083', 'card-1234', 'cust-kimwoori', '2026-09-08 10:14:00', 'mch-starbucks', '스타벅스', 'CAFE', 3800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0084', 'card-5678', 'cust-kimwoori', '2026-09-10 08:17:00', 'mch-mega', '메가MGC커피', 'CAFE', 3800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0085', 'card-1234', 'cust-kimwoori', '2026-09-10 12:26:00', 'mch-kimbap', '김밥천국', 'RESTAURANT', 4400, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0086', 'card-1234', 'cust-kimwoori', '2026-09-11 04:10:00', 'mch-tving', '티빙(TVING)', 'SUBSCRIPTION', 5500, 'KRW', NULL, 'APPROVED', NULL, NULL, 'sub-tving'),
+    ('tx-0087', 'card-5678', 'cust-kimwoori', '2026-09-11 11:10:00', 'mch-gukbap', '돼지국밥 합정점', 'RESTAURANT', 10500, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0088', 'card-1234', 'cust-kimwoori', '2026-09-11 17:20:00', 'mch-baemin', '배달의민족', 'DELIVERY', 7600, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0089', 'card-1234', 'cust-kimwoori', '2026-09-11 17:58:00', 'mch-kakaot', '카카오T', 'TRANSPORT', 6500, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0090', 'card-1234', 'cust-kimwoori', '2026-09-11 20:38:00', 'mch-oliveyoung', '올리브영', 'BEAUTY', 10700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0091', 'card-5678', 'cust-kimwoori', '2026-09-12 09:52:00', 'mch-mega', '메가MGC커피', 'CAFE', 2700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0092', 'card-5678', 'cust-kimwoori', '2026-09-12 11:42:00', 'mch-starbucks', '스타벅스', 'CAFE', 7800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0093', 'card-5678', 'cust-kimwoori', '2026-09-14 10:51:00', 'mch-gs25', 'GS25', 'CONVENIENCE', 4600, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0094', 'card-1234', 'cust-kimwoori', '2026-09-15 04:10:00', 'mch-naverplus', '네이버플러스멤버십', 'SUBSCRIPTION', 4900, 'KRW', NULL, 'APPROVED', NULL, NULL, 'sub-naverplus'),
+    ('tx-0095', 'card-1234', 'cust-kimwoori', '2026-09-15 15:50:00', 'mch-gs25', 'GS25', 'CONVENIENCE', 3500, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0096', 'card-1234', 'cust-kimwoori', '2026-09-15 18:32:00', 'mch-baemin', '배달의민족', 'DELIVERY', 16800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0097', 'card-1234', 'cust-kimwoori', '2026-09-16 20:19:00', 'mch-gukbap', '돼지국밥 합정점', 'RESTAURANT', 5700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0098', 'card-5678', 'cust-kimwoori', '2026-09-17 09:25:00', 'mch-daiso', '다이소', 'GROCERY', 11300, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0099', 'card-5678', 'cust-kimwoori', '2026-09-17 11:36:00', 'mch-mega', '메가MGC커피', 'CAFE', 2600, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0100', 'card-1234', 'cust-kimwoori', '2026-09-17 13:26:00', 'mch-gs25', 'GS25', 'CONVENIENCE', 1700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0101', 'card-1234', 'cust-kimwoori', '2026-09-18 22:08:00', 'mch-starbucks', '스타벅스', 'CAFE', 3900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0102', 'card-5678', 'cust-kimwoori', '2026-09-18 22:37:00', 'mch-starbucks', '스타벅스', 'CAFE', 7800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0103', 'card-1234', 'cust-kimwoori', '2026-09-19 19:25:00', 'mch-mega', '메가MGC커피', 'CAFE', 1300, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0104', 'card-5678', 'cust-kimwoori', '2026-09-20 04:10:00', 'mch-apple', 'APPLE.COM/BILL', 'SUBSCRIPTION', 2200, 'KRW', NULL, 'APPROVED', NULL, NULL, 'sub-apple'),
+    ('tx-0105', 'card-1234', 'cust-kimwoori', '2026-09-20 10:15:00', 'mch-emart', '이마트', 'GROCERY', 41300, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0106', 'card-1234', 'cust-kimwoori', '2026-09-21 14:55:00', 'mch-emart', '이마트', 'GROCERY', 19800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0107', 'card-1234', 'cust-kimwoori', '2026-09-21 18:45:00', 'mch-starbucks', '스타벅스', 'CAFE', 3900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0108', 'card-5678', 'cust-kimwoori', '2026-09-21 19:07:00', 'mch-cu', 'CU', 'CONVENIENCE', 7700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0109', 'card-1234', 'cust-kimwoori', '2026-09-22 20:15:00', 'mch-naverpay', '네이버페이', 'ONLINE_SHOPPING', 13200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0110', 'card-5678', 'cust-kimwoori', '2026-09-23 11:29:00', 'mch-mega', '메가MGC커피', 'CAFE', 2800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0111', 'card-1234', 'cust-kimwoori', '2026-09-23 15:38:00', 'mch-starbucks', '스타벅스', 'CAFE', 3700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0112', 'card-1234', 'cust-kimwoori', '2026-09-23 18:18:00', 'mch-cu', 'CU', 'CONVENIENCE', 1700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0113', 'card-5678', 'cust-kimwoori', '2026-09-23 19:12:00', 'mch-mega', '메가MGC커피', 'CAFE', 3700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0114', 'card-1234', 'cust-kimwoori', '2026-09-24 11:19:00', 'mch-emart', '이마트', 'GROCERY', 28700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0115', 'card-1234', 'cust-kimwoori', '2026-09-24 22:43:00', 'mch-emart', '이마트', 'GROCERY', 40300, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0116', 'card-1234', 'cust-kimwoori', '2026-09-25 06:00:00', 'mch-skt', 'SK텔레콤 자동납부', 'TELECOM', 69000, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0117', 'card-1234', 'cust-kimwoori', '2026-09-25 21:28:00', 'mch-gukbap', '돼지국밥 합정점', 'RESTAURANT', 5500, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0118', 'card-1234', 'cust-kimwoori', '2026-09-26 14:05:00', 'mch-baemin', '배달의민족', 'DELIVERY', 12800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0119', 'card-1234', 'cust-kimwoori', '2026-09-26 14:05:00', 'mch-kakaot', '카카오T', 'TRANSPORT', 8800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0120', 'card-1234', 'cust-kimwoori', '2026-09-28 04:10:00', 'mch-watcha', '왓챠', 'SUBSCRIPTION', 7900, 'KRW', NULL, 'APPROVED', NULL, NULL, 'sub-watcha'),
+    ('tx-0121', 'card-5678', 'cust-kimwoori', '2026-09-28 15:06:00', 'mch-cu', 'CU', 'CONVENIENCE', 2800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0122', 'card-1234', 'cust-kimwoori', '2026-09-28 17:19:00', 'mch-gs25', 'GS25', 'CONVENIENCE', 1000, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0123', 'card-5678', 'cust-kimwoori', '2026-09-28 22:33:00', 'mch-gs25', 'GS25', 'CONVENIENCE', 8200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0124', 'card-5678', 'cust-kimwoori', '2026-09-30 10:54:00', 'mch-kimbap', '김밥천국', 'RESTAURANT', 6200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0125', 'card-1234', 'cust-kimwoori', '2026-09-30 19:58:00', 'mch-starbucks', '스타벅스', 'CAFE', 3000, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0126', 'card-5678', 'cust-kimwoori', '2026-10-01 04:10:00', 'mch-netflix', 'NETFLIX.COM', 'SUBSCRIPTION', 17000, 'KRW', NULL, 'APPROVED', NULL, NULL, 'sub-netflix'),
+    ('tx-0127', 'card-1234', 'cust-kimwoori', '2026-10-01 21:23:00', 'mch-coupang', '쿠팡', 'ONLINE_SHOPPING', 8200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0128', 'card-1234', 'cust-kimwoori', '2026-10-02 09:10:00', 'mch-kimbap', '김밥천국', 'RESTAURANT', 3000, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0129', 'card-1234', 'cust-kimwoori', '2026-10-02 22:47:00', 'mch-gukbap', '돼지국밥 합정점', 'RESTAURANT', 4800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0130', 'card-1234', 'cust-kimwoori', '2026-10-03 13:33:00', 'mch-gs25', 'GS25', 'CONVENIENCE', 1700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0131', 'card-5678', 'cust-kimwoori', '2026-10-03 19:40:00', 'mch-mega', '메가MGC커피', 'CAFE', 4500, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0132', 'card-1234', 'cust-kimwoori', '2026-10-03 21:42:00', 'mch-coupangwow', '쿠팡와우멤버십', 'SUBSCRIPTION', 100, 'KRW', NULL, 'CANCELED', '2026-10-03 21:43:00', NULL, 'sub-coupangwow-trial'),
+    ('tx-0133', 'card-1234', 'cust-kimwoori', '2026-10-04 08:04:00', 'mch-baemin', '배달의민족', 'DELIVERY', 13500, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0134', 'card-1234', 'cust-kimwoori', '2026-10-04 12:38:00', 'mch-starbucks', '스타벅스', 'CAFE', 3200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0135', 'card-1234', 'cust-kimwoori', '2026-10-04 16:24:00', 'mch-kimbap', '김밥천국', 'RESTAURANT', 4200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0136', 'card-1234', 'cust-kimwoori', '2026-10-05 04:10:00', 'mch-youtube', 'GOOGLE*YOUTUBE PREMIUM', 'SUBSCRIPTION', 14900, 'KRW', NULL, 'APPROVED', NULL, NULL, 'sub-youtube'),
+    ('tx-0137', 'card-1234', 'cust-kimwoori', '2026-10-05 05:00:00', 'mch-subway', '후불교통', 'TRANSPORT', 54400, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0138', 'card-5678', 'cust-kimwoori', '2026-10-05 08:11:00', 'mch-cu', 'CU', 'CONVENIENCE', 5500, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0139', 'card-5678', 'cust-kimwoori', '2026-10-05 11:52:00', 'mch-mega', '메가MGC커피', 'CAFE', 3100, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0140', 'card-1234', 'cust-kimwoori', '2026-10-05 11:53:00', 'mch-coupang', '쿠팡', 'ONLINE_SHOPPING', 16300, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0141', 'card-1234', 'cust-kimwoori', '2026-10-05 21:45:00', 'mch-starbucks', '스타벅스', 'CAFE', 2800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0142', 'card-1234', 'cust-kimwoori', '2026-10-06 19:27:00', 'mch-mega', '메가MGC커피', 'CAFE', 1000, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0143', 'card-1234', 'cust-kimwoori', '2026-10-06 22:14:00', 'mch-coupang', '쿠팡', 'ONLINE_SHOPPING', 7400, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0144', 'card-1234', 'cust-kimwoori', '2026-10-07 11:12:00', 'mch-gukbap', '돼지국밥 합정점', 'RESTAURANT', 4700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0145', 'card-1234', 'cust-kimwoori', '2026-10-07 14:58:00', 'mch-baemin', '배달의민족', 'DELIVERY', 14400, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0146', 'card-5678', 'cust-kimwoori', '2026-10-07 15:11:00', 'mch-gs25', 'GS25', 'CONVENIENCE', 3700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0147', 'card-5678', 'cust-kimwoori', '2026-10-07 17:57:00', 'mch-mega', '메가MGC커피', 'CAFE', 4300, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0148', 'card-1234', 'cust-kimwoori', '2026-10-08 04:10:00', 'mch-ms365', 'MICROSOFT*365', 'SUBSCRIPTION', 8900, 'KRW', NULL, 'APPROVED', NULL, NULL, 'sub-ms365'),
+    ('tx-0149', 'card-1234', 'cust-kimwoori', '2026-10-08 20:14:00', 'mch-starbucks', '스타벅스', 'CAFE', 3600, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0150', 'card-1234', 'cust-kimwoori', '2026-10-09 09:07:00', 'mch-cu', 'CU', 'CONVENIENCE', 3100, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0151', 'card-1234', 'cust-kimwoori', '2026-10-10 14:36:00', 'mch-cu', 'CU', 'CONVENIENCE', 1100, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0152', 'card-1234', 'cust-kimwoori', '2026-10-10 20:03:00', 'mch-baemin', '배달의민족', 'DELIVERY', 11700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0153', 'card-1234', 'cust-kimwoori', '2026-10-10 22:16:00', 'mch-oliveyoung', '올리브영', 'BEAUTY', 16400, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0154', 'card-1234', 'cust-kimwoori', '2026-10-11 04:10:00', 'mch-tving', '티빙(TVING)', 'SUBSCRIPTION', 5500, 'KRW', NULL, 'APPROVED', NULL, NULL, 'sub-tving'),
+    ('tx-0155', 'card-1234', 'cust-kimwoori', '2026-10-12 11:11:00', 'mch-mega', '메가MGC커피', 'CAFE', 1700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0156', 'card-1234', 'cust-kimwoori', '2026-10-12 11:50:00', 'mch-gs25', 'GS25', 'CONVENIENCE', 3700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0157', 'card-1234', 'cust-kimwoori', '2026-10-12 12:07:00', 'mch-gs25', 'GS25', 'CONVENIENCE', 4500, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0158', 'card-5678', 'cust-kimwoori', '2026-10-12 17:02:00', 'mch-daiso', '다이소', 'GROCERY', 5400, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0159', 'card-1234', 'cust-kimwoori', '2026-10-12 20:57:00', 'mch-mega', '메가MGC커피', 'CAFE', 1700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0160', 'card-5678', 'cust-kimwoori', '2026-10-12 21:19:00', 'mch-gukbap', '돼지국밥 합정점', 'RESTAURANT', 11800, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0161', 'card-1234', 'cust-kimwoori', '2026-10-15 04:10:00', 'mch-naverplus', '네이버플러스멤버십', 'SUBSCRIPTION', 4900, 'KRW', NULL, 'APPROVED', NULL, NULL, 'sub-naverplus'),
+    ('tx-0162', 'card-1234', 'cust-kimwoori', '2026-10-15 14:10:00', 'mch-mega', '메가MGC커피', 'CAFE', 1100, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0163', 'card-5678', 'cust-kimwoori', '2026-10-17 12:30:00', 'mch-mega', '메가MGC커피', 'CAFE', 3500, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0164', 'card-1234', 'cust-kimwoori', '2026-10-17 14:06:00', 'mch-starbucks', '스타벅스', 'CAFE', 3100, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0165', 'card-5678', 'cust-kimwoori', '2026-10-17 19:24:00', 'mch-kimbap', '김밥천국', 'RESTAURANT', 9500, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0166', 'card-5678', 'cust-kimwoori', '2026-10-18 09:35:00', 'mch-gukbap', '돼지국밥 합정점', 'RESTAURANT', 12000, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0167', 'card-1234', 'cust-kimwoori', '2026-10-18 20:20:00', 'mch-coupang', '쿠팡', 'ONLINE_SHOPPING', 19500, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0168', 'card-1234', 'cust-kimwoori', '2026-10-19 20:03:00', 'mch-gs25', 'GS25', 'CONVENIENCE', 2900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0169', 'card-1234', 'cust-kimwoori', '2026-10-19 20:15:00', 'mch-naverpay', '네이버페이', 'ONLINE_SHOPPING', 15300, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0170', 'card-5678', 'cust-kimwoori', '2026-10-20 04:10:00', 'mch-apple', 'APPLE.COM/BILL', 'SUBSCRIPTION', 2200, 'KRW', NULL, 'APPROVED', NULL, NULL, 'sub-apple'),
+    ('tx-0171', 'card-5678', 'cust-kimwoori', '2026-10-20 10:08:00', 'mch-gs25', 'GS25', 'CONVENIENCE', 3300, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0172', 'card-1234', 'cust-kimwoori', '2026-10-22 17:39:00', 'mch-bistro', '망원동 파스타집', 'RESTAURANT', 17900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0173', 'card-1234', 'cust-kimwoori', '2026-10-22 22:46:00', 'mch-bistro', '망원동 파스타집', 'RESTAURANT', 13500, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0174', 'card-1234', 'cust-kimwoori', '2026-10-24 08:17:00', 'mch-kakaot', '카카오T', 'TRANSPORT', 5200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0175', 'card-1234', 'cust-kimwoori', '2026-10-24 11:59:00', 'mch-starbucks', '스타벅스', 'CAFE', 2900, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0176', 'card-1234', 'cust-kimwoori', '2026-10-24 20:20:00', 'mch-starbucks', '스타벅스', 'CAFE', 2200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0177', 'card-5678', 'cust-kimwoori', '2026-10-24 22:24:00', 'mch-gs25', 'GS25', 'CONVENIENCE', 2500, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0178', 'card-1234', 'cust-kimwoori', '2026-10-25 06:00:00', 'mch-skt', 'SK텔레콤 자동납부', 'TELECOM', 69000, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0179', 'card-1234', 'cust-kimwoori', '2026-10-25 08:59:00', 'mch-baemin', '배달의민족', 'DELIVERY', 13000, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0180', 'card-1234', 'cust-kimwoori', '2026-10-25 09:10:00', 'mch-coupang', '쿠팡', 'ONLINE_SHOPPING', 5400, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0181', 'card-1234', 'cust-kimwoori', '2026-10-25 10:28:00', 'mch-starbucks', '스타벅스', 'CAFE', 2700, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0182', 'card-1234', 'cust-kimwoori', '2026-10-25 18:59:00', 'mch-starbucks', '스타벅스', 'CAFE', 3600, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0183', 'card-1234', 'cust-kimwoori', '2026-10-26 17:57:00', 'mch-starbucks', '스타벅스', 'CAFE', 2200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL),
+    ('tx-0184', 'card-1234', 'cust-kimwoori', '2026-10-26 21:11:00', 'mch-baemin', '배달의민족', 'DELIVERY', 11200, 'KRW', NULL, 'APPROVED', NULL, NULL, NULL);
+
+-- 제공 생성기의 시간대 없는 승인 시각은 KST 업무 시각으로 해석하여 UTC로 저장한다.
+UPDATE card_transaction SET approved_at = CONVERT_TZ(approved_at, '+09:00', '+00:00'),
+    canceled_at = CONVERT_TZ(canceled_at, '+09:00', '+00:00');
+UPDATE card_transaction SET original_amount = amount, exchange_rate = 1 WHERE currency = 'KRW';
+UPDATE subscription SET original_amount = amount WHERE currency = 'KRW';
+
+-- 월별 이용실적은 승인 내역에서 집계 (승인 건만)
+INSERT INTO card_monthly_stat (card_id, ym, spend_amount, tx_count, benefit_discount_used)
+SELECT card_id, DATE_FORMAT(CONVERT_TZ(approved_at, '+00:00', '+09:00'), '%Y-%m'), SUM(amount), COUNT(*), 0
+FROM card_transaction
+WHERE status = 'APPROVED'
+GROUP BY card_id, DATE_FORMAT(CONVERT_TZ(approved_at, '+00:00', '+09:00'), '%Y-%m');
+
+INSERT INTO calendar_connection (customer_id, read_granted, write_granted, wonnie_calendar_id, connected_at) VALUES
+    ('cust-kimwoori', FALSE, FALSE, NULL, NULL);
+
+INSERT INTO calendar_signal (id, customer_id, signal_type, label, starts_on, ends_on, month, monthly_count, confidence) VALUES
+    ('cal-busy-1', 'cust-kimwoori', 'BUSY', '출장', '2026-11-03', '2026-11-14', NULL, NULL, 0.91),
+    ('cal-trip-1', 'cust-kimwoori', 'TRIP', '여행', '2026-12-19', '2026-12-22', NULL, NULL, 0.88),
+    ('cal-rec-1', 'cust-kimwoori', 'RECURRING', '운동', NULL, NULL, '2026-10', 2, 0.8);
+
+INSERT INTO detected_signal (id, customer_id, signal_type, matrix_row, subscription_id, card_id, target_date, detected_on, priority, facts, status, dedupe_key) VALUES
+    ('sig-r03-watcha-1028', 'cust-kimwoori', 'CHARGE_UPCOMING', 'R03', 'sub-watcha', 'card-1234', '2026-10-28', '2026-10-27', 2, '{"subscription_id": "sub-watcha", "service_name": "왓챠", "amount": 7900, "currency": "KRW", "charge_date": "2026-10-28", "days_left": 1, "card_masked": "****1234", "months_subscribed": 14}', 'NEW', 'R03:sub-watcha:2026-10-28'),
+    ('sig-r02-apple', 'cust-kimwoori', 'MERCHANT_UNKNOWN', 'R02', 'sub-apple', 'card-5678', NULL, '2026-10-27', 4, '{"subscription_id": "sub-apple", "merchant_name_raw": "APPLE.COM/BILL", "amount": 2200, "currency": "KRW", "charge_day": 20, "months_charged": 22, "candidate_services": ["iCloud+", "유튜브 프리미엄", "기타 앱 구독"]}', 'NEW', 'R02:sub-apple'),
+    ('sig-r12-card5678-expiry', 'cust-kimwoori', 'CARD_SCHEDULE', 'R12', NULL, 'card-5678', '2026-11-30', '2026-10-27', 4, '{"schedule_type": "CARD_EXPIRY", "card_id": "card-5678", "card_masked": "****5678", "expires_on": "2026-11-30", "days_left": 34, "first_charge_after_expiry": "2026-12-01", "subscriptions_on_card": [{"subscription_id": "sub-netflix", "name": "넷플릭스", "amount": 17000, "next_charge_on": "2026-11-01"}, {"subscription_id": "sub-apple", "name": "Apple 구독", "amount": 2200, "next_charge_on": "2026-11-20"}]}', 'NEW', 'R12:card-5678:expiry:2026-11-30'),
+    ('sig-r06-ott', 'cust-kimwoori', 'DUPLICATE_CATEGORY', 'R06', NULL, NULL, NULL, '2026-10-27', 4, '{"category": "OTT", "subscriptions": [{"subscription_id": "sub-netflix", "name": "넷플릭스", "amount": 17000}, {"subscription_id": "sub-youtube", "name": "유튜브 프리미엄", "amount": 14900}, {"subscription_id": "sub-watcha", "name": "왓챠", "amount": 7900}, {"subscription_id": "sub-tving", "name": "티빙", "amount": 5500}], "monthly_total": 45300}', 'NEW', 'R06:OTT:2026-10');
+
+
+-- 현재 프론트의 D-1/가격 인상 선택 및 다른 카드 안내를 각각 저장한다. 모두 최초 미동의.
+INSERT INTO consent (id, customer_id, consent_type, required, agreed) VALUES
+    ('cons-push-price-change', 'cust-kimwoori', 'PUSH_PRICE_CHANGE', FALSE, FALSE),
+    ('cons-push-finance', 'cust-kimwoori', 'PUSH_FINANCE_NOTICE', FALSE, FALSE);
+
+UPDATE card_product SET issuer_name = '우리(모의)';
+UPDATE merchant SET display_name = raw_name;
+UPDATE merchant SET display_name = 'Apple 결제 (서비스 미확인)',
+    candidate_services = JSON_ARRAY('iCloud+', 'Apple Music', '앱 내 구입'),
+    verification_hint = 'Apple 구매 내역 또는 영수증으로 확인. 가맹점명만으로 서비스를 확정하지 않음'
+WHERE id = 'mch-apple';
+
+-- 근거가 없는 월소득·리볼빙 잔액·상품 자격·이용 횟수는 임의의 0이나 사실로 채우지 않는다.
+INSERT INTO subscription_context (id, trial_ends_on, trial_end_confirmed,
+    annual_renewal_on, contract_status, usage_evidence)
+SELECT id, CASE WHEN status = 'TRIAL' THEN next_charge_on ELSE NULL END, FALSE,
+    CASE WHEN billing_cycle = 'YEARLY' THEN next_charge_on ELSE NULL END,
+    'UNKNOWN', '실제 서비스 이용/계약 정보 미연동'
+FROM subscription;
+
+-- 아래 대안·집계는 현재 비교 기능을 위한 가상 예시이며 실제 시설/상품/통계가 아니다.
+INSERT INTO finance_alternative (id, category, region, name, monthly_cost, conditions) VALUES
+    ('alt-demo-library', 'BOOK', '서울특별시', '데모 전자도서관(가상)', 0,
+     '가상 예시. 거주지/회원 조건 및 대체 가능 콘텐츠는 미확인'),
+    ('alt-demo-fitness', 'FITNESS', '서울특별시', '데모 지역 피트니스(가상)', 45000,
+     '가상 예시. 실제 시설/위치/요금 미연동');
+INSERT INTO finance_cohort_benchmark (id, minimum_age, maximum_age, region,
+    monthly_subscription_average, sample_count) VALUES
+    ('cohort-demo-20s-seoul', 20, 29, '서울특별시', 45000, 100);
+
+-- suggestion/chat_message/실행·판단 로그/가격 관측/Outbox는 런타임 결과이므로 미리 채우지 않는다.

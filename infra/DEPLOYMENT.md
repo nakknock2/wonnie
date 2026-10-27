@@ -19,6 +19,19 @@
 - `SSH_USER`: SSH 사용자
 - `SSH_PRIVATE_KEY`: 배포용 개인 키
 - `SSH_KNOWN_HOSTS`: 서버의 SSH host key
+- `OPENAI_API_KEY`: OpenAI API 키. GitHub Actions 배포에서는 필수입니다.
+
+workflow는 `OPENAI_API_KEY`를 SSH 표준 입력으로 전달하고 서버의 `/srv/wonnie/shared/.openai-api-key`에 권한 `600`으로 저장합니다. 키는 배포 명령의 인자나 소스 압축 파일에 넣지 않습니다. Secret이 비어 있으면 배포를 중단합니다.
+
+배포 시 이 파일을 `OPENAI_API_KEY` 환경변수로 읽어 Docker Compose가 API 컨테이너에 전달합니다. 실행 프로필은 `prod,google-oidc,openai`로 지정되어 채팅과 RAG 임베딩이 함께 활성화됩니다. GitHub Secret을 변경하고 다시 배포하면 서버 키도 갱신됩니다.
+
+배포 소스로 API·MCP 이미지를 빌드하고 컨테이너를 재생성하므로 새 RAG 문서와 설정도 함께 반영됩니다.
+
+## 통합 스키마 전환
+
+운영 Compose는 통합 V1/V2 전용 `mysql-data-v2` 볼륨을 사용합니다. 이전 V1~V4가 적용된 `mysql-data` 볼륨에 새 V1/V2를 연결하면 Flyway 체크섬 검증이 실패하므로, 기존 이력을 `repair`하거나 기존 볼륨을 삭제하지 않습니다.
+
+처음 배포할 때 새 볼륨에 통합 스키마와 데모 데이터가 생성됩니다. Compose 프로젝트명이 `wonnie`이면 서버에는 새 `wonnie_mysql-data-v2`와 기존 `wonnie_mysql-data`가 함께 남습니다. 기존 데이터가 필요하면 이전 볼륨에서 별도로 내보내 검증된 이관 절차로 옮깁니다.
 
 ## 서버 최초 설정
 
@@ -59,9 +72,9 @@ sudo certbot --nginx \
 
 ## 선택 프로필
 
-기본 `SPRING_PROFILES_ACTIVE=prod`는 외부 모델 키 없이 실행됩니다.
+Compose를 수동 실행할 때 기본 `SPRING_PROFILES_ACTIVE=prod`는 외부 모델 키 없이 실행됩니다. GitHub Actions는 위에서 설명한 대로 `prod,google-oidc,openai`를 지정합니다.
 
-- OpenAI: 서버 `.env`에 `OPENAI_API_KEY`를 넣고 프로필을 `prod,openai`로 변경
+- OpenAI 수동 실행: 서버 `.env`에 `OPENAI_API_KEY`를 넣고 프로필을 `prod,openai`로 변경. GitHub Actions 배포는 GitHub Secret을 사용하므로 `.env`에 키를 중복 입력할 필요가 없습니다.
 - Google OIDC: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`을 넣고 프로필에 `google-oidc` 추가
 
 `.env`는 저장소에 커밋하지 않습니다.

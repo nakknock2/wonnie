@@ -8,7 +8,9 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
     volumes:
-      - mysql-data:/var/lib/mysql
+      # The consolidated V1/V2 schema must start on a fresh volume. Keep the
+      # previous mysql-data volume intact for manual recovery or migration.
+      - mysql-data-v2:/var/lib/mysql
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p\"$$MYSQL_ROOT_PASSWORD\""]
       interval: 5s
@@ -136,6 +138,6 @@ networks:
   internal:
 
 volumes:
-  mysql-data:
+  mysql-data-v2:
   rabbitmq-data:
   redis-data:

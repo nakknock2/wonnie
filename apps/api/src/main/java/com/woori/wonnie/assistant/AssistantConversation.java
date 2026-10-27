@@ -30,7 +30,7 @@ public class AssistantConversation {
     private LocalDateTime updatedAt;
 
     public static AssistantConversation openFor(String customerId) {
-        var now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
+        var now = LocalDateTime.now(java.time.ZoneOffset.UTC);
         var conversation = new AssistantConversation();
         conversation.id = UUID.randomUUID().toString();
         conversation.customerId = customerId;
@@ -40,6 +40,6 @@ public class AssistantConversation {
     }
 
     public void touch() {
-        updatedAt = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
+        updatedAt = LocalDateTime.now(java.time.ZoneOffset.UTC);
     }
 }
