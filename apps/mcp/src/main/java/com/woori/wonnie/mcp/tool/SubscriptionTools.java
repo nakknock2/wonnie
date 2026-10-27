@@ -123,4 +123,14 @@ public class SubscriptionTools {
 		if (!allTermsAgreed) throw new IllegalArgumentException("최종 결제 승인이 필요합니다.");
 		return api.createSubscription(requestId, serviceName, planCode, cardId, true);
 	}
+
+	@McpTool(name = "cancel_subscription", description = "고객이 해지 확인 Sheet에서 대상 구독과 절약 금액을 확인하고 Face ID 최종 승인을 완료한 경우에만 모의 구독을 해지합니다. 해지 결과와 월 절약액, 워니 절약 적금 추천을 반환합니다.", annotations = @McpTool.McpAnnotations(readOnlyHint = false, destructiveHint = true, openWorldHint = false))
+	public Map<String, Object> cancelSubscription(
+		@McpToolParam(description = "해지할 고객 보유 구독 ID") String subscriptionId,
+		@McpToolParam(description = "해지 Sheet에서 Face ID 최종 승인을 완료했는지 여부") boolean finalApproval) {
+		if (subscriptionId == null || subscriptionId.isBlank() || subscriptionId.length() > 64)
+			throw new IllegalArgumentException("구독 ID가 올바르지 않습니다.");
+		if (!finalApproval) throw new IllegalArgumentException("구독 해지 최종 승인이 필요합니다.");
+		return api.cancelSubscription(subscriptionId, true);
+	}
 }

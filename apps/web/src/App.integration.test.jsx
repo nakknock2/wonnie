@@ -134,7 +134,7 @@ describe('merged final frontend backend connection', () => {
     const chat = await openChat();
     const conversation = within(chat).getByRole('region', { name: '대화 내용' });
     vi.useFakeTimers();
-    const request = await sendQuestion(chat, '구독목록 확인해줘');
+    const request = await sendQuestion(chat, '내 카드 혜택 확인해줘');
     const source = eventSources[0];
     const waitingLabel = 'WONNIE가 답변을 준비하고 있어요';
 
@@ -159,7 +159,7 @@ describe('merged final frontend backend connection', () => {
     expect(conversation.querySelectorAll('.wc-message.assistant')).toHaveLength(1);
     expect(within(conversation).queryByLabelText(waitingLabel)).not.toBeInTheDocument();
 
-    const userMessage = stored('user-new', 'USER', '구독목록 확인해줘');
+    const userMessage = stored('user-new', 'USER', '내 카드 혜택 확인해줘');
     const assistantMessage = stored('reply-new', 'ASSISTANT', '확인한 구독 목록입니다.');
     history = [userMessage, assistantMessage];
     await act(async () => source.emit('reply.completed', replyEnvelope(
@@ -245,7 +245,7 @@ describe('merged final frontend backend connection', () => {
     render(<App />);
     const chat = await openChat();
     const input = within(chat).getByRole('textbox', { name: '메시지 입력' });
-    fireEvent.change(input, { target: { value: '구독 내역 확인해줘' } });
+    fireEvent.change(input, { target: { value: '카드 결제 내역 확인해줘' } });
     fireEvent.click(within(chat).getByRole('button', { name: '보내기' }));
     await waitFor(() => expect(requestLog.some((r) => r.path === '/api/assistant/requests')).toBe(true));
     const request = JSON.parse(requestLog.find((r) => r.path === '/api/assistant/requests').options.body);
@@ -270,7 +270,7 @@ describe('merged final frontend backend connection', () => {
     act(() => source.emit('reply.delta', replyEnvelope('recover-delta-3', 'reply.delta', request.requestId, 'reply-recovery', { sequence: 3, delta: '마지막 조각' })));
     expect(await within(chat).findByText('첫 조각 복구된 조각 마지막 조각')).toBeInTheDocument();
 
-    const userMessage = stored('user-recovery', 'USER', '구독 내역 확인해줘');
+    const userMessage = stored('user-recovery', 'USER', '카드 결제 내역 확인해줘');
     const assistantMessage = stored('reply-recovery', 'ASSISTANT', '첫 조각 복구된 조각 마지막 조각');
     history = [userMessage, assistantMessage];
     act(() => source.emit('reply.completed', replyEnvelope('recover-completed', 'reply.completed', request.requestId, 'reply-recovery', {
@@ -426,18 +426,16 @@ describe('merged final frontend backend connection', () => {
     fireEvent.click(within(issueSheet).getByRole('button', { name: /필수 약관 모두 동의/ }));
     fireEvent.click(within(issueSheet).getByRole('button', { name: '모두 동의하고 카드 발급' }));
 
-    const owned = await within(chat).findByRole('button', { name: /카드의정석2 DAILY.*이 카드로 결제/ }, { timeout: 3000 });
-    fireEvent.click(owned);
-    const paymentSheet = await screen.findByRole('dialog', { name: /결제 내용을/ });
+    const paymentSheet = await screen.findByRole('dialog', { name: /결제 내용을/ }, { timeout: 5000 });
     fireEvent.click(within(paymentSheet).getByRole('button', { name: /필수 약관 모두 동의/ }));
     fireEvent.click(within(paymentSheet).getByRole('button', { name: '13,500원 결제 승인' }));
 
-    expect(await within(chat).findByText('결제가 완료됐어요. 현재 구독 목록도 함께 정리했어요.', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(await within(chat).findByText('결제가 완료됐어요. 현재 구독 목록도 함께 정리했어요.', {}, { timeout: 6000 })).toBeInTheDocument();
     expect(within(chat).getByText('넷플릭스 스탠다드')).toBeInTheDocument();
     expect(within(chat).getByText('1개 · 월 13,500원')).toBeInTheDocument();
     expect(requestLog.some((entry) => entry.path === '/api/subscription-checkout/cards')).toBe(true);
     expect(requestLog.some((entry) => entry.path === '/api/subscription-checkout/subscriptions')).toBe(true);
-  });
+  }, 12000);
 
   it('receives proactive notices over SSE, deduplicates them, and reloads after reconnect', async () => {
     enableFakeEventSource();

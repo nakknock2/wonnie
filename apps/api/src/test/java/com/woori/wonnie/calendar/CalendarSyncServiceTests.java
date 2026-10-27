@@ -40,7 +40,7 @@ class CalendarSyncServiceTests {
         when(states.findByChannelId("channel-1")).thenReturn(Optional.of(state));
         when(states.findById("cust-1")).thenReturn(Optional.of(state));
         when(clock.today()).thenReturn(LocalDate.of(2026, 10, 27));
-        when(provider.events("google-subject", LocalDate.of(2026, 10, 1), LocalDate.of(2026, 11, 1)))
+        when(provider.events("google-subject", LocalDate.of(2026, 10, 1), LocalDate.of(2027, 1, 1)))
                 .thenReturn(List.of());
 
         assertThat(service.acceptWebhook("channel-1", "secret-token", "exists")).isTrue();

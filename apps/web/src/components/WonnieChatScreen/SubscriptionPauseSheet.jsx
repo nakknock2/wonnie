@@ -1,20 +1,37 @@
 import { useEffect, useState } from 'react';
 import { won } from '../../data/subscriptions.js';
 
-export default function SubscriptionPauseSheet({ open, subscription, onClose, onComplete }) {
+export default function SubscriptionPauseSheet({ open, subscription, onClose, onComplete, onCancel, onAuthenticate }) {
   const [step, setStep] = useState('confirm');
+  const [error, setError] = useState('');
+  const [result, setResult] = useState(null);
+  const [authenticating, setAuthenticating] = useState(false);
 
-  useEffect(() => { if (open) setStep('confirm'); }, [open, subscription?.id]);
-  useEffect(() => {
-    if (step !== 'working') return undefined;
-    const timer = setTimeout(() => setStep('done'), 1000);
-    return () => clearTimeout(timer);
-  }, [step]);
+  useEffect(() => { if (open) { setStep('confirm'); setError(''); setResult(null); setAuthenticating(false); } }, [open, subscription?.id]);
+
+  const cancel = async () => {
+    if (authenticating) return;
+    setError('');
+    try {
+      setAuthenticating(true);
+      const authenticated = await onAuthenticate?.();
+      if (authenticated === false) return;
+      setStep('working');
+      const cancellation = await onCancel?.(subscription);
+      setResult(cancellation);
+      setStep('done');
+    } catch (failure) {
+      setError(failure.message);
+      setStep('confirm');
+    } finally {
+      setAuthenticating(false);
+    }
+  };
 
   if (!open || !subscription) return null;
   return (
     <div className="ts is-open" aria-hidden="false">
-      <button type="button" className="ts-dim" aria-label="닫기" onClick={step === 'confirm' ? onClose : undefined} />
+      <button type="button" className="ts-dim" aria-label="닫기" onClick={step === 'confirm' && !authenticating ? onClose : undefined} />
       <section className="ts-panel" role="dialog" aria-modal="true" aria-labelledby="pause-sheet-title">
         <div className="ts-grabber" />
         {step === 'confirm' && (
@@ -26,9 +43,10 @@ export default function SubscriptionPauseSheet({ open, subscription, onClose, on
               <div><strong>{subscription.name}</strong><small>월 {won(Number(subscription.price))}</small></div>
             </div>
             <p className="ts-mock">모의 해지예요 · 실제 구독 상태는 바뀌지 않아요</p>
+            {error && <p className="sc-sheet-error">{error}</p>}
             <div className="ts-btns">
-              <button type="button" className="ts-btn ts-btn--ghost" onClick={onClose}>유지할게요</button>
-              <button type="button" className="ts-btn pause-sheet__danger" onClick={() => setStep('working')}>해지하기</button>
+              <button type="button" className="ts-btn ts-btn--ghost" disabled={authenticating} onClick={onClose}>유지할게요</button>
+              <button type="button" className="ts-btn pause-sheet__danger" disabled={authenticating} onClick={cancel}>Face ID로 해지하기</button>
             </div>
           </>
         )}
@@ -40,7 +58,7 @@ export default function SubscriptionPauseSheet({ open, subscription, onClose, on
             <span className="cp-done" aria-hidden="true"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#fff" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 12.5l4 4L18 8" /></svg></span>
             <h3>{subscription.name} 구독이 해지되었어요</h3>
             <p>다음 결제부터 청구되지 않아요.</p>
-            <button type="button" className="ts-btn ts-btn--full" onClick={() => onComplete(subscription)}>확인</button>
+            <button type="button" className="ts-btn ts-btn--full" onClick={() => onComplete(subscription, result)}>확인</button>
           </div>
         )}
       </section>

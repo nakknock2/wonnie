@@ -144,6 +144,37 @@ public class SubscriptionCheckoutService {
         return result(customerId, subscriptionId, card.id(), selectedPlan, true);
     }
 
+    @Transactional
+    public CancellationResult cancel(String customerId, String subscriptionId, boolean finalApproval) {
+        requireCustomer(customerId);
+        if (!finalApproval) throw badRequest("구독 해지 최종 승인이 필요합니다.");
+        var subscription = jdbc.query("""
+                SELECT display_name,amount,billing_cycle,status FROM subscription
+                WHERE id=? AND customer_id=?
+                """, (rs, rowNum) -> new CancellationTarget(rs.getString("display_name"),
+                rs.getBigDecimal("amount"), rs.getString("billing_cycle"), rs.getString("status")),
+                subscriptionId, customerId).stream().findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "해지할 구독을 찾을 수 없어요."));
+        if (!List.of("ACTIVE", "TRIAL", "CANCEL_REQUESTED", "CANCEL_CONFIRMED").contains(subscription.status())) {
+            throw conflict("현재 해지할 수 없는 구독이에요.");
+        }
+        var now = LocalDateTime.now(ZoneOffset.UTC);
+        var cancelledOn = clock.today();
+        if (!"CANCEL_CONFIRMED".equals(subscription.status())) {
+            jdbc.update("UPDATE subscription SET status='CANCEL_CONFIRMED',status_changed_at=?,updated_at=? WHERE id=? AND customer_id=?",
+                    now, now, subscriptionId, customerId);
+            jdbc.update("UPDATE subscription_context SET contract_status='CANCELLED',contract_verified_on=?,cancelled_on=? WHERE id=?",
+                    cancelledOn, cancelledOn, subscriptionId);
+        }
+        var monthlySaved = "YEARLY".equals(subscription.billingCycle())
+                ? subscription.amount().divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP)
+                : subscription.amount();
+        return new CancellationResult(subscriptionId, subscription.name(), "CANCEL_CONFIRMED", cancelledOn,
+                monthlySaved, subscriptions(customerId),
+                new SavingsRecommendation("워니 절약 적금", "DEPOSIT", monthlySaved,
+                        monthlySaved.multiply(BigDecimal.valueOf(12)), "해지로 아낀 금액을 매달 모을 수 있어요."));
+    }
+
     private CheckoutResult result(String customerId, String subscriptionId, String cardId, PlanOption selectedPlan,
             boolean created) {
         var cardName = jdbc.queryForObject("""
@@ -290,10 +321,16 @@ public class SubscriptionCheckoutService {
     public record CheckoutResult(String subscriptionId, String serviceName, PlanOption plan, String cardId,
                                  String cardName, BigDecimal approvedAmount, LocalDate approvedOn, String status,
                                  boolean created, List<SubscriptionItem> subscriptions) {}
+    public record CancellationResult(String subscriptionId, String serviceName, String status, LocalDate cancelledOn,
+                                     BigDecimal monthlySaved, List<SubscriptionItem> subscriptions,
+                                     SavingsRecommendation recommendation) {}
+    public record SavingsRecommendation(String name, String type, BigDecimal monthlyAmount,
+                                        BigDecimal yearlyAmount, String description) {}
     private record ServiceOption(String serviceId, String name, String category, String brandColor, String initial) {}
     private record Product(String id, String name, String cardType, BigDecimal annualFee, String summary, String issuer) {}
     private record PaymentCard(String id, String status, BigDecimal availableLimit, String cardType,
                                String name, String productId) {}
+    private record CancellationTarget(String name, BigDecimal amount, String billingCycle, String status) {}
     private record Benefit(BigDecimal rate, BigDecimal cap, BigDecimal minimumSpend, String note) {
         static Benefit none() { return new Benefit(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, "구독 할인 혜택 없음"); }
     }

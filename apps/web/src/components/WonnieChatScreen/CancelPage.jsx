@@ -6,11 +6,12 @@ import { WATCHA, won, mdw, billDateOf } from '../../data/subscriptions.js';
  * 실제 서비스에서는 해당 OTT 의 해지 페이지(앱/웹)로 딥링크합니다.
  * 데모에서는 실제 회사 화면을 흉내 내지 않고, 은행 앱 안 '연결된 페이지'처럼 중립적으로 보여줘요.
  */
-export default function CancelPage({ open, onClose, onCancelled }) {
+export default function CancelPage({ open, onClose, onCancelled, onAuthenticate }) {
   const [step, setStep] = useState('plan'); // plan → confirm → working → done
   const [reason, setReason] = useState(null);
+  const [authenticating, setAuthenticating] = useState(false);
 
-  useEffect(() => { if (open) { setStep('plan'); setReason(null); } }, [open]);
+  useEffect(() => { if (open) { setStep('plan'); setReason(null); setAuthenticating(false); } }, [open]);
 
   useEffect(() => {
     if (step !== 'working') return undefined;
@@ -19,11 +20,22 @@ export default function CancelPage({ open, onClose, onCancelled }) {
   }, [step, onCancelled]);
 
   const bill = billDateOf(WATCHA);
+  const confirmCancellation = async () => {
+    if (authenticating) return;
+    setAuthenticating(true);
+    try {
+      const authenticated = await onAuthenticate?.();
+      if (authenticated === false) return;
+      setStep('working');
+    } finally {
+      setAuthenticating(false);
+    }
+  };
 
   return (
     <div className={`cp ${open ? 'is-open' : ''}`} role="dialog" aria-modal="true" aria-label={`${WATCHA.name} 구독 해지`} aria-hidden={!open}>
       <div className="cp-bar">
-        <button type="button" className="cp-x" aria-label="닫기" onClick={onClose} tabIndex={open ? 0 : -1}>
+        <button type="button" className="cp-x" aria-label="닫기" disabled={authenticating} onClick={onClose} tabIndex={open ? 0 : -1}>
           <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 4l12 12M16 4 4 16" /></svg>
         </button>
         <div className="cp-url">
@@ -89,8 +101,8 @@ export default function CancelPage({ open, onClose, onCancelled }) {
             <h3 id="cp-confirm-title">정말 해지할까요?</h3>
             <p>해지하면 {mdw(bill)} 결제({won(WATCHA.price)})가<br />청구되지 않아요.</p>
             <div className="cp-modal__btns">
-              <button type="button" onClick={() => setStep('plan')}>취소</button>
-              <button type="button" className="is-danger" onClick={() => setStep('working')}>해지</button>
+              <button type="button" disabled={authenticating} onClick={() => setStep('plan')}>취소</button>
+              <button type="button" className="is-danger" disabled={authenticating} onClick={confirmCancellation}>Face ID로 해지</button>
             </div>
           </div>
         </div>

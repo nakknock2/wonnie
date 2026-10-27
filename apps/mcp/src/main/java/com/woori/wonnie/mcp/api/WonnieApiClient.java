@@ -11,6 +11,8 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import org.springframework.web.util.UriUtils;
 
 @Component
 public class WonnieApiClient {
@@ -81,6 +83,12 @@ public class WonnieApiClient {
         return checkoutPost("/api/internal/subscription-checkout/subscriptions", Map.of(
                 "requestId", requestId, "service", serviceName, "planCode", planCode,
                 "cardId", cardId, "allTermsAgreed", allTermsAgreed));
+    }
+
+    public Map<String, Object> cancelSubscription(String subscriptionId, boolean finalApproval) {
+        var encodedId = UriUtils.encodePathSegment(subscriptionId, StandardCharsets.UTF_8);
+        return checkoutPost("/api/internal/subscription-checkout/subscriptions/" + encodedId + "/cancel",
+                Map.of("finalApproval", finalApproval));
     }
 
     private Map<String, Object> checkoutPost(String path, Map<String, Object> body) {

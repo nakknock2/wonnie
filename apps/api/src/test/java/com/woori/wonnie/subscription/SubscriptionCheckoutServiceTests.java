@@ -57,5 +57,13 @@ class SubscriptionCheckoutServiceTests {
 
         var repeated = checkout.subscribe(customerId, requestId, "넷플릭스", "STANDARD", issued.cardId(), true);
         assertThat(repeated.created()).isFalse();
+
+        var cancelled = checkout.cancel(customerId, result.subscriptionId(), true);
+        assertThat(cancelled.status()).isEqualTo("CANCEL_CONFIRMED");
+        assertThat(cancelled.monthlySaved()).isEqualByComparingTo("13500");
+        assertThat(cancelled.subscriptions()).isEmpty();
+        assertThat(cancelled.recommendation().name()).isEqualTo("워니 절약 적금");
+        assertThat(jdbc.queryForObject("SELECT status FROM subscription WHERE id=?", String.class,
+                result.subscriptionId())).isEqualTo("CANCEL_CONFIRMED");
     }
 }

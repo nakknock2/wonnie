@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import wonnieImg from '../../assets/wonnie-3d.png';
 import wonnieFace from '../../assets/wonnie-3d-face.png';
 import { ConsentForm } from '../Consent/Consent.jsx';
@@ -95,7 +95,7 @@ function Reply({ intro, children }) {
 let seq = 1;
 const mk = (from, kind, extra = {}) => ({ id: seq++, from, kind, time: nowTime(), createdAt: Date.now(), ...extra });
 
-export default function WonnieChatScreen({ open, request, demo, dispatch, onConsent: persistConsent, onClose, backend }) {
+export default function WonnieChatScreen({ open, request, demo, dispatch, onConsent: persistConsent, onAuthenticate, onClose, backend }) {
   const [messages, setMessages] = useState([]);
   const [typing, setTyping] = useState(false);
   const [fetchingSubscriptions, setFetchingSubscriptions] = useState(false);
@@ -128,6 +128,8 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onCons
   const modeRef = useRef(mode);
   modeRef.current = mode;
   const resetRef = useRef(() => {});
+  const previousOpen = useRef(open);
+  const initialScrollPending = useRef(false);
   const busy = typing || fetchingSubscriptions || backend.sending;
   const hasPendingAssistantText = Boolean(backend.pendingAssistantMessage?.text?.trim());
   const serverMessages = historyAfter === null ? backend.messages : backend.messages.filter((m) => m.createdAt > historyAfter);
@@ -170,11 +172,20 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onCons
 
   const userSays = (text) => push(mk('user', 'text', { text }));
 
-  // 새 메시지 → 맨 아래로
-  useEffect(() => {
+  if (open && !previousOpen.current) initialScrollPending.current = true;
+  previousOpen.current = open;
+
+  // 대화방에 들어갈 때는 기존 기록의 맨 아래를 즉시 보여주고, 이후 새 메시지만 부드럽게 따라가요.
+  useLayoutEffect(() => {
     const el = convRef.current;
-    if (el && visibleMessages.length) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
-  }, [messages, backend.messages, backend.pendingMessage, backend.pendingAssistantMessage, busy]);
+    if (!open || !el || !visibleMessages.length) return;
+    if (initialScrollPending.current) {
+      el.scrollTop = el.scrollHeight;
+      initialScrollPending.current = false;
+      return;
+    }
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }, [open, messages, backend.messages, backend.pendingMessage, backend.pendingAssistantMessage, busy, visibleMessages.length]);
 
   /* ----- 시나리오 단계 ----- */
   const startScan = useCallback(async () => {
@@ -303,11 +314,35 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onCons
     say(mk('assistant', 'saved', { amount, subscription: transferTarget }), 700);
   };
 
-  const onCalendarCancelled = (subscription) => {
+  const onCalendarCancelled = (subscription, result) => {
     setPauseTarget(null);
     setCalendarCancelled((current) => current.includes(subscription.id) ? current : [...current, subscription.id]);
-    say(mk('assistant', 'text', { text: `${subscription.name} 구독 해지가 완료됐어요 ✅\n다음 결제부터 청구되지 않아요.` }), 350);
+    const saved = Number(result?.monthlySaved ?? subscription.price);
+    say(mk('assistant', 'text', { text: `${subscription.name} 구독 해지가 완료됐어요 ✅\n다음 결제부터 청구되지 않아요. 매달 ${won(saved)}을 아낄 수 있어요.` }), 350);
     say(mk('assistant', 'offer', { subscription }), 650);
+  };
+
+  const cancelSubscription = (subscription) => wonnieApi.cancelSubscription(subscription.id);
+
+  const startSubscriptionCancellation = async (text) => {
+    userSays(text);
+    setFetchingSubscriptions(true);
+    try {
+      const [report, dashboard] = await Promise.all([wonnieApi.subscriptions(), wonnieApi.dashboard().catch(() => null)]);
+      const subscriptions = toSubscriptionCard(report, dashboard).subscriptions;
+      const normalized = text.toLowerCase().replace(/\s+/g, '');
+      const target = subscriptions.find((item) => normalized.includes(item.name.toLowerCase().replace(/\s+/g, '')));
+      if (!target) {
+        say(mk('assistant', 'found', { subscriptionCard: toSubscriptionCard(report, dashboard) }), 350);
+        say(mk('assistant', 'text', { text: '해지할 서비스를 목록에서 이름으로 말씀해 주세요.' }), 500);
+        return;
+      }
+      setPauseTarget({ ...target, reason: '요청하신 구독을 해지하면 다음 결제부터 청구되지 않아요.' });
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setFetchingSubscriptions(false);
+    }
   };
 
   const startSubscriptionCheckout = async (text) => {
@@ -339,11 +374,14 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onCons
   };
 
   const issueRecommendedCard = async (card) => {
-    await wonnieApi.issueCard(card.productId);
+    const issued = await wonnieApi.issueCard(card.productId);
     userSays(`${card.name} 발급에 동의했어요`);
     const updated = await wonnieApi.subscriptionCheckoutOptions('넷플릭스', checkoutOptions.selectedPlan.code);
     setCheckoutOptions(updated);
-    say(mk('assistant', 'subscription-cards', { options: updated, issuedCard: card.name }), 500);
+    const issuedCard = updated.ownedCards.find((candidate) => candidate.id === issued.cardId)
+      ?? updated.ownedCards.find((candidate) => candidate.productId === card.productId);
+    if (!issuedCard) throw new Error('발급한 카드를 결제 수단에서 찾지 못했어요.');
+    return { card: issuedCard, plan: updated.selectedPlan };
   };
 
   const approveSubscriptionPayment = async ({ card, plan }) => {
@@ -433,8 +471,17 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onCons
       if (!demoRef.current.scanned) showSubs(); else askNotif();
       return;
     }
+    if (/(해지|구독\s*취소|멤버십\s*취소)/.test(t)) {
+      void startSubscriptionCancellation(t);
+      return;
+    }
     if (/(넷플릭스|netflix).*(구독|가입)|(구독|가입).*(넷플릭스|netflix)/i.test(t)) {
       void startSubscriptionCheckout(t);
+      return;
+    }
+    if (/(구독).*(뭐|무엇|목록|보여|알려|확인|중)|(뭐|무엇|목록).*(구독)/.test(t)) {
+      userSays(t);
+      showSubs();
       return;
     }
     void sendToBackend(t);
@@ -813,10 +860,13 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onCons
       <ScenarioSheet open={!!sheet} activeId={activeId} mode={mode} onClose={() => setSheet(null)}
         onPickSubs={backToSubs} onPickProposal={pickProposal} />
       <OsPermission open={!!osAsk} onAnswer={answerOs} />
-      <CancelPage open={cancelOpen} onClose={() => setCancelOpen(false)} onCancelled={onCancelled} />
-      <SubscriptionPauseSheet open={!!pauseTarget} subscription={pauseTarget} onClose={() => setPauseTarget(null)} onComplete={onCalendarCancelled} />
-      <CardIssueConsentSheet card={issueTarget} onClose={() => setIssueTarget(null)} onIssue={issueRecommendedCard} />
-      <PaymentConsentSheet selection={paymentTarget} onClose={() => setPaymentTarget(null)} onPay={approveSubscriptionPayment} />
+      <CancelPage open={cancelOpen} onClose={() => setCancelOpen(false)} onCancelled={onCancelled} onAuthenticate={onAuthenticate} />
+      <SubscriptionPauseSheet open={!!pauseTarget} subscription={pauseTarget} onClose={() => setPauseTarget(null)}
+        onCancel={cancelSubscription} onComplete={onCalendarCancelled} onAuthenticate={onAuthenticate} />
+      <CardIssueConsentSheet card={issueTarget} onClose={(selection) => { setIssueTarget(null); if (selection) setPaymentTarget(selection); }}
+        onIssue={issueRecommendedCard} onAuthenticate={onAuthenticate} />
+      <PaymentConsentSheet selection={paymentTarget} onClose={() => setPaymentTarget(null)}
+        onPay={approveSubscriptionPayment} onAuthenticate={onAuthenticate} />
       <TransferSheet open={transferOpen} amount={Number(transferTarget.price)} balance={demo.balance} onClose={() => setTransferOpen(false)} onDone={onTransferDone} />
 
       {toast && <div className="wc-toast" role="status">{toast}</div>}

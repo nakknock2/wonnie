@@ -37,13 +37,13 @@ class SubscriptionToolsIntegrationTests {
     @AfterAll static void stop(){API.stop(0);}
     @Test void discoversReadToolsAndConsentGatedCheckoutWrites() {
         var tools=client.listTools().tools();
-        assertThat(tools).hasSize(16);
+        assertThat(tools).hasSize(17);
         assertThat(tools).filteredOn(t -> Boolean.TRUE.equals(t.annotations().readOnlyHint())).hasSize(14)
             .allSatisfy(t -> assertThat(t.annotations().destructiveHint()).isFalse());
         assertThat(tools).extracting(Tool::name).contains("get_subscriptions","explain_merchant","get_price_changes","recommend_cards","get_card_schedule")
-            .contains("get_subscription_checkout_options", "issue_woori_card", "create_subscription")
+            .contains("get_subscription_checkout_options", "issue_woori_card", "create_subscription", "cancel_subscription")
             .doesNotContain("get_calendar_signals","create_payment_pause_plan");
-        assertThat(tools).filteredOn(t -> List.of("issue_woori_card", "create_subscription").contains(t.name()))
+        assertThat(tools).filteredOn(t -> List.of("issue_woori_card", "create_subscription", "cancel_subscription").contains(t.name()))
             .allSatisfy(t -> { assertThat(t.annotations().readOnlyHint()).isFalse(); assertThat(t.annotations().destructiveHint()).isTrue(); });
     }
     @Test void eachFinanceToolCallsItsOwnApiEndpoint() {
@@ -74,6 +74,9 @@ class SubscriptionToolsIntegrationTests {
         assertThat(call("create_subscription",Map.of("requestId",UUID.randomUUID().toString(),"serviceName","넷플릭스",
             "planCode","STANDARD","cardId","card-test","allTermsAgreed",true)).isError()).isFalse();
         assertThat(REQUESTS.get(0)).isEqualTo("POST /api/internal/subscription-checkout/subscriptions");
+        REQUESTS.clear();
+        assertThat(call("cancel_subscription",Map.of("subscriptionId","sub-test","finalApproval",true)).isError()).isFalse();
+        assertThat(REQUESTS.get(0)).isEqualTo("POST /api/internal/subscription-checkout/subscriptions/sub-test/cancel");
         REQUESTS.clear();
         assertThat(call("issue_woori_card",Map.of("productId","prd-daily","allTermsAgreed",false)).isError()).isTrue();
         assertThat(REQUESTS).isEmpty();

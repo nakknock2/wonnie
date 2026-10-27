@@ -56,7 +56,8 @@ public class CalendarSyncService {
 
     public void sync(String customerId, String principalName) {
         var month = YearMonth.from(clock.today());
-        var events = provider.events(principalName, month.atDay(1), month.plusMonths(1).atDay(1));
+        // 월말에 등록한 다음 달 시험도 즉시 감지할 수 있도록 현재 달부터 향후 3개월을 확인한다.
+        var events = provider.events(principalName, month.atDay(1), month.plusMonths(3).atDay(1));
         recommendations.evaluate(customerId, month, events);
         var state = states.findById(customerId).orElseGet(() -> CalendarSyncState.create(customerId, principalName));
         state.synced();

@@ -23,7 +23,7 @@ public class WonnieMcpTools {
             "get_cancellation_summary", "get_usage_analysis", "recommend_cards",
             "get_customer_context", "get_card_schedule", "get_financial_alerts",
             "get_payment_failure_policy", "get_subscription_checkout_options",
-            "issue_woori_card", "create_subscription");
+            "issue_woori_card", "create_subscription", "cancel_subscription");
     private final McpSyncClient client;
     private boolean initialized;
 

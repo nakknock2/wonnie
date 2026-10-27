@@ -96,15 +96,24 @@ function ConsentChecks({ checked, onAll }) {
   );
 }
 
-export function CardIssueConsentSheet({ card, onClose, onIssue }) {
+export function CardIssueConsentSheet({ card, onClose, onIssue, onAuthenticate }) {
   const [agreed, setAgreed] = useState(false);
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
   useEffect(() => { setAgreed(false); setStatus('idle'); setError(''); }, [card?.id]);
   if (!card) return null;
   const issue = async () => {
-    setStatus('loading'); setError('');
-    try { await onIssue(card); setStatus('done'); setTimeout(onClose, 900); }
+    if (status !== 'idle') return;
+    setError('');
+    try {
+      setStatus('authenticating');
+      const authenticated = await onAuthenticate?.();
+      if (authenticated === false) { setStatus('idle'); return; }
+      setStatus('loading');
+      const issuedSelection = await onIssue(card);
+      setStatus('done');
+      setTimeout(() => onClose(issuedSelection), 700);
+    }
     catch (e) { setStatus('idle'); setError(e.message); }
   };
   return (
@@ -113,11 +122,11 @@ export function CardIssueConsentSheet({ card, onClose, onIssue }) {
       <div className="sc-sheet-panel">
         <div className="sc-sheet-grab" />
         {status === 'done' ? <div className="sc-sheet-done"><i>✓</i><h2>카드가 바로 발급됐어요</h2><p>이제 보유 카드에서 선택해 결제할 수 있어요.</p></div> : status === 'loading' ? <div className="sc-sheet-done"><span className="sc-loader" /><h2>카드를 발급하고 있어요</h2><p>모의 발급 심사를 진행 중이에요.</p></div> : <>
-          <header><button type="button" onClick={onClose}>×</button><small>우리카드 바로발급</small><h2 id="card-issue-title">약관 동의만 하면<br />바로 사용할 수 있어요</h2></header>
+          <header><button type="button" disabled={status !== 'idle'} onClick={onClose}>×</button><small>우리카드 바로발급</small><h2 id="card-issue-title">약관 동의만 하면<br />바로 사용할 수 있어요</h2></header>
           <div className="sc-issue-card"><CardPlate card={card} /><div><b>{card.name}</b><small>연회비 {won(card.annualFee)}</small><strong>넷플릭스 최대 {won(card.potentialDiscount)} 할인</strong></div></div>
           <ConsentChecks checked={agreed} onAll={setAgreed} />
           {error && <p className="sc-sheet-error">{error}</p>}
-          <button type="button" className="sc-primary" disabled={!agreed} onClick={issue}>모두 동의하고 카드 발급</button>
+          <button type="button" className="sc-primary" disabled={!agreed || status !== 'idle'} onClick={issue}>모두 동의하고 카드 발급</button>
           <p className="sc-legal">실제 신용조회 없이 즉시 발급되는 시연용 카드입니다.</p>
         </>}
       </div>
@@ -125,7 +134,7 @@ export function CardIssueConsentSheet({ card, onClose, onIssue }) {
   );
 }
 
-export function PaymentConsentSheet({ selection, onClose, onPay }) {
+export function PaymentConsentSheet({ selection, onClose, onPay, onAuthenticate }) {
   const [agreed, setAgreed] = useState(false);
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
@@ -133,8 +142,15 @@ export function PaymentConsentSheet({ selection, onClose, onPay }) {
   if (!selection) return null;
   const { card, plan } = selection;
   const pay = async () => {
-    setStatus('loading'); setError('');
-    try { await onPay(selection); setStatus('done'); setTimeout(onClose, 1050); }
+    if (status !== 'idle') return;
+    setError('');
+    try {
+      setStatus('authenticating');
+      const authenticated = await onAuthenticate?.();
+      if (authenticated === false) { setStatus('idle'); return; }
+      setStatus('loading');
+      await onPay(selection); setStatus('done'); setTimeout(onClose, 1050);
+    }
     catch (e) { setStatus('idle'); setError(e.message); }
   };
   return (
@@ -143,14 +159,14 @@ export function PaymentConsentSheet({ selection, onClose, onPay }) {
       <div className="sc-sheet-panel">
         <div className="sc-sheet-grab" />
         {status === 'done' ? <div className="sc-sheet-done"><i>✓</i><h2>결제가 완료됐어요</h2><p>넷플릭스 {plan.name} 구독을 시작했어요.</p></div> : status === 'loading' ? <div className="sc-sheet-done"><span className="sc-loader" /><h2>결제를 승인하고 있어요</h2><p>잠시만 기다려 주세요.</p></div> : <>
-          <header><button type="button" onClick={onClose}>×</button><small>정기결제 신청</small><h2 id="subscription-pay-title">결제 내용을<br />마지막으로 확인해 주세요</h2></header>
+          <header><button type="button" disabled={status !== 'idle'} onClick={onClose}>×</button><small>정기결제 신청</small><h2 id="subscription-pay-title">결제 내용을<br />마지막으로 확인해 주세요</h2></header>
           <div className="sc-pay-summary">
             <div className="sc-service"><i>N</i><div><small>넷플릭스</small><strong>{plan.name}</strong></div><b>{won(plan.price)}</b></div>
             <dl><div><dt>결제 카드</dt><dd>{card.name} {card.maskedNumber}</dd></div><div><dt>결제 주기</dt><dd>매월 오늘 자동 결제</dd></div><div><dt>예상 할인</dt><dd className="is-blue">최대 {won(card.potentialDiscount)}</dd></div></dl>
           </div>
           <ConsentChecks checked={agreed} onAll={setAgreed} />
           {error && <p className="sc-sheet-error">{error}</p>}
-          <button type="button" className="sc-primary" disabled={!agreed} onClick={pay}>{won(plan.price)} 결제 승인</button>
+          <button type="button" className="sc-primary" disabled={!agreed || status !== 'idle'} onClick={pay}>{won(plan.price)} 결제 승인</button>
           <p className="sc-legal">모의 정기결제이며 실제 금액은 청구되지 않습니다.</p>
         </>}
       </div>

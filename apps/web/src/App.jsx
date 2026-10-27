@@ -24,6 +24,7 @@ export default function App({ showDemoPanel = false, user = null }) {
   const [faceIdOpen, setFaceIdOpen] = useState(false);
   const backend = useWonnieBackend(chatOpen);
   const chatOpenRef = useRef(false);
+  const faceIdRequestRef = useRef(null);
   chatOpenRef.current = chatOpen;
 
   useEffect(() => {
@@ -34,6 +35,17 @@ export default function App({ showDemoPanel = false, user = null }) {
       .finally(() => setConsentsLoaded(true));
     return () => controller.abort();
   }, [dispatch]);
+
+  useEffect(() => {
+    const syncCalendar = () => { void wonnieApi.syncCalendar().catch(() => {}); };
+    syncCalendar();
+    window.addEventListener("focus", syncCalendar);
+    const interval = setInterval(syncCalendar, 60_000);
+    return () => {
+      window.removeEventListener("focus", syncCalendar);
+      clearInterval(interval);
+    };
+  }, []);
 
   // 서버의 동의 상태를 확인한 뒤, 미동의 사용자에게만 앱 진입 1.2초 뒤 동의 시트
   useEffect(() => {
@@ -49,7 +61,17 @@ export default function App({ showDemoPanel = false, user = null }) {
   }, []);
   const closeChat = useCallback(() => setChatOpen(false), []);
   const startFaceId = useCallback(() => setFaceIdOpen(true), []);
-  const closeFaceId = useCallback(() => setFaceIdOpen(false), []);
+  const requestFaceId = useCallback(() => new Promise((resolve) => {
+    faceIdRequestRef.current?.(false);
+    faceIdRequestRef.current = resolve;
+    setFaceIdOpen(true);
+  }), []);
+  const finishFaceId = useCallback((approved) => {
+    setFaceIdOpen(false);
+    const resolve = faceIdRequestRef.current;
+    faceIdRequestRef.current = null;
+    resolve?.(approved);
+  }, []);
 
   // 워니 버튼: 알림이 있으면 그 알림으로 열기
   const onFab = useCallback(() => {
@@ -92,6 +114,8 @@ export default function App({ showDemoPanel = false, user = null }) {
     setNudgeMode(null);
     setConsentOpen(false);
     setFaceIdOpen(false);
+    faceIdRequestRef.current?.(false);
+    faceIdRequestRef.current = null;
     setRunId((n) => n + 1);
   };
 
@@ -139,7 +163,7 @@ export default function App({ showDemoPanel = false, user = null }) {
 
       {/* PhoneFrame 의 children 은 폰 화면 컨테이너(.phone-screen)의 직계 자식으로 렌더링됨 */}
       <PhoneFrame key={runId} faceIdOpen={faceIdOpen}
-        onFaceIdComplete={closeFaceId} onFaceIdCancel={closeFaceId}>
+        onFaceIdComplete={() => finishFaceId(true)} onFaceIdCancel={() => finishFaceId(false)}>
         <HomeScreen
           onOpenChat={() => openChat("default")}
           demo={demo}
@@ -167,6 +191,7 @@ export default function App({ showDemoPanel = false, user = null }) {
             const value = await wonnieApi.agreeToSubscriptionData();
             dispatch({ type: "HYDRATE_CONSENTS", value });
           }}
+          onAuthenticate={requestFaceId}
           onClose={closeChat}
         />
       </PhoneFrame>

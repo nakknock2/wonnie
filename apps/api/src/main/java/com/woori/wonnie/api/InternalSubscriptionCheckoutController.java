@@ -36,4 +36,12 @@ public class InternalSubscriptionCheckoutController {
         return checkout.subscribe(customerId, request.requestId(), request.service(), request.planCode(),
                 request.cardId(), request.allTermsAgreed());
     }
+
+    @PostMapping("/subscriptions/{subscriptionId}/cancel")
+    public SubscriptionCheckoutService.CancellationResult cancel(
+            @RequestHeader(CUSTOMER_HEADER) String customerId,
+            @PathVariable String subscriptionId,
+            @Valid @RequestBody SubscriptionCheckoutController.CancelSubscriptionRequest request) {
+        return checkout.cancel(customerId, subscriptionId, request.finalApproval());
+    }
 }

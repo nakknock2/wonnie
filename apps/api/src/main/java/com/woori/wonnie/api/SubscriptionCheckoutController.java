@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.UUID;
 
@@ -44,7 +45,15 @@ public class SubscriptionCheckoutController {
                 request.cardId(), request.allTermsAgreed());
     }
 
+    @PostMapping("/subscriptions/{subscriptionId}/cancel")
+    public SubscriptionCheckoutService.CancellationResult cancel(
+            @PathVariable @NotBlank String subscriptionId,
+            @Valid @RequestBody CancelSubscriptionRequest request) {
+        return checkout.cancel(currentCustomer.id(), subscriptionId, request.finalApproval());
+    }
+
     public record CardIssueRequest(@NotBlank String productId, boolean allTermsAgreed) {}
     public record SubscribeRequest(@NotNull UUID requestId, @NotBlank String service, @NotBlank String planCode,
                                    @NotBlank String cardId, boolean allTermsAgreed) {}
+    public record CancelSubscriptionRequest(boolean finalApproval) {}
 }

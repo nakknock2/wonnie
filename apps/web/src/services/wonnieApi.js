@@ -42,6 +42,7 @@ export const wonnieApi = {
   conversation: (signal) => request('/api/assistant/conversation', { signal }),
   unreadCount: (signal) => request('/api/assistant/unread-count', { signal }),
   markRead: (signal) => request('/api/assistant/conversation/read', { method: 'POST', signal }),
+  syncCalendar: () => request('/api/calendar/sync', { method: 'POST' }),
   sendMessage: (message, topic) => request('/api/assistant/messages', {
     method: 'POST', timeout: 120000,
     body: JSON.stringify({ message, ...(topic ? { topic } : {}) }),
@@ -64,6 +65,9 @@ export const wonnieApi = {
   }),
   createSubscription: ({ requestId, service, planCode, cardId }) => request('/api/subscription-checkout/subscriptions', {
     method: 'POST', body: JSON.stringify({ requestId, service, planCode, cardId, allTermsAgreed: true }),
+  }),
+  cancelSubscription: (subscriptionId) => request(`/api/subscription-checkout/subscriptions/${encodeURIComponent(subscriptionId)}/cancel`, {
+    method: 'POST', body: JSON.stringify({ finalApproval: true }),
   }),
 };
 
