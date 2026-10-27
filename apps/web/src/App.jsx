@@ -11,7 +11,7 @@ import useWonnieBackend from "./hooks/useWonnieBackend.js";
 import { WATCHA } from "./data/subscriptions.js";
 import { wonnieApi } from "./services/wonnieApi.js";
 
-export default function App({ showDemoPanel = true, user = null }) {
+export default function App({ showDemoPanel = false, user = null }) {
   const [demo, dispatch] = useDemo();
   const [runId, setRunId] = useState(0); // 처음부터 → 폰 화면 전체 다시 그림
   const [chatOpen, setChatOpen] = useState(false);
@@ -21,6 +21,7 @@ export default function App({ showDemoPanel = true, user = null }) {
   const [consentsLoaded, setConsentsLoaded] = useState(false);
   const [consentSaving, setConsentSaving] = useState(false);
   const [consentError, setConsentError] = useState(null);
+  const [faceIdOpen, setFaceIdOpen] = useState(false);
   const backend = useWonnieBackend(chatOpen);
   const chatOpenRef = useRef(false);
   chatOpenRef.current = chatOpen;
@@ -47,6 +48,8 @@ export default function App({ showDemoPanel = true, user = null }) {
     setConsentOpen(false);
   }, []);
   const closeChat = useCallback(() => setChatOpen(false), []);
+  const startFaceId = useCallback(() => setFaceIdOpen(true), []);
+  const closeFaceId = useCallback(() => setFaceIdOpen(false), []);
 
   // 워니 버튼: 알림이 있으면 그 알림으로 열기
   const onFab = useCallback(() => {
@@ -88,6 +91,7 @@ export default function App({ showDemoPanel = true, user = null }) {
     setChatRequest(null);
     setNudgeMode(null);
     setConsentOpen(false);
+    setFaceIdOpen(false);
     setRunId((n) => n + 1);
   };
 
@@ -117,7 +121,7 @@ export default function App({ showDemoPanel = true, user = null }) {
   useSubscriptionNudge(d1Event, sendReminder);
 
   return (
-    <div className="stage">
+    <div className={showDemoPanel ? "stage stage--demo" : "stage"}>
       {showDemoPanel && (
         <DemoPanel
           demo={demo}
@@ -128,11 +132,14 @@ export default function App({ showDemoPanel = true, user = null }) {
           onAdvance={advanceDay}
           onRestart={restart}
           onScenarios={() => openChat("picker")}
+          onFaceId={startFaceId}
+          faceIdActive={faceIdOpen}
         />
       )}
 
       {/* PhoneFrame 의 children 은 폰 화면 컨테이너(.phone-screen)의 직계 자식으로 렌더링됨 */}
-      <PhoneFrame key={runId}>
+      <PhoneFrame key={runId} faceIdOpen={faceIdOpen}
+        onFaceIdComplete={closeFaceId} onFaceIdCancel={closeFaceId}>
         <HomeScreen
           onOpenChat={() => openChat("default")}
           demo={demo}

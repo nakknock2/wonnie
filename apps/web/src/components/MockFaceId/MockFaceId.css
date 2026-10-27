@@ -1,0 +1,192 @@
+.dynamic-island.mock-face-id {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.dynamic-island.mock-face-id.is-active {
+  z-index: 60;
+  /* This user-triggered animation preview must play independently of ambient motion settings. */
+  animation: mock-face-id-shell var(--face-id-duration) cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.mock-face-id__visual {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  color: #8cf497;
+  opacity: 0;
+  transform: scale(0.55);
+}
+
+.mock-face-id__orb {
+  position: absolute;
+  inset: 0;
+  perspective: 260px;
+  transform-style: preserve-3d;
+}
+
+.mock-face-id__orb svg,
+.mock-face-id__confirmation {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform-origin: 50% 50%;
+}
+
+.mock-face-id__orb svg {
+  stroke: currentColor;
+  stroke-width: 2.4;
+  opacity: 0;
+}
+
+.mock-face-id__orb .mock-face-id__halo {
+  stroke-width: 8;
+  filter: blur(5px);
+}
+
+.mock-face-id__strand {
+  filter: blur(0.7px) drop-shadow(0 0 3px rgb(119 248 140 / 55%));
+}
+
+.mock-face-id__rim {
+  filter: drop-shadow(0 0 1px rgb(119 248 140 / 40%));
+}
+
+.mock-face-id__dot { fill: currentColor; opacity: 0; }
+.mock-face-id__tick {
+  stroke: currentColor;
+  stroke-width: 3.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0;
+}
+
+/* A single clock drives every layer. The browser interpolates the intermediate poses. */
+.is-active .mock-face-id__visual {
+  animation: mock-face-id-presence var(--face-id-duration) linear both;
+}
+.is-active .mock-face-id__halo {
+  animation: mock-face-id-halo var(--face-id-duration) ease-in-out both;
+}
+.is-active .mock-face-id__strand--one {
+  animation: mock-face-id-strand-one var(--face-id-duration) ease-in-out both;
+}
+.is-active .mock-face-id__strand--two {
+  animation: mock-face-id-strand-two var(--face-id-duration) ease-in-out both;
+}
+.is-active .mock-face-id__strand--three {
+  animation: mock-face-id-strand-three var(--face-id-duration) ease-in-out both;
+}
+.is-active .mock-face-id__rim {
+  animation: mock-face-id-rim var(--face-id-duration) ease-in-out both;
+}
+.is-active .mock-face-id__dot {
+  animation: mock-face-id-dot var(--face-id-duration) linear both;
+}
+.is-active .mock-face-id__tick {
+  animation: mock-face-id-tick var(--face-id-duration) linear both;
+}
+
+.mock-face-id__status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@keyframes mock-face-id-shell {
+  0% { width: 122px; height: 35px; border-radius: 20px; box-shadow: 0 0 0 rgb(0 0 0 / 0%); }
+  5% { width: 120px; height: 44px; border-radius: 22px; }
+  11% { width: 133px; height: 112px; border-radius: 33px; }
+  17% { width: 136px; height: 140px; border-radius: 36px; }
+  22%, 84% { width: 136px; height: 136px; border-radius: 36px; box-shadow: 0 12px 28px rgb(0 0 0 / 16%); }
+  90% { width: 134px; height: 108px; border-radius: 32px; }
+  96% { width: 126px; height: 49px; border-radius: 24px; }
+  100% { width: 122px; height: 35px; border-radius: 20px; box-shadow: 0 0 0 rgb(0 0 0 / 0%); }
+}
+
+@keyframes mock-face-id-presence {
+  0%, 7% { opacity: 0; transform: scale(0.55); }
+  13% { opacity: 0.35; transform: scale(0.72); }
+  19% { opacity: 1; transform: scale(0.94); }
+  26%, 80% { opacity: 1; transform: scale(1); }
+  85% { opacity: 0; transform: scale(0.92); }
+  100% { opacity: 0; transform: scale(0.6); }
+}
+
+@keyframes mock-face-id-halo {
+  0%, 10% { opacity: 0; transform: rotateX(62deg) rotateY(-28deg) rotateZ(-40deg) scale(0.7); }
+  18% { opacity: 0.3; transform: rotateX(35deg) rotateY(34deg) rotateZ(-25deg) scale(0.82); }
+  25% { opacity: 0.5; transform: rotateX(-24deg) rotateY(48deg) rotateZ(24deg) scale(0.93); }
+  32% { opacity: 0.3; transform: rotateX(28deg) rotateY(-35deg) rotateZ(-16deg) scale(0.98); }
+  40% { opacity: 0.18; transform: rotateX(-10deg) rotateY(20deg) rotateZ(8deg) scale(1); }
+  49%, 100% { opacity: 0; transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1); }
+}
+
+@keyframes mock-face-id-rim {
+  0%, 10% { opacity: 0; transform: rotateX(65deg) rotateY(-32deg) rotateZ(-35deg) scale(0.78); stroke-width: 4; }
+  18% { opacity: 0.3; transform: rotateX(28deg) rotateY(52deg) rotateZ(-26deg) scale(0.86); stroke-width: 3.6; }
+  25% { opacity: 0.6; transform: rotateX(-22deg) rotateY(-34deg) rotateZ(32deg) scale(0.94); }
+  32% { opacity: 0.9; transform: rotateX(16deg) rotateY(58deg) rotateZ(-18deg) scale(1); }
+  39% { opacity: 1; transform: rotateX(-14deg) rotateY(-28deg) rotateZ(16deg) scale(1.02); }
+  46% { opacity: 1; transform: rotateX(5deg) rotateY(10deg) rotateZ(-4deg) scale(1); stroke-width: 2.8; }
+  52%, 100% { opacity: 1; transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1); stroke-width: 2.8; }
+}
+
+@keyframes mock-face-id-strand-one {
+  0%, 12% { opacity: 0; transform: rotateX(48deg) rotateY(55deg) rotateZ(-40deg) scale(0.8); }
+  20% { opacity: 0.5; transform: rotateX(-32deg) rotateY(68deg) rotateZ(24deg) scale(0.9); }
+  27% { opacity: 0.75; transform: rotateX(42deg) rotateY(-36deg) rotateZ(-28deg) scale(1); }
+  34% { opacity: 0.6; transform: rotateX(-18deg) rotateY(62deg) rotateZ(32deg) scale(1.03); }
+  41% { opacity: 0.45; transform: rotateX(16deg) rotateY(-30deg) rotateZ(-12deg) scale(1); }
+  48% { opacity: 0.15; transform: rotateX(2deg) rotateY(8deg) rotateZ(2deg) scale(1); }
+  53%, 100% { opacity: 0; transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1); }
+}
+
+@keyframes mock-face-id-strand-two {
+  0%, 12% { opacity: 0; transform: rotateX(-58deg) rotateY(-38deg) rotateZ(32deg) scale(0.72); }
+  20% { opacity: 0.45; transform: rotateX(52deg) rotateY(-64deg) rotateZ(-22deg) scale(0.9); }
+  27% { opacity: 0.65; transform: rotateX(-42deg) rotateY(42deg) rotateZ(28deg) scale(0.98); }
+  34% { opacity: 0.6; transform: rotateX(28deg) rotateY(-58deg) rotateZ(-26deg) scale(1); }
+  41% { opacity: 0.35; transform: rotateX(-12deg) rotateY(24deg) rotateZ(10deg) scale(1); }
+  48% { opacity: 0.12; transform: rotateX(-2deg) rotateY(-6deg) rotateZ(-2deg) scale(1); }
+  53%, 100% { opacity: 0; transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1); }
+}
+
+@keyframes mock-face-id-strand-three {
+  0%, 14% { opacity: 0; transform: rotateX(70deg) rotateY(18deg) rotateZ(-32deg) scale(0.8); }
+  22% { opacity: 0.4; transform: rotateX(-46deg) rotateY(-48deg) rotateZ(34deg) scale(0.96); }
+  29% { opacity: 0.55; transform: rotateX(58deg) rotateY(24deg) rotateZ(-24deg) scale(1.04); }
+  36% { opacity: 0.4; transform: rotateX(-35deg) rotateY(-32deg) rotateZ(18deg) scale(1); }
+  43% { opacity: 0.25; transform: rotateX(12deg) rotateY(16deg) rotateZ(-8deg) scale(1); }
+  50%, 100% { opacity: 0; transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1); }
+}
+
+@keyframes mock-face-id-dot {
+  0%, 52% { opacity: 0; }
+  54%, 57% { opacity: 1; }
+  60%, 100% { opacity: 0; }
+}
+
+@keyframes mock-face-id-tick {
+  0%, 55% { stroke-dashoffset: 1; opacity: 0; }
+  56% { stroke-dashoffset: 1; opacity: 1; }
+  59% { stroke-dashoffset: 0.8; opacity: 1; }
+  62% { stroke-dashoffset: 0.62; opacity: 1; }
+  68%, 100% { stroke-dashoffset: 0; opacity: 1; }
+}
+
+@media (max-width: 440px) {
+  .dynamic-island.mock-face-id { display: none; }
+  .dynamic-island.mock-face-id.is-active { display: grid; }
+}
