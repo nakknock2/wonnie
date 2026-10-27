@@ -53,6 +53,30 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
+Certbot이 인증서를 발급하면 같은 웹 `server` 블록에 `listen 443 ssl`과 인증서 설정을 추가합니다. `location = /api/assistant/events`는 그 HTTPS 웹 블록 안에 유지되어야 합니다. 이 경로는 장시간 열린 SSE 응답을 즉시 전달하도록 두 프록시 계층 모두에서 버퍼링과 캐시를 끕니다.
+
+## 호스트 Nginx 설정 갱신
+
+배포 workflow는 컨테이너를 재배포하고 활성 호스트 설정에 SSE location이 있는지는 검증하지만, 호스트 설정을 설치하거나 Nginx를 reload하지는 않습니다. 호스트 설정을 변경할 때는 현재 Certbot 인증서 설정을 보존한 채 활성 HTTPS 웹 블록을 먼저 확인하고 수동 반영합니다. `sites-enabled/wonnie`가 symlink가 아닌 일반 파일일 수도 있으므로 실제 활성 파일을 확인해야 합니다. 백업 파일은 `sites-enabled`에 두면 include되어 충돌하므로 `sites-available` 같은 비활성 경로에 저장합니다.
+
+```bash
+sudo nginx -T
+active_config="$(readlink -f /etc/nginx/sites-enabled/wonnie)"
+sudo cp "$active_config" \
+  "/etc/nginx/sites-available/wonnie.active.bak.$(date +%Y%m%d%H%M%S)"
+sudoedit "$active_config"
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+적용 후 로그인 세션으로 웹 도메인의 SSE 경로를 확인합니다. SSE 요청이 계속 pending인 것은 정상이며, 응답 헤더와 `connected` 이벤트가 즉시 도착해야 합니다. 채팅을 전송하면 이어서 `reply.delta`와 `reply.completed`가 도착해야 합니다.
+
+```bash
+curl --no-buffer --include \
+  --cookie 'SESSION=<로그인 세션 쿠키>' \
+  https://wonnie.minngyuseong.com/api/assistant/events
+```
+
 Cloudflare DNS에 프록시를 끈 상태로 다음 A 레코드를 먼저 추가합니다.
 
 | 이름 | 값 |

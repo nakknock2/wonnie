@@ -3,6 +3,8 @@ import { mergeChatMessages, toChatMessage, wonnieApi } from '../services/wonnieA
 import { ASSISTANT_EVENT_TYPES } from '../services/assistantEvents.ts';
 
 const TYPEWRITER_INTERVAL_MS = 16;
+const REQUEST_RECOVERY_IDLE_MS = 5_000;
+const REQUEST_RECOVERY_RETRY_MS = 2_000;
 
 const newRequestId = () => globalThis.crypto?.randomUUID?.()
   || 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (letter) => {
@@ -25,11 +27,17 @@ export default function useWonnieBackend(open) {
   const seenEventIds = useRef(new Set());
   const eventRevision = useRef(0);
   const refreshSequence = useRef(0);
+  const requestRecoveryControl = useRef({ touch: () => {}, clear: () => {} });
   openRef.current = open;
 
   useEffect(() => {
     mounted.current = true;
-    return () => { mounted.current = false; };
+    return () => {
+      mounted.current = false;
+      requestRecoveryControl.current.clear();
+      activeRequest.current = null;
+      sendingRef.current = false;
+    };
   }, []);
 
   const refresh = useCallback(async (signal) => {
@@ -57,6 +65,7 @@ export default function useWonnieBackend(open) {
   const settleRequest = useCallback((requestId) => {
     const job = activeRequest.current;
     if (!job || job.requestId !== requestId) return false;
+    requestRecoveryControl.current.clear(requestId);
     activeRequest.current = null;
     sendingRef.current = false;
     if (mounted.current) {
@@ -69,6 +78,7 @@ export default function useWonnieBackend(open) {
 
   const failRequest = useCallback((job, message) => {
     if (!job || activeRequest.current !== job) return;
+    requestRecoveryControl.current.clear(job.requestId);
     activeRequest.current = null;
     sendingRef.current = false;
     if (mounted.current) {
@@ -95,43 +105,51 @@ export default function useWonnieBackend(open) {
     return true;
   }, [refresh, settleRequest]);
 
-  const recoverRequest = useCallback(async (requestId) => {
+  const recoverRequest = useCallback((requestId) => {
     const job = activeRequest.current;
-    if (!job || job.requestId !== requestId) return;
-    try {
-      const status = await wonnieApi.assistantRequestStatus(requestId);
-      if (activeRequest.current !== job) return;
-      job.userMessageId = status.userMessageId || job.userMessageId;
-      job.assistantMessageId = status.assistantMessageId || job.assistantMessageId;
-      if (Number.isInteger(status.lastSequence) && status.lastSequence >= job.lastSequence) {
-        job.lastSequence = status.lastSequence;
-        const partialAnswer = typeof status.partialAnswer === 'string' ? status.partialAnswer : '';
-        if (['RUNNING', 'CANCELLING', 'COMPLETING'].includes(status.status)) {
-          job.typingQueue = [];
-          job.renderedAnswer = partialAnswer;
-          setPendingAssistantMessage({
-            id: `pending-${requestId}-assistant`, requestId, from: 'assistant', kind: 'text',
-            text: partialAnswer, createdAt: job.createdAt + 1, time: job.time,
+    if (!job || job.requestId !== requestId) return Promise.resolve();
+    if (job.recoveryPromise) return job.recoveryPromise;
+    let recoveryPromise;
+    recoveryPromise = (async () => {
+      try {
+        const status = await wonnieApi.assistantRequestStatus(requestId);
+        if (!mounted.current || activeRequest.current !== job) return;
+        job.userMessageId = status.userMessageId || job.userMessageId;
+        job.assistantMessageId = status.assistantMessageId || job.assistantMessageId;
+        if (Number.isInteger(status.lastSequence) && status.lastSequence >= job.lastSequence) {
+          job.lastSequence = status.lastSequence;
+          const partialAnswer = typeof status.partialAnswer === 'string' ? status.partialAnswer : '';
+          if (['ACCEPTED', 'RUNNING', 'CANCELLING', 'COMPLETING'].includes(status.status)) {
+            job.typingQueue = [];
+            job.renderedAnswer = partialAnswer;
+            setPendingAssistantMessage({
+              id: `pending-${requestId}-assistant`, requestId, from: 'assistant', kind: 'text',
+              text: partialAnswer, createdAt: job.createdAt + 1, time: job.time,
+            });
+          }
+        }
+        if (status.status === 'COMPLETED') {
+          if (!applyCompletedExchange(requestId, status.exchange)) {
+            void refresh().catch(() => {}).finally(() => settleRequest(requestId));
+          }
+        } else if (status.status === 'FAILED') {
+          failRequest(job, '답변을 생성하지 못했어요. 질문을 확인한 뒤 다시 시도해 주세요.');
+        } else if (status.status === 'CANCELLED') {
+          failRequest(job, '답변 생성을 취소했어요. 질문을 입력창에서 다시 확인해 주세요.');
+        }
+      } catch (statusError) {
+        if (statusError?.status === 404 && activeRequest.current === job) {
+          // The process-local job registry may have been lost during a server restart.
+          void refresh().catch(() => {}).finally(() => {
+            failRequest(job, '요청 상태를 복구하지 못했어요. 질문을 확인한 뒤 다시 시도해 주세요.');
           });
         }
+      } finally {
+        if (job.recoveryPromise === recoveryPromise) job.recoveryPromise = null;
       }
-      if (status.status === 'COMPLETED') {
-        if (!applyCompletedExchange(requestId, status.exchange)) {
-          void refresh().catch(() => {}).finally(() => settleRequest(requestId));
-        }
-      } else if (status.status === 'FAILED') {
-        failRequest(job, '답변을 생성하지 못했어요. 질문을 확인한 뒤 다시 시도해 주세요.');
-      } else if (status.status === 'CANCELLED') {
-        failRequest(job, '답변 생성을 취소했어요. 질문을 입력창에서 다시 확인해 주세요.');
-      }
-    } catch (statusError) {
-      if (statusError?.status === 404 && activeRequest.current === job) {
-        // The process-local job registry may have been lost during a server restart.
-        void refresh().catch(() => {}).finally(() => {
-          failRequest(job, '요청 상태를 복구하지 못했어요. 질문을 확인한 뒤 다시 시도해 주세요.');
-        });
-      }
-    }
+    })();
+    job.recoveryPromise = recoveryPromise;
+    return recoveryPromise;
   }, [applyCompletedExchange, failRequest, refresh, settleRequest]);
 
   useEffect(() => {
@@ -139,6 +157,31 @@ export default function useWonnieBackend(open) {
     let source = null;
     let fallbackRequested = false;
     let typingTimer = null;
+    let recoveryTimer = null;
+
+    const clearRequestRecovery = () => {
+      if (recoveryTimer !== null) clearTimeout(recoveryTimer);
+      recoveryTimer = null;
+    };
+
+    const scheduleRequestRecovery = (job, delay = REQUEST_RECOVERY_IDLE_MS) => {
+      clearRequestRecovery();
+      if (controller.signal.aborted || activeRequest.current !== job) return;
+      recoveryTimer = setTimeout(async () => {
+        recoveryTimer = null;
+        if (controller.signal.aborted || activeRequest.current !== job) return;
+        await recoverRequest(job.requestId);
+        if (!controller.signal.aborted && activeRequest.current === job) {
+          scheduleRequestRecovery(job, REQUEST_RECOVERY_RETRY_MS);
+        }
+      }, delay);
+    };
+
+    const recoveryControl = {
+      touch: (job) => scheduleRequestRecovery(job),
+      clear: () => clearRequestRecovery(),
+    };
+    requestRecoveryControl.current = recoveryControl;
 
     const finishBufferedReply = (job) => {
       const completion = job.pendingCompletion;
@@ -294,6 +337,7 @@ export default function useWonnieBackend(open) {
     listen('reply.started', (envelope) => {
       const job = activeRequest.current;
       if (!job || job.requestId !== envelope.requestId) return;
+      recoveryControl.touch(job);
       job.userMessageId = envelope.data.userMessageId;
       job.assistantMessageId = envelope.messageId;
       setPendingAssistantMessage((current) => current?.requestId === job.requestId ? current : {
@@ -306,6 +350,7 @@ export default function useWonnieBackend(open) {
       const job = activeRequest.current;
       const { sequence, delta } = envelope.data;
       if (!job || job.requestId !== envelope.requestId) return;
+      recoveryControl.touch(job);
       if (!Number.isInteger(sequence) || sequence < 1 || typeof delta !== 'string' || !delta) {
         void recoverRequest(job.requestId);
         return;
@@ -327,6 +372,7 @@ export default function useWonnieBackend(open) {
     listen('reply.completed', (envelope) => {
       const exchange = envelope.data.exchange;
       const job = activeRequest.current;
+      if (job?.requestId === envelope.requestId) recoveryControl.touch(job);
       if (job?.requestId === envelope.requestId && (job.typingQueue?.length || typingTimer !== null)) {
         job.pendingCompletion = { exchange, unreadCount: envelope.data.unreadCount };
       } else if (!applyCompletedExchange(envelope.requestId, exchange, envelope.data.unreadCount)) {
@@ -338,6 +384,7 @@ export default function useWonnieBackend(open) {
     listen('reply.failed', (envelope) => {
       const job = activeRequest.current;
       if (job?.requestId === envelope.requestId) {
+        recoveryControl.touch(job);
         failRequest(job, typeof envelope.data.message === 'string'
           ? envelope.data.message : '답변을 생성하지 못했어요. 다시 시도해 주세요.');
       }
@@ -346,6 +393,7 @@ export default function useWonnieBackend(open) {
     listen('reply.cancelled', (envelope) => {
       const job = activeRequest.current;
       if (job?.requestId === envelope.requestId) {
+        recoveryControl.touch(job);
         failRequest(job, '답변 생성을 취소했어요. 질문을 입력창에서 다시 확인해 주세요.');
       }
     });
@@ -359,6 +407,10 @@ export default function useWonnieBackend(open) {
     return () => {
       controller.abort();
       if (typingTimer !== null) clearTimeout(typingTimer);
+      clearRequestRecovery();
+      if (requestRecoveryControl.current === recoveryControl) {
+        requestRecoveryControl.current = { touch: () => {}, clear: () => {} };
+      }
       source?.close();
       window.removeEventListener('focus', syncOnFocus);
     };
@@ -405,6 +457,7 @@ export default function useWonnieBackend(open) {
       if (activeRequest.current === job) {
         job.userMessageId = accepted.userMessageId;
         job.assistantMessageId = accepted.assistantMessageId;
+        requestRecoveryControl.current.touch(job);
         if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(accepted.status)) void recoverRequest(requestId);
       }
       return true;
