@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { AlertCircle, RefreshCw, Sparkles } from 'lucide-react'
+import { AlertCircle, LogOut, RefreshCw, Sparkles, X } from 'lucide-react'
 import { AssistantPanel } from './features/assistant/AssistantPanel'
 import { AppHeader } from './features/dashboard/AppHeader'
 import { BalanceHero } from './features/dashboard/BalanceHero'
@@ -12,8 +12,13 @@ import {
 import { SubscriptionList } from './features/subscriptions/SubscriptionList'
 import { api } from './shared/api/client'
 import { assistantKeys } from './shared/api/query-keys'
+import type { AuthUser } from './shared/api/types'
 
-export const App = () => {
+interface AppProps {
+  user?: AuthUser
+}
+
+export const App = ({ user }: AppProps) => {
   const dashboard = useDashboard()
   const unread = useQuery({
     queryKey: assistantKeys.unread(),
@@ -22,6 +27,13 @@ export const App = () => {
   })
   const [activeTab, setActiveTab] = useState<AppTab>('home')
   const [assistantOpen, setAssistantOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  const logout = () => {
+    fetch('/logout', { method: 'POST', credentials: 'include' }).finally(() => {
+      window.location.assign('/')
+    })
+  }
 
   if (dashboard.isPending) {
     return (
@@ -55,7 +67,29 @@ export const App = () => {
 
   return (
     <main className="app-shell">
-      <AppHeader customerName={data.customerName} />
+      <AppHeader customerName={user?.name ?? data.customerName} onMenu={() => setMenuOpen(true)} />
+
+      {menuOpen && (
+        <>
+          <button className="fixed inset-0 z-40 bg-slate-950/25" aria-label="메뉴 닫기" onClick={() => setMenuOpen(false)} />
+          <aside className="fixed inset-y-0 left-0 z-50 w-[min(86vw,360px)] bg-white p-6 shadow-2xl" aria-label="계정 메뉴">
+            <div className="flex items-center justify-between">
+              <h2 className="m-0 text-[20px] font-bold">내 계정</h2>
+              <button className="icon-button" aria-label="메뉴 닫기" onClick={() => setMenuOpen(false)}><X size={20} /></button>
+            </div>
+            <div className="mt-8 flex items-center gap-3 rounded-2xl bg-sky-50 p-4">
+              {user?.picture ? <img className="size-12 rounded-full" src={user.picture} alt="" /> : <div className="grid size-12 place-items-center rounded-full bg-woori-blue text-lg font-bold text-white">{(user?.name ?? data.customerName).slice(0, 1)}</div>}
+              <div className="min-w-0">
+                <p className="m-0 truncate text-[15px] font-bold">{user?.name ?? data.customerName}</p>
+                {user?.email && <p className="m-0 mt-1 truncate text-[12px] text-woori-muted">{user.email}</p>}
+              </div>
+            </div>
+            <button className="mt-8 flex w-full items-center gap-2 rounded-xl border border-red-100 px-4 py-3 text-left text-[14px] font-semibold text-red-600" onClick={logout}>
+              <LogOut size={17} /> 로그아웃
+            </button>
+          </aside>
+        </>
+      )}
 
       {activeTab === 'home' && (
         <>

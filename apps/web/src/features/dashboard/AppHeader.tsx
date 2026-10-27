@@ -2,12 +2,13 @@ import { Bell, Menu, Search } from 'lucide-react'
 
 interface AppHeaderProps {
   customerName: string
+  onMenu?: () => void
 }
 
-export const AppHeader = ({ customerName }: AppHeaderProps) => (
+export const AppHeader = ({ customerName, onMenu }: AppHeaderProps) => (
   <header className="flex items-center justify-between px-5 pb-4 pt-5">
     <div className="flex items-center gap-3">
-      <button className="icon-button" aria-label="전체 메뉴">
+      <button className="icon-button" aria-label="전체 메뉴" onClick={onMenu}>
         <Menu size={20} />
       </button>
       <div>
