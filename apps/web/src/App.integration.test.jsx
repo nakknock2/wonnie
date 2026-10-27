@@ -9,6 +9,7 @@ let unread;
 let requestLog;
 let requestStatuses;
 let restoreEventSource;
+let checkoutCardIssued;
 const eventSources = [];
 
 class FakeEventSource {
@@ -46,7 +47,7 @@ const replyEnvelope = (eventId, type, requestId, messageId, data) => ({
 });
 
 beforeEach(() => {
-  history = []; failSend = false; unread = 0; requestLog = []; requestStatuses = new Map(); restoreEventSource = null; eventSources.length = 0;
+  history = []; failSend = false; unread = 0; requestLog = []; requestStatuses = new Map(); restoreEventSource = null; eventSources.length = 0; checkoutCardIssued = false;
   Object.defineProperty(HTMLElement.prototype, 'scrollTo', { value: vi.fn(), configurable: true });
   vi.stubGlobal('fetch', vi.fn(async (path, options = {}) => {
     requestLog.push({ path, options });
@@ -69,6 +70,24 @@ beforeEach(() => {
       ],
     } });
     if (path === '/api/dashboard') return response({ subscriptions: [{ id: 'sub-server-one', brandColor: '#111111', initial: 'A' }] });
+    if (path.startsWith('/api/subscription-checkout/options')) {
+      const selected = path.includes('plan=STANDARD') ? { code: 'STANDARD', name: '스탠다드', price: 13500, description: 'Full HD', recommended: true } : null;
+      const card = { id: checkoutCardIssued ? 'card-issued' : 'prd-daily', productId: 'prd-daily', name: '카드의정석2 DAILY', issuer: '우리카드',
+        owned: checkoutCardIssued, maskedNumber: checkoutCardIssued ? '****4321' : null, annualFee: 25000, discountRate: 50,
+        potentialDiscount: 5000, estimatedDiscount: 5000, minimumSpend: 500000, previousMonthSpend: 0,
+        benefitReady: true, benefitNote: '구독 할인', summary: '정기결제 50% 할인', imageKey: 'woori-daily' };
+      return response({ serviceName: '넷플릭스', plans: [
+        { code: 'AD_STANDARD', name: '광고형 스탠다드', price: 7000, description: '광고 포함', recommended: false },
+        { code: 'STANDARD', name: '스탠다드', price: 13500, description: 'Full HD', recommended: true },
+        { code: 'PREMIUM', name: '프리미엄', price: 17000, description: '4K', recommended: false },
+      ], selectedPlan: selected, ownedCards: checkoutCardIssued ? [card] : [], recommendedCards: checkoutCardIssued ? [] : [card], mockTransaction: true });
+    }
+    if (path === '/api/subscription-checkout/cards') { checkoutCardIssued = true; return response({ cardId: 'card-issued', productId: 'prd-daily', name: '카드의정석2 DAILY', maskedNumber: '****4321', annualFee: 25000, newlyIssued: true }); }
+    if (path === '/api/subscription-checkout/subscriptions') return response({
+      subscriptionId: 'sub-checkout', serviceName: '넷플릭스', plan: { code: 'STANDARD', name: '스탠다드', price: 13500 },
+      cardId: 'card-issued', cardName: '카드의정석2 DAILY', approvedAmount: 13500, approvedOn: '2026-10-27', status: 'APPROVED', created: true,
+      subscriptions: [{ id: 'sub-checkout', name: '넷플릭스', plan: '스탠다드', price: 13500, billingCycle: 'MONTHLY', nextPaymentDate: '2026-11-27', status: 'ACTIVE', color: '#e50914', letter: 'N', cardName: '카드의정석2 DAILY', maskedNumber: '****4321' }],
+    });
     throw new Error(`Unexpected endpoint: ${path}`);
   }));
 });
@@ -217,6 +236,32 @@ describe('merged final frontend backend connection', () => {
     expect(document.querySelector('.phone-screen')).not.toBeNull();
     expect(within(chat).getByRole('textbox', { name: '메시지 입력' })).toBeInTheDocument();
     expect(within(chat).queryByText(/카드 결제에서 찾은 구독/)).not.toBeInTheDocument();
+  });
+
+  it('issues a recommended Woori card and completes a mock Netflix subscription from chat', async () => {
+    render(<App showDemoPanel={false} />);
+    const chat = await openChat();
+    const input = within(chat).getByRole('textbox', { name: '메시지 입력' });
+    fireEvent.change(input, { target: { value: '넷플릭스 구독해줘' } });
+    fireEvent.click(within(chat).getByRole('button', { name: '보내기' }));
+
+    fireEvent.click(await within(chat).findByRole('button', { name: /스탠다드 Full HD/ }, { timeout: 2500 }));
+    fireEvent.click(await within(chat).findByRole('button', { name: /카드의정석2 DAILY.*바로 발급하기/ }, { timeout: 2500 }));
+    const issueSheet = await screen.findByRole('dialog', { name: /약관 동의만 하면/ });
+    fireEvent.click(within(issueSheet).getByRole('button', { name: /필수 약관 모두 동의/ }));
+    fireEvent.click(within(issueSheet).getByRole('button', { name: '모두 동의하고 카드 발급' }));
+
+    const owned = await within(chat).findByRole('button', { name: /카드의정석2 DAILY.*이 카드로 결제/ }, { timeout: 3000 });
+    fireEvent.click(owned);
+    const paymentSheet = await screen.findByRole('dialog', { name: /결제 내용을/ });
+    fireEvent.click(within(paymentSheet).getByRole('button', { name: /필수 약관 모두 동의/ }));
+    fireEvent.click(within(paymentSheet).getByRole('button', { name: '13,500원 결제 승인' }));
+
+    expect(await within(chat).findByText('결제가 완료됐어요. 현재 구독 목록도 함께 정리했어요.', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(within(chat).getByText('넷플릭스 스탠다드')).toBeInTheDocument();
+    expect(within(chat).getByText('1개 · 월 13,500원')).toBeInTheDocument();
+    expect(requestLog.some((entry) => entry.path === '/api/subscription-checkout/cards')).toBe(true);
+    expect(requestLog.some((entry) => entry.path === '/api/subscription-checkout/subscriptions')).toBe(true);
   });
 
   it('receives proactive notices over SSE, deduplicates them, and reloads after reconnect', async () => {

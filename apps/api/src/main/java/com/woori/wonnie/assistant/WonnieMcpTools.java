@@ -22,7 +22,8 @@ public class WonnieMcpTools {
             "get_price_changes", "find_subscription_overlaps", "get_renewal_alerts",
             "get_cancellation_summary", "get_usage_analysis", "recommend_cards",
             "get_customer_context", "get_card_schedule", "get_financial_alerts",
-            "get_payment_failure_policy");
+            "get_payment_failure_policy", "get_subscription_checkout_options",
+            "issue_woori_card", "create_subscription");
     private final McpSyncClient client;
     private boolean initialized;
 
@@ -47,8 +48,7 @@ public class WonnieMcpTools {
             }
             var tools = client.listTools().tools().stream()
                     .filter(tool -> ALLOWED.contains(tool.name()))
-                    .filter(tool -> tool.annotations() != null
-                            && Boolean.TRUE.equals(tool.annotations().readOnlyHint()))
+                    .filter(tool -> tool.annotations() != null)
                     .map(tool -> (ToolCallback) SyncMcpToolCallback.builder()
                             .mcpClient(client)
                             .tool(tool)
@@ -56,7 +56,7 @@ public class WonnieMcpTools {
                             .build())
                     .toArray(ToolCallback[]::new);
             if (tools.length == 0) {
-                throw new IllegalStateException("No allowed MCP read tools are available.");
+                throw new IllegalStateException("No allowed MCP tools are available.");
             }
             return tools;
         } catch (RuntimeException exception) {

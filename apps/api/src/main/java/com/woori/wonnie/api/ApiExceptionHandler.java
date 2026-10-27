@@ -8,6 +8,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -64,5 +66,12 @@ public class ApiExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError handleBusinessException(RuntimeException exception) {
         return new ApiError("BUSINESS_RULE_VIOLATION", exception.getMessage());
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiError> handleResponseStatus(ResponseStatusException exception) {
+        var reason = exception.getReason() == null ? "요청을 처리하지 못했어요." : exception.getReason();
+        return ResponseEntity.status(exception.getStatusCode())
+                .body(new ApiError("CHECKOUT_REQUEST_REJECTED", reason));
     }
 }

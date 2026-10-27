@@ -50,6 +50,54 @@ public class WonnieApiClient {
         }
     }
 
+    public Map<String, Object> checkoutOptions(String serviceName, String planCode) {
+        var customerId = currentCustomerId();
+        try {
+            var result = restClient.get().uri(builder -> {
+                builder.path("/api/internal/subscription-checkout/options")
+                        .queryParam("serviceName", "{serviceName}");
+                if (planCode != null && !planCode.isBlank()) builder.queryParam("planCode", "{planCode}");
+                return planCode == null || planCode.isBlank()
+                        ? builder.build(serviceName) : builder.build(serviceName, planCode);
+            }).header(CUSTOMER_HEADER, customerId).header(TOKEN_HEADER, internalToken)
+                    .retrieve().body(new ParameterizedTypeReference<Map<String, Object>>() {});
+            if (result == null) throw new IllegalStateException("Wonnie API returned an empty response.");
+            return result;
+        } catch (RestClientResponseException exception) {
+            throw new IllegalStateException("Checkout API request failed with HTTP " + exception.getStatusCode().value());
+        } catch (RestClientException exception) {
+            throw new IllegalStateException("Could not connect to the checkout API.");
+        }
+    }
+
+    public Map<String, Object> issueCard(String productId, boolean allTermsAgreed) {
+        return checkoutPost("/api/internal/subscription-checkout/cards",
+                Map.of("productId", productId, "allTermsAgreed", allTermsAgreed));
+    }
+
+    public Map<String, Object> createSubscription(
+            String requestId, String serviceName, String planCode, String cardId, boolean allTermsAgreed
+    ) {
+        return checkoutPost("/api/internal/subscription-checkout/subscriptions", Map.of(
+                "requestId", requestId, "service", serviceName, "planCode", planCode,
+                "cardId", cardId, "allTermsAgreed", allTermsAgreed));
+    }
+
+    private Map<String, Object> checkoutPost(String path, Map<String, Object> body) {
+        var customerId = currentCustomerId();
+        try {
+            var result = restClient.post().uri(path).header(CUSTOMER_HEADER, customerId)
+                    .header(TOKEN_HEADER, internalToken).body(body).retrieve()
+                    .body(new ParameterizedTypeReference<Map<String, Object>>() {});
+            if (result == null) throw new IllegalStateException("Wonnie API returned an empty response.");
+            return result;
+        } catch (RestClientResponseException exception) {
+            throw new IllegalStateException("Checkout API request failed with HTTP " + exception.getStatusCode().value());
+        } catch (RestClientException exception) {
+            throw new IllegalStateException("Could not connect to the checkout API.");
+        }
+    }
+
     private static String currentCustomerId() {
         var attributes = RequestContextHolder.getRequestAttributes();
         if (!(attributes instanceof ServletRequestAttributes servletAttributes)) {

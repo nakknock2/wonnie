@@ -49,6 +49,17 @@ export const wonnieApi = {
   cancelAssistantRequest: (requestId) => request(`/api/assistant/requests/${encodeURIComponent(requestId)}/cancel`, { method: 'POST' }),
   subscriptions: (signal) => request('/api/finance/subscriptions', { signal }),
   dashboard: (signal) => request('/api/dashboard', { signal }),
+  subscriptionCheckoutOptions: (service, plan, signal) => {
+    const params = new URLSearchParams({ service });
+    if (plan) params.set('plan', plan);
+    return request(`/api/subscription-checkout/options?${params}`, { signal });
+  },
+  issueCard: (productId) => request('/api/subscription-checkout/cards', {
+    method: 'POST', body: JSON.stringify({ productId, allTermsAgreed: true }),
+  }),
+  createSubscription: ({ requestId, service, planCode, cardId }) => request('/api/subscription-checkout/subscriptions', {
+    method: 'POST', body: JSON.stringify({ requestId, service, planCode, cardId, allTermsAgreed: true }),
+  }),
 };
 
 const kstDate = (value) => {

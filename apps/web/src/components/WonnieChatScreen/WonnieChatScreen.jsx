@@ -5,6 +5,10 @@ import { ConsentForm } from '../Consent/Consent.jsx';
 import CancelPage from './CancelPage.jsx';
 import TransferSheet from './TransferSheet.jsx';
 import SubscriptionPauseSheet from './SubscriptionPauseSheet.jsx';
+import {
+  CardIssueConsentSheet, CardRecommendations, PaymentConsentSheet,
+  PlanPicker, SubscriptionCompleteCard,
+} from './SubscriptionCheckoutFlow.jsx';
 import NotifConsent, { OsPermission } from './NotifConsent.jsx';
 import { ProposalCard, ProposalReply, ScenarioSheet } from './Proposals.jsx';
 import { engine } from '../../proposals/index.js';
@@ -72,6 +76,11 @@ const nowTime = () => {
   const d = new Date();
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
+const newCheckoutRequestId = () => globalThis.crypto?.randomUUID?.()
+  || 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (letter) => {
+    const value = Math.floor(Math.random() * 16);
+    return (letter === 'x' ? value : (value & 0x3) | 0x8).toString(16);
+  });
 
 // 워니 답변 틀 (아바타 + 한 줄 소개 + 카드). 컴포넌트 밖에 둬야 안의 입력 상태가 유지돼요.
 function Reply({ intro, children }) {
@@ -100,6 +109,9 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
   const [cancelOpen, setCancelOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [pauseTarget, setPauseTarget] = useState(null);
+  const [checkoutOptions, setCheckoutOptions] = useState(null);
+  const [issueTarget, setIssueTarget] = useState(null);
+  const [paymentTarget, setPaymentTarget] = useState(null);
   const [transferTarget, setTransferTarget] = useState(WATCHA);
   const [calendarCancelled, setCalendarCancelled] = useState([]);
   const [declinedOffers, setDeclinedOffers] = useState([]);
@@ -285,6 +297,52 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
     say(mk('assistant', 'offer', { subscription }), 650);
   };
 
+  const startSubscriptionCheckout = async (text) => {
+    userSays(text);
+    setFetchingSubscriptions(true);
+    try {
+      const options = await wonnieApi.subscriptionCheckoutOptions('넷플릭스');
+      setCheckoutOptions(options);
+      say(mk('assistant', 'subscription-plans', { options }), 500);
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setFetchingSubscriptions(false);
+    }
+  };
+
+  const selectSubscriptionPlan = async (plan) => {
+    userSays(`${plan.name}으로 할게요`);
+    setFetchingSubscriptions(true);
+    try {
+      const options = await wonnieApi.subscriptionCheckoutOptions('넷플릭스', plan.code);
+      setCheckoutOptions(options);
+      say(mk('assistant', 'subscription-cards', { options }), 450);
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setFetchingSubscriptions(false);
+    }
+  };
+
+  const issueRecommendedCard = async (card) => {
+    await wonnieApi.issueCard(card.productId);
+    userSays(`${card.name} 발급에 동의했어요`);
+    const updated = await wonnieApi.subscriptionCheckoutOptions('넷플릭스', checkoutOptions.selectedPlan.code);
+    setCheckoutOptions(updated);
+    say(mk('assistant', 'subscription-cards', { options: updated, issuedCard: card.name }), 500);
+  };
+
+  const approveSubscriptionPayment = async ({ card, plan }) => {
+    userSays(`${card.name}으로 결제를 승인할게요`);
+    const result = await wonnieApi.createSubscription({
+      requestId: newCheckoutRequestId(),
+      service: '넷플릭스', planCode: plan.code, cardId: card.id,
+    });
+    say(mk('assistant', 'subscription-complete', { result }), 350);
+    return result;
+  };
+
   // 외부 요청 처리 (동의 직후 / D-1 알림 / 날짜 넘김)
   useEffect(() => {
     if (!open || !request || handledReq.current === request.id) return;
@@ -310,6 +368,8 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
     const onKey = (e) => {
       if (e.key !== 'Escape') return;
       if (sheet) setSheet(null);
+      else if (paymentTarget) setPaymentTarget(null);
+      else if (issueTarget) setIssueTarget(null);
       else if (pauseTarget) setPauseTarget(null);
       else if (cancelOpen) setCancelOpen(false);
       else if (transferOpen) setTransferOpen(false);
@@ -317,7 +377,7 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose, cancelOpen, transferOpen, pauseTarget, sheet]);
+  }, [open, onClose, cancelOpen, transferOpen, pauseTarget, issueTarget, paymentTarget, sheet]);
 
   /* ----- 시나리오별 절약 제안 ----- */
   const startProposal = (scenario) => {
@@ -360,6 +420,10 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
       if (!demoRef.current.scanned) showSubs(); else askNotif();
       return;
     }
+    if (/(넷플릭스|netflix).*(구독|가입)|(구독|가입).*(넷플릭스|netflix)/i.test(t)) {
+      void startSubscriptionCheckout(t);
+      return;
+    }
     void sendToBackend(t);
   };
 
@@ -389,7 +453,7 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
     .reduce((sum, subscription) => sum + Number(subscription.price), 0);
   const activeTotal = MONTHLY_TOTAL - (demo.cancelled ? WATCHA.price : 0) - calendarSaved;
   const hasMessages = visibleMessages.length > 0 || busy;
-  const tab = open && !cancelOpen && !transferOpen && !pauseTarget && !osAsk && !sheet ? 0 : -1;
+  const tab = open && !cancelOpen && !transferOpen && !pauseTarget && !issueTarget && !paymentTarget && !osAsk && !sheet ? 0 : -1;
   const lastId = visibleMessages.length ? visibleMessages[visibleMessages.length - 1].id : null;
   const lastProposalId = [...messages].reverse().find((m) => m.kind === 'proposal')?.id;
 
@@ -577,6 +641,20 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
           </Reply>
         );
       }
+      case 'subscription-plans':
+        return (
+          <Reply intro="좋아요. 먼저 넷플릭스 요금제를 골라주세요.">
+            <PlanPicker options={m.options} disabled={busy} onSelect={selectSubscriptionPlan} />
+          </Reply>
+        );
+      case 'subscription-cards':
+        return (
+          <Reply intro={m.issuedCard ? `${m.issuedCard} 발급이 끝났어요. 이제 결제 카드를 선택해 주세요.` : '혜택이 큰 순서로 결제 카드를 골라봤어요.'}>
+            <CardRecommendations options={m.options} onOwned={(card) => setPaymentTarget({ card, plan: m.options.selectedPlan })} onCandidate={setIssueTarget} />
+          </Reply>
+        );
+      case 'subscription-complete':
+        return <Reply intro="결제가 완료됐어요. 현재 구독 목록도 함께 정리했어요."><SubscriptionCompleteCard result={m.result} /></Reply>;
       case 'result':
         return (
           <Reply intro={`오늘은 ${WATCHA.name} 결제일이었어요.`}>
@@ -726,6 +804,8 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
       <OsPermission open={!!osAsk} onAnswer={answerOs} />
       <CancelPage open={cancelOpen} onClose={() => setCancelOpen(false)} onCancelled={onCancelled} />
       <SubscriptionPauseSheet open={!!pauseTarget} subscription={pauseTarget} onClose={() => setPauseTarget(null)} onComplete={onCalendarCancelled} />
+      <CardIssueConsentSheet card={issueTarget} onClose={() => setIssueTarget(null)} onIssue={issueRecommendedCard} />
+      <PaymentConsentSheet selection={paymentTarget} onClose={() => setPaymentTarget(null)} onPay={approveSubscriptionPayment} />
       <TransferSheet open={transferOpen} amount={Number(transferTarget.price)} balance={demo.balance} onClose={() => setTransferOpen(false)} onDone={onTransferDone} />
 
       {toast && <div className="wc-toast" role="status">{toast}</div>}

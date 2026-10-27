@@ -35,11 +35,16 @@ class SubscriptionToolsIntegrationTests {
     }
     @AfterEach void close(){client.closeGracefully();}
     @AfterAll static void stop(){API.stop(0);}
-    @Test void discoversOnlyThirteenReadToolsWithoutCalendarOrFinancialWrites() {
+    @Test void discoversReadToolsAndConsentGatedCheckoutWrites() {
         var tools=client.listTools().tools();
-        assertThat(tools).hasSize(13).allSatisfy(t->{assertThat(t.annotations().readOnlyHint()).isTrue();assertThat(t.annotations().destructiveHint()).isFalse();});
+        assertThat(tools).hasSize(16);
+        assertThat(tools).filteredOn(t -> Boolean.TRUE.equals(t.annotations().readOnlyHint())).hasSize(14)
+            .allSatisfy(t -> assertThat(t.annotations().destructiveHint()).isFalse());
         assertThat(tools).extracting(Tool::name).contains("get_subscriptions","explain_merchant","get_price_changes","recommend_cards","get_card_schedule")
+            .contains("get_subscription_checkout_options", "issue_woori_card", "create_subscription")
             .doesNotContain("get_calendar_signals","create_payment_pause_plan");
+        assertThat(tools).filteredOn(t -> List.of("issue_woori_card", "create_subscription").contains(t.name()))
+            .allSatisfy(t -> { assertThat(t.annotations().readOnlyHint()).isFalse(); assertThat(t.annotations().destructiveHint()).isTrue(); });
     }
     @Test void eachFinanceToolCallsItsOwnApiEndpoint() {
         var tools=Map.ofEntries(Map.entry("get_subscriptions","subscriptions"),Map.entry("get_payment_readiness","payment-readiness"),
@@ -58,6 +63,20 @@ class SubscriptionToolsIntegrationTests {
     @Test void reportsUpstreamErrorWithoutPrivateResponseBody() {
         STATUS.set(500);var result=call("get_subscriptions",Map.of());
         assertThat(result.isError()).isTrue();assertThat(text(result)).contains("HTTP 500").doesNotContain("private-upstream-data");
+    }
+    @Test void checkoutToolsUseOptionsAndConsentGatedPostEndpoints() {
+        assertThat(call("get_subscription_checkout_options",Map.of("serviceName","넷플릭스","planCode","STANDARD")).isError()).isFalse();
+        assertThat(REQUESTS.get(0)).contains("GET /api/internal/subscription-checkout/options?serviceName=");
+        REQUESTS.clear();
+        assertThat(call("issue_woori_card",Map.of("productId","prd-daily","allTermsAgreed",true)).isError()).isFalse();
+        assertThat(REQUESTS.get(0)).isEqualTo("POST /api/internal/subscription-checkout/cards");
+        REQUESTS.clear();
+        assertThat(call("create_subscription",Map.of("requestId",UUID.randomUUID().toString(),"serviceName","넷플릭스",
+            "planCode","STANDARD","cardId","card-test","allTermsAgreed",true)).isError()).isFalse();
+        assertThat(REQUESTS.get(0)).isEqualTo("POST /api/internal/subscription-checkout/subscriptions");
+        REQUESTS.clear();
+        assertThat(call("issue_woori_card",Map.of("productId","prd-daily","allTermsAgreed",false)).isError()).isTrue();
+        assertThat(REQUESTS).isEmpty();
     }
     @Test void retainsDatedPolicyLookupWithoutUsingUnknownBillingChannelAsDirect() {
         var result=call("get_payment_failure_policy",Map.of("serviceName","Netflix","billingChannel","UNKNOWN"));
