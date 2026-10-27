@@ -751,7 +751,7 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
         <div className="wc-date"><span>{ymd(BASE_DATE)}</span></div>
         <div className="wc-connected"><span className="wc-connected-dot" />Wonnie와 연결되었어요</div>
 
-        <div aria-live="polite">
+        <div className="wc-live-region" aria-live="polite">
           {!hasMessages && (
             <>
               <article className="wc-welcome">
