@@ -1,0 +1,82 @@
+/* ===== 동의 폼 ===== */
+.cs-form { display: flex; flex-direction: column; gap: 10px; font-family: 'Pretendard', 'Noto Sans KR', sans-serif; }
+.cs-form button { font: inherit; border: 0; background: none; padding: 0; cursor: pointer; color: inherit; text-align: left; }
+.cs-form button:disabled { cursor: default; }
+.cs-check {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #d1d6db;
+  display: grid;
+  place-items: center;
+  transition: background-color 0.15s;
+}
+.cs-check.is-on { background: #2d82ef; }
+.cs-all {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 14px !important;
+  border-radius: 14px !important;
+  background: #f2f4f6 !important;
+}
+.cs-all strong { font-size: 15px; font-weight: 700; color: #191f28; }
+/* 알림은 따로 묻는다는 안내 */
+.cs-note { margin: 2px 4px 0; font-size: 12px; line-height: 1.5; color: #6b7684; }
+.cs-form.is-compact .cs-note { font-size: 11.5px; }
+.cs-list { list-style: none; margin: 0; padding: 0 4px; display: flex; flex-direction: column; gap: 10px; }
+.cs-list button { display: flex !important; gap: 10px; align-items: flex-start; width: 100%; }
+.cs-list button > span:last-child { display: flex; flex-direction: column; gap: 2px; padding-top: 1px; }
+.cs-list b { font-size: 13.5px; font-weight: 600; color: #333d4b; letter-spacing: -0.3px; }
+.cs-list em { font-style: normal; }
+.cs-list em.req { color: #2d82ef; }
+.cs-list em.opt { color: #8b95a1; }
+.cs-list small { font-size: 12px; color: #8b95a1; line-height: 1.45; }
+.cs-agree {
+  margin-top: 4px;
+  height: 50px;
+  border-radius: 14px !important;
+  background: #2d82ef !important;
+  color: #fff !important;
+  font-size: 16px !important;
+  font-weight: 700;
+  text-align: center !important;
+  transition: background-color 0.15s, transform 0.12s;
+}
+.cs-agree:hover:not(:disabled) { background: #1f6fd6 !important; }
+.cs-agree:active:not(:disabled) { transform: scale(0.98); }
+.cs-agree:disabled { background: #c9d3de !important; }
+.cs-later { align-self: center; font-size: 13px; color: #8b95a1 !important; padding: 4px 8px !important; }
+.cs-form.is-compact { gap: 8px; }
+.cs-form.is-compact .cs-all { padding: 10px 12px !important; }
+.cs-form.is-compact .cs-all strong { font-size: 14px; }
+.cs-form.is-compact .cs-list b { font-size: 12.5px; }
+.cs-form.is-compact .cs-agree { height: 44px; font-size: 14px !important; }
+
+/* ===== 앱 진입 동의 바텀시트 (폰 화면 직계 자식) ===== */
+.cs-sheet { position: absolute; inset: 0; z-index: 47; }
+.cs-dim { position: absolute; inset: 0; background: rgba(10, 14, 20, 0.45); opacity: 0; transition: opacity 0.3s; }
+.cs-sheet.is-open .cs-dim { opacity: 1; }
+.cs-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px 20px 34px;
+  border-radius: 26px 26px 0 0;
+  background: #fff;
+  transform: translateY(100%);
+  transition: transform 0.36s cubic-bezier(0.22, 0.8, 0.3, 1);
+}
+.cs-sheet.is-open .cs-panel { transform: none; }
+.cs-grabber { width: 38px; height: 4px; margin: 0 auto 14px; border-radius: 2px; background: #d1d6db; }
+.cs-hero { display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; margin-bottom: 16px; }
+.cs-badge { display: inline-block; padding: 4px 9px; border-radius: 10px; background: #e9f7d4; color: #3d7a12; font-size: 11.5px; font-weight: 700; }
+.cs-hero h2 { margin: 10px 0 6px; font-size: 21px; line-height: 1.38; font-weight: 800; letter-spacing: -0.6px; color: #191f28; }
+.cs-hero p { margin: 0; font-size: 13px; color: #6b7684; line-height: 1.5; }
+.cs-mascot { width: 86px; flex: 0 0 auto; margin-bottom: -4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-dim, .cs-panel { transition: none !important; }
+}

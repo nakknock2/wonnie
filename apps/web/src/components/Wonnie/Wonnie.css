@@ -1,0 +1,80 @@
+/* ===== 전신 캐릭터 ===== */
+.wonnie {
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+}
+.wonnie__img {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  transform-origin: 50% 95%;
+}
+.wonnie__shadow {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: -3%;
+  height: 8%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(40, 60, 20, 0.28), rgba(40, 60, 20, 0));
+}
+
+/* 둥실둥실 + 가끔 인사하듯 몸 흔들기 */
+.wonnie--animated .wonnie__img { animation: wonnie-float 3s ease-in-out infinite, wonnie-hello 7s ease-in-out infinite; }
+.wonnie--animated .wonnie__shadow { animation: wonnie-shadow 3s ease-in-out infinite; }
+@keyframes wonnie-float {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -4px; }
+}
+@keyframes wonnie-shadow {
+  0%, 100% { transform: scaleX(1); opacity: 1; }
+  50% { transform: scaleX(0.8); opacity: 0.65; }
+}
+@keyframes wonnie-hello {
+  0%, 78%, 100% { rotate: 0deg; }
+  82% { rotate: -7deg; }
+  86% { rotate: 6deg; }
+  90% { rotate: -5deg; }
+  94% { rotate: 0deg; }
+}
+
+/* 표정 대신 동작 */
+.wonnie--thinking .wonnie__img,
+.wonnie-avatar.wonnie--thinking .wonnie-avatar__img { animation: wonnie-think 1s ease-in-out infinite; }
+@keyframes wonnie-think {
+  0%, 100% { rotate: -6deg; }
+  50% { rotate: 6deg; }
+}
+.wonnie--excited .wonnie__img { animation: wonnie-hop 0.6s ease-in-out infinite; }
+@keyframes wonnie-hop {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -8px; }
+}
+.wonnie--listening .wonnie__img,
+.wonnie-avatar.wonnie--listening .wonnie-avatar__img { rotate: -8deg; }
+
+/* ===== 원형 아바타 ===== */
+.wonnie-avatar {
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #d3e8fb; /* 홈 계좌 로고 배경과 같은 연파랑 */
+  overflow: hidden;
+}
+.wonnie-avatar__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform-origin: 50% 80%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wonnie *, .wonnie-avatar * { animation: none !important; transition: none !important; }
+}

@@ -4,6 +4,23 @@ spring:
       chat: openai
     openai:
       api-key: ${OPENAI_API_KEY}
+      timeout: 30s
+      max-retries: 0
       chat:
-        options:
-          model: gpt-6-luna
+        model: ${OPENAI_MODEL:gpt-5.6-terra}
+        reasoning-effort: none
+        parallel-tool-calls: false
+        store: false
+        max-completion-tokens: 2000
+    mcp:
+      client:
+        enabled: false
+    tools:
+      throw-exception-on-error: true
+      limits:
+        max-total-tool-calls: 12
+        max-calls-per-tool-default: 3
+        on-limit-exceeded: THROW
+app:
+  mcp:
+    base-url: ${WONNIE_MCP_BASE_URL:http://127.0.0.1:8081}

@@ -1,0 +1,59 @@
+/* 폰 바깥 오른쪽 시연 패널 */
+.dp {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 10;
+  width: 236px;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  color: #191f28;
+  font-family: 'Pretendard', sans-serif;
+}
+.dp button { font: inherit; border: 0; cursor: pointer; }
+.dp-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-bottom: 12px; border-bottom: 1px solid #eef1f4; }
+.dp-tag { padding: 2px 7px; border-radius: 6px; background: #191f28; color: #fff; font-size: 10px; font-weight: 800; letter-spacing: 0.5px; }
+.dp-head strong { font-size: 15px; }
+.dp-date { width: 100%; font-size: 12.5px; color: #4e5968; font-weight: 600; }
+.dp-steps { list-style: none; margin: 12px 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.dp-steps li { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #8b95a1; }
+.dp-steps li.is-done { color: #4e5968; }
+.dp-steps li.is-now { color: #191f28; font-weight: 700; }
+.dp-dot { flex: 0 0 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 10.5px; font-weight: 700; background: #eef1f4; color: #8b95a1; }
+.dp-steps li.is-done .dp-dot { background: #1fa463; color: #fff; }
+.dp-steps li.is-now .dp-dot { background: #2d82ef; color: #fff; box-shadow: 0 0 0 3px rgba(45, 130, 239, 0.2); }
+.dp-btns { display: flex; flex-direction: column; gap: 6px; }
+.dp-btns button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: #2d82ef;
+  color: #fff;
+  font-size: 13.5px;
+  transition: background-color 0.15s, opacity 0.15s, transform 0.12s;
+}
+.dp-btns button:hover:not(:disabled) { background: #1f6fd6; }
+.dp-btns button:active:not(:disabled) { transform: scale(0.98); }
+.dp-btns button:disabled { opacity: 0.35; cursor: default; }
+.dp-btns button.dp-alt { background: #e8f1ff; color: #1f5fae; }
+.dp-btns button.dp-alt:hover { background: #d8e8ff; }
+.dp-btns button.dp-ghost { background: #f2f4f6; color: #4e5968; }
+.dp-btns button.dp-ghost:hover { background: #e5e8eb; }
+.dp-notif { margin: 10px 0 0; padding: 8px 10px; border-radius: 10px; background: #f5f7f9; font-size: 11.5px; color: #4e5968; }
+.dp-notif b { color: #8b95a1; }
+.dp-notif b.on { color: #1fa463; }
+.dp-note { margin: 10px 0 0; font-size: 11px; color: #8b95a1; line-height: 1.45; }
+
+/* 좁은 화면: 버튼만 아이콘으로 오른쪽 위에 */
+@media (max-width: 1180px) {
+  .dp { top: 12px; right: 12px; width: auto; padding: 8px; border-radius: 14px; }
+  .dp-head, .dp-steps, .dp-note, .dp-notif { display: none; }
+  .dp-btns button { width: 40px; padding: 0; justify-content: center; }
+  .dp-btns b { display: none; }
+}
+@media (max-width: 440px) { .dp { display: none; } }

@@ -4,13 +4,22 @@
   "private": true,
   "packageManager": "pnpm@11.6.0",
   "scripts": {
-    "dev": "concurrently -n web,api -c cyan,blue \"pnpm --filter @woonie/web dev\" \"pnpm api:dev\"",
-    "dev:infra": "concurrently -n web,api -c cyan,blue \"pnpm --filter @woonie/web dev\" \"pnpm api:dev:infra\"",
+    "dev": "concurrently --kill-others-on-fail -n web,api -c cyan,blue \"pnpm --dir apps/web dev\" \"pnpm api:dev\"",
+    "dev:infra": "concurrently --kill-others-on-fail -n web,api -c cyan,blue \"pnpm --dir apps/web dev\" \"pnpm api:dev:infra\"",
     "api:dev": "./apps/api/gradlew -p apps/api bootRun --args='--spring.profiles.active=local'",
     "api:dev:infra": "./apps/api/gradlew -p apps/api bootRun --args='--spring.profiles.active=docker'",
-    "build": "pnpm --filter @woonie/web build && ./apps/api/gradlew -p apps/api build",
-    "test": "pnpm --filter @woonie/web test && ./apps/api/gradlew -p apps/api test",
-    "api:generate": "pnpm --filter @woonie/web api:generate"
+    "build": "pnpm --dir apps/web build && ./apps/api/gradlew -p apps/api build && pnpm mcp:build",
+    "test": "pnpm --dir apps/web test && ./apps/api/gradlew -p apps/api test && pnpm mcp:test",
+    "api:generate": "pnpm --dir apps/web api:generate",
+    "mcp:dev": "./apps/mcp/gradlew -p apps/mcp bootRun",
+    "mcp:build": "./apps/mcp/gradlew -p apps/mcp build",
+    "mcp:test": "./apps/mcp/gradlew -p apps/mcp test",
+    "dev:mcp": "concurrently --kill-others-on-fail -n web,api,mcp -c cyan,blue,magenta \"pnpm --dir apps/web dev\" \"pnpm api:dev\" \"pnpm mcp:dev\"",
+    "api:dev:openai": "./apps/api/gradlew -p apps/api bootRun --args='--spring.profiles.active=local,openai'",
+    "api:dev:infra:openai": "./apps/api/gradlew -p apps/api bootRun --args='--spring.profiles.active=docker,openai'",
+    "dev:openai": "concurrently --kill-others-on-fail -n web,api,mcp -c cyan,blue,magenta \"pnpm --dir apps/web dev\" \"pnpm api:dev:openai\" \"pnpm mcp:dev\"",
+    "dev:infra:openai": "concurrently --kill-others-on-fail -n web,api,mcp -c cyan,blue,magenta \"pnpm --dir apps/web dev\" \"pnpm api:dev:infra:openai\" \"pnpm mcp:dev\"",
+    "verify:mcp-flow": "python3 scripts/verify-mcp-flow.py"
   },
   "devDependencies": {
     "concurrently": "9.2.1"

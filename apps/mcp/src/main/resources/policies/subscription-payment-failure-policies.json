@@ -1,0 +1,394 @@
+[
+  {
+    "serviceName": "넷플릭스",
+    "aliases": [
+      "Netflix",
+      "넷플릭스"
+    ],
+    "billingChannel": "DIRECT",
+    "verifiedOn": "2026-10-26",
+    "failureHandling": "계정이 보류 상태로 전환된다.",
+    "retryAndTermination": "결제를 다시 시도하나 고정 횟수·기간은 미확인.",
+    "billingDateAfterRecovery": "결제 성공일을 기준으로 새 결제일 설정. 타사 결제는 별도.",
+    "sources": [
+      {
+        "title": "결제일 안내",
+        "url": "https://help.netflix.com/ko/node/54896"
+      },
+      {
+        "title": "결제 실패 해결",
+        "url": "https://help.netflix.com/ko/node/2065"
+      }
+    ]
+  },
+  {
+    "serviceName": "YouTube Premium",
+    "aliases": [
+      "YouTube Premium",
+      "유튜브 프리미엄",
+      "YouTube Music",
+      "유튜브 뮤직"
+    ],
+    "billingChannel": "DIRECT",
+    "verifiedOn": "2026-10-26",
+    "failureHandling": "실패 알림 이메일을 발송한다. 3일간 혜택을 유지하며 재시도하고, 미해결 시 일시중지한다.",
+    "retryAndTermination": "최초 3일 이후 30일간 일시중지. 취소하지 않으면 이 기간에도 재시도하며, 성공 시 자동 복원한다.",
+    "billingDateAfterRecovery": "실패 후 복원에 따른 다음 결제일 변경 규칙은 미확인.",
+    "sources": [
+      {
+        "title": "결제·이용 문제 해결",
+        "url": "https://support.google.com/youtube/answer/9972274?hl=ko"
+      }
+    ]
+  },
+  {
+    "serviceName": "티빙",
+    "aliases": [
+      "TVING",
+      "티빙"
+    ],
+    "billingChannel": "DIRECT",
+    "verifiedOn": "2026-10-26",
+    "failureHandling": "결제가 완료되지 않으면 유료서비스 제공을 제한하거나 중단할 수 있다.",
+    "retryAndTermination": "재시도 횟수·유예기간·최종 해지 시점은 미확인.",
+    "billingDateAfterRecovery": "미확인.",
+    "sources": [
+      {
+        "title": "유료이용약관 제7조 제4항",
+        "url": "https://www.tving.com/policy/terms"
+      }
+    ]
+  },
+  {
+    "serviceName": "웨이브",
+    "aliases": [
+      "Wavve",
+      "웨이브"
+    ],
+    "billingChannel": "DIRECT",
+    "verifiedOn": "2026-10-26",
+    "failureHandling": "결제수단별 재결제를 시도하며, 최종 실패 전 결제수단 변경을 안내한다.",
+    "retryAndTermination": "신용·체크카드: 결제 예정일 이후 5일까지 매일 1회, 10일째 최종 재시도. 휴대폰: 같은 달 안에서 최대 5일간 재시도. 일부 제휴 이용권은 재시도 제외.",
+    "billingDateAfterRecovery": "결제수단 변경만으로 결제일이 바뀌지는 않는다. 다만 실패 후 재결제 성공 시 기준일은 별도 미확인.",
+    "sources": [
+      {
+        "title": "고객센터: 결제수단 변경 FAQ",
+        "url": "https://www.wavve.com/customer/faq?filterId=&searchWord=%EC%8B%A4%ED%8C%A8"
+      }
+    ]
+  },
+  {
+    "serviceName": "디즈니+",
+    "aliases": [
+      "Disney+",
+      "Disney Plus",
+      "디즈니플러스"
+    ],
+    "billingChannel": "DIRECT",
+    "verifiedOn": "2026-10-26",
+    "failureHandling": "카드 정보를 수정하거나 다른 결제수단을 사용하도록 안내한다.",
+    "retryAndTermination": "해당 안내에서 재시도 일정·유예기간·자동 해지 시점은 미확인.",
+    "billingDateAfterRecovery": "미확인.",
+    "sources": [
+      {
+        "title": "결제 거부 또는 처리 실패",
+        "url": "https://help.disneyplus.com/ko/article/disneyplus-payment-not-processed"
+      }
+    ]
+  },
+  {
+    "serviceName": "왓챠",
+    "aliases": [
+      "WATCHA",
+      "왓챠"
+    ],
+    "billingChannel": "DIRECT",
+    "verifiedOn": "2026-10-26",
+    "failureHandling": "자동결제 실패로 구독권이 지급되지 않을 수 있으며, 다른 결제수단으로 다시 결제하도록 안내한다.",
+    "retryAndTermination": "재시도 일정·유예기간은 미확인.",
+    "billingDateAfterRecovery": "실패 복구 시 규칙은 미확인. 별도로 구독 만료 후 원하는 날짜에 다시 구매해 결제일을 변경할 수 있다.",
+    "sources": [
+      {
+        "title": "구독권 미지급 안내",
+        "url": "https://help.watcha.com/hc/ko/articles/900002441686"
+      },
+      {
+        "title": "결제일 변경 안내",
+        "url": "https://help.watcha.com/hc/ko/articles/900006016126"
+      }
+    ]
+  },
+  {
+    "serviceName": "스포티파이",
+    "aliases": [
+      "Spotify",
+      "스포티파이"
+    ],
+    "billingChannel": "DIRECT",
+    "verifiedOn": "2026-10-26",
+    "failureHandling": "실패 즉시 Premium 이용 권한을 잃지는 않는다.",
+    "retryAndTermination": "이후 며칠 동안 재시도한다. 정확한 일수·횟수는 미확인.",
+    "billingDateAfterRecovery": "기존 구독의 재시도로 늦게 결제됐다면 다음 달은 원래 결제일 또는 그즈음에 청구한다.",
+    "sources": [
+      {
+        "title": "결제 실패 안내",
+        "url": "https://support.spotify.com/kr-ko/article/failed-payment/"
+      },
+      {
+        "title": "늦은 결제 후 청구일",
+        "url": "https://support.spotify.com/kr-ko/article/charged-twice/"
+      }
+    ]
+  },
+  {
+    "serviceName": "멜론",
+    "aliases": [
+      "Melon",
+      "멜론"
+    ],
+    "billingChannel": "DIRECT",
+    "verifiedOn": "2026-10-26",
+    "failureHandling": "정기결제 실패로 이용권이 없다고 표시될 수 있다. 결제수단 변경 또는 유효한 결제정보 재입력을 안내한다.",
+    "retryAndTermination": "재시도 일정·유예기간은 미확인.",
+    "billingDateAfterRecovery": "미확인.",
+    "sources": [
+      {
+        "title": "구매한 이용권이 없다고 표시되는 경우",
+        "url": "https://help.melon.com/web/faq/content.htm?faqId=2224"
+      }
+    ]
+  },
+  {
+    "serviceName": "지니뮤직",
+    "aliases": [
+      "Genie",
+      "지니",
+      "지니뮤직"
+    ],
+    "billingChannel": "DIRECT",
+    "verifiedOn": "2026-10-26",
+    "failureHandling": "자동결제가 정상 처리되지 않으면 1분 미리듣기만 제공될 수 있다. 결제수단 변경 또는 자동결제 해지 후 이용권 재가입을 안내한다.",
+    "retryAndTermination": "재시도 일정·유예기간은 미확인.",
+    "billingDateAfterRecovery": "실패 복구 시 기준일은 미확인.",
+    "sources": [
+      {
+        "title": "정기결제 이용권의 1분 미리듣기 안내",
+        "url": "https://www.genie.co.kr/support/service/helpView?ct=6&fi=37&pg=3"
+      }
+    ]
+  },
+  {
+    "serviceName": "FLO",
+    "aliases": [
+      "FLO",
+      "플로"
+    ],
+    "billingChannel": "DIRECT",
+    "verifiedOn": "2026-10-26",
+    "failureHandling": "결제수단을 변경해 기존 이용권을 다시 결제할 수 있다고 안내한다.",
+    "retryAndTermination": "자동 재시도 일정·유예기간·최종 해지 시점은 미확인.",
+    "billingDateAfterRecovery": "미확인.",
+    "sources": [
+      {
+        "title": "FAQ: 이용권 자동결제에 실패해서 다시 결제하고 싶어요",
+        "url": "https://www.music-flo.com/help/faq/0/1"
+      }
+    ]
+  },
+  {
+    "serviceName": "네이버 VIBE",
+    "aliases": [
+      "VIBE",
+      "바이브",
+      "네이버 바이브"
+    ],
+    "billingChannel": "DIRECT",
+    "verifiedOn": "2026-10-26",
+    "failureHandling": "결제를 보류하고 주기적으로 재시도한다. 기간 안에 결제되면 멤버십을 유지한다.",
+    "retryAndTermination": "일주일에 한 번 재시도, 보류기간은 결제일로부터 약 한 달. 이후 자동 해지하나, 약정 멤버십은 자동 해지 대상에서 제외된다.",
+    "billingDateAfterRecovery": "복구 후 결제일 변경 규칙은 미확인.",
+    "sources": [
+      {
+        "title": "정기결제 실패·보류 안내",
+        "url": "https://help.naver.com/service/20370/contents/8863?lang=ko&osType=COMMONOS"
+      }
+    ]
+  },
+  {
+    "serviceName": "Apple Music",
+    "aliases": [
+      "Apple Music",
+      "애플뮤직"
+    ],
+    "billingChannel": "DIRECT",
+    "verifiedOn": "2026-10-26",
+    "failureHandling": "기본 결제수단 실패 시 다른 등록 수단에 순서대로 청구할 수 있다. 재청구·결제정보 수정 요청 및 갱신 실패에 따른 구독 취소 가능성을 규정한다. 미수금 책임도 명시한다.",
+    "retryAndTermination": "고정 재시도 일정·유예기간은 미확인.",
+    "billingDateAfterRecovery": "결제정보 수정 후 청구하면서 다음 구독기간 시작일이 변경될 수 있다고 명시한다.",
+    "sources": [
+      {
+        "title": "Apple 미디어 서비스 약관 B·I항",
+        "url": "https://www.apple.com/legal/internet-services/itunes/kr/terms.html"
+      }
+    ]
+  },
+  {
+    "serviceName": "쿠팡 와우",
+    "aliases": [
+      "Coupang WOW",
+      "쿠팡 와우",
+      "와우 멤버십"
+    ],
+    "billingChannel": "DIRECT",
+    "verifiedOn": "2026-10-26",
+    "failureHandling": "쿠페이의 다른 등록 결제수단까지 시도한다. 모두 실패하면 문자 발송 후, 당일 18시까지 미해결 시 혜택 일시중지.",
+    "retryAndTermination": "이후 매일 재시도. 일시중지는 최대 30일이며, 기간 안에 성공하지 않으면 해지한다.",
+    "billingDateAfterRecovery": "성공일부터 멤버십이 다시 시작되며, 그날이 새 정기결제 기준일이 된다.",
+    "sources": [
+      {
+        "title": "와우 멤버십 공식 FAQ",
+        "url": "https://news.coupang.com/archives/64216/"
+      }
+    ]
+  },
+  {
+    "serviceName": "네이버플러스 멤버십",
+    "aliases": [
+      "네이버플러스",
+      "네이버 플러스 멤버십",
+      "Naver Plus"
+    ],
+    "billingChannel": "DIRECT",
+    "verifiedOn": "2026-10-26",
+    "failureHandling": "결제 당일 재시도 후 끝까지 실패하면 자동 해지한다.",
+    "retryAndTermination": "당일 총 3번 시도, 마지막은 18시경. 자동 해지 시 다음 날부터 재가입해야 한다.",
+    "billingDateAfterRecovery": "차단 해제만으로 자동 복구되는 구조가 아니며 해지 후 재가입이 필요하다.",
+    "sources": [
+      {
+        "title": "정기결제 실패·보류 안내",
+        "url": "https://help.naver.com/service/23168/contents/18895?osType=COMMONOS"
+      }
+    ]
+  },
+  {
+    "serviceName": "배민클럽",
+    "aliases": [
+      "배민클럽",
+      "Baemin Club"
+    ],
+    "billingChannel": "DIRECT",
+    "verifiedOn": "2026-10-26",
+    "failureHandling": "예비 결제수단을 통한 재시도가 가능하다.",
+    "retryAndTermination": "정기·예비 결제수단 모두 결제일에 실패하면 다음 날 자동 해지한다.",
+    "billingDateAfterRecovery": "자동 해지 이후에는 다시 가입해야 한다. 실패 복구에 따른 별도 기준일 규칙은 미확인.",
+    "sources": [
+      {
+        "title": "배민클럽 이용약관 제7조",
+        "url": "https://terms.baemin.com/content/BAEMINCLUB_658"
+      }
+    ]
+  },
+  {
+    "serviceName": "밀리의서재",
+    "aliases": [
+      "밀리의서재",
+      "밀리의 서재",
+      "Millie"
+    ],
+    "billingChannel": "DIRECT",
+    "verifiedOn": "2026-10-26",
+    "failureHandling": "정기결제 이용요금을 체납하면 연체 발생일에 이용권이 자동 해지될 수 있다. 이용이 해지되면 다운로드한 콘텐츠도 재생할 수 없다.",
+    "retryAndTermination": "구체적인 재시도 일정·유예기간은 미확인.",
+    "billingDateAfterRecovery": "미확인.",
+    "sources": [
+      {
+        "title": "이용약관 제25조 ⑨·⑩, 제16조 ⑤",
+        "url": "https://corp.millie.co.kr/policy/terms?nav_hidden=y&theme=light"
+      }
+    ]
+  },
+  {
+    "serviceName": "카카오 이모티콘 플러스",
+    "aliases": [
+      "카카오 이모티콘 플러스",
+      "이모티콘 플러스"
+    ],
+    "billingChannel": "DIRECT",
+    "verifiedOn": "2026-10-26",
+    "failureHandling": "웹 My 구독 기준으로 실패 당일은 ‘일시정지 예정’, 다음 날부터 ‘일시정지’ 상태가 된다. 결제수단 재등록으로 재시작할 수 있다.",
+    "retryAndTermination": "30일간 일시정지 후 상품 종료.",
+    "billingDateAfterRecovery": "재시작 후 다음 결제일 계산 규칙은 미확인.",
+    "sources": [
+      {
+        "title": "My 구독 일시정지 안내",
+        "url": "https://cs.kakao.com/helps_html/1073198516"
+      }
+    ]
+  },
+  {
+    "serviceName": "iCloud+",
+    "aliases": [
+      "iCloud+",
+      "iCloud",
+      "아이클라우드"
+    ],
+    "billingChannel": "DIRECT",
+    "verifiedOn": "2026-10-26",
+    "failureHandling": "청구 실패 시 저장 콘텐츠 접근 제한·취소, 콘텐츠 삭제 또는 계정 해지 권리를 약관에 규정한다.",
+    "retryAndTermination": "구체적인 조치 일정·유예기간은 미확인. 실패 즉시 콘텐츠가 삭제된다는 의미는 아니다.",
+    "billingDateAfterRecovery": "한국 적용 조항에서 미확인.",
+    "sources": [
+      {
+        "title": "iCloud 약관 III-A",
+        "url": "https://www.apple.com/legal/internet-services/icloud/kr/terms.html"
+      }
+    ]
+  },
+  {
+    "serviceName": "Google One",
+    "aliases": [
+      "Google One",
+      "구글 원",
+      "구글원"
+    ],
+    "billingChannel": "DIRECT",
+    "verifiedOn": "2026-10-26",
+    "failureHandling": "자동갱신 실패 시 기존 저장공간에 접근할 수 있는 유예기간을 제공한다. 요금제 만료 후 무료 용량을 초과하면 Gmail 송수신, Drive 업로드·동기화, 사진 백업 등이 제한된다.",
+    "retryAndTermination": "자동갱신 실패 시 7일의 유예기간.",
+    "billingDateAfterRecovery": "실패 후 복구에 따른 다음 결제일은 미확인.",
+    "sources": [
+      {
+        "title": "자동갱신·만료 정책",
+        "url": "https://support.google.com/googleone/answer/2736362?hl=ko"
+      }
+    ]
+  },
+  {
+    "serviceName": "ChatGPT 유료 구독",
+    "aliases": [
+      "ChatGPT",
+      "ChatGPT Plus",
+      "ChatGPT Pro",
+      "챗지피티"
+    ],
+    "billingChannel": "DIRECT",
+    "verifiedOn": "2026-10-26",
+    "failureHandling": "카드·은행 확인 및 결제정보 수정을 안내한다. Pro는 갱신 실패만으로 구독 종료를 의미하지 않는다고 명시한다. 웹은 결제복구 이메일, 인앱은 해당 스토어에서 해결하도록 안내한다.",
+    "retryAndTermination": "고정 유예기간·최종 해지일은 미확인. Plus 프로모션 FAQ에는 실패한 결제가 이후 재시도되어 청구될 수 있음도 명시한다.",
+    "billingDateAfterRecovery": "미확인.",
+    "sources": [
+      {
+        "title": "갱신 실패 안내",
+        "url": "https://help.openai.com/en/articles/7242622-troubleshooting-chatgpt-plus-or-pro-renewal-payments"
+      },
+      {
+        "title": "Pro 결제 안내",
+        "url": "https://help.openai.com/en/articles/9793128-about-chatgpt-pro-tiers"
+      },
+      {
+        "title": "Plus 프로모션 안내",
+        "url": "https://help.openai.com/en/articles/10492689-chatgpt-plus-promotions-and-referrals"
+      }
+    ]
+  }
+]

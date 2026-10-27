@@ -1,9 +1,4 @@
-import type {
-  AssistantResponse,
-  AuthChallenge,
-  DashboardResponse,
-  SagaResult,
-} from './types'
+import type { AssistantConversation, AssistantMessageExchange, DashboardResponse, UnreadCount } from './types'
 
 interface ApiErrorPayload {
   message?: string
@@ -30,25 +25,16 @@ const request = async <T>(path: string, options?: RequestInit): Promise<T> => {
 export const api = {
   getDashboard: () => request<DashboardResponse>('/api/dashboard'),
 
-  getSuggestions: () => request<string[]>('/api/assistant/suggestions'),
+  getAssistantConversation: () => request<AssistantConversation>('/api/assistant/conversation'),
+
+  getAssistantUnreadCount: () => request<UnreadCount>('/api/assistant/unread-count'),
+
+  markAssistantConversationRead: () =>
+    request<UnreadCount>('/api/assistant/conversation/read', { method: 'POST' }),
 
   sendAssistantMessage: (message: string) =>
-    request<AssistantResponse>('/api/assistant/messages', {
+    request<AssistantMessageExchange>('/api/assistant/messages', {
       method: 'POST',
       body: JSON.stringify({ message }),
-    }),
-
-  createAuthChallenge: (actionPlanId: string) =>
-    request<AuthChallenge>(`/api/action-plans/${actionPlanId}/auth-challenge`, {
-      method: 'POST',
-    }),
-
-  completeMockFaceId: (
-    actionPlanId: string,
-    payload: { challengeId: string; challenge: string },
-  ) =>
-    request<SagaResult>(`/api/action-plans/${actionPlanId}/mock-face-id`, {
-      method: 'POST',
-      body: JSON.stringify(payload),
     }),
 }

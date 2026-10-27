@@ -5,5 +5,6 @@ export const dashboardKeys = {
 
 export const assistantKeys = {
   all: ['assistant'] as const,
-  suggestions: () => [...assistantKeys.all, 'suggestions'] as const,
+  conversation: () => [...assistantKeys.all, 'conversation'] as const,
+  unread: () => [...assistantKeys.all, 'unread'] as const,
 }
