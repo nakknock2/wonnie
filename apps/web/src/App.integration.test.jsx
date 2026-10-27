@@ -94,6 +94,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   restoreEventSource?.();
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   Reflect.deleteProperty(HTMLElement.prototype, 'scrollTo');
 });
@@ -101,6 +102,17 @@ afterEach(() => {
 const openChat = async () => {
   fireEvent.click(screen.getByRole('button', { name: /AI 상담 챗봇 워니 열기|워니 주요 알림: 구독 관련 중요한 소식/ }));
   return screen.findByRole('dialog', { name: 'WONNIE와 대화중' });
+};
+
+const sendQuestion = async (chat, text) => {
+  const input = within(chat).getByRole('textbox', { name: '메시지 입력' });
+  fireEvent.change(input, { target: { value: text } });
+  await act(async () => {
+    fireEvent.click(within(chat).getByRole('button', { name: '보내기' }));
+    await Promise.resolve();
+  });
+  const submissions = requestLog.filter((entry) => entry.path === '/api/assistant/requests');
+  return JSON.parse(submissions.at(-1).options.body);
 };
 
 describe('merged final frontend backend connection', () => {
@@ -209,6 +221,90 @@ describe('merged final frontend backend connection', () => {
       exchange: { userMessage, assistantMessage }, unreadCount: 0,
     })));
     expect(await within(chat).findByText('첫 조각 복구된 조각 마지막 조각')).toBeInTheDocument();
+  });
+  it('recovers a completed answer when the SSE connection delivers no request events', async () => {
+    enableFakeEventSource();
+    render(<App />);
+    const chat = await openChat();
+    vi.useFakeTimers();
+    const request = await sendQuestion(chat, '무응답 복구 질문');
+    const userMessage = stored('user-silent', 'USER', '무응답 복구 질문');
+    const assistantMessage = stored('reply-silent', 'ASSISTANT', '상태 조회로 복구한 최종 답변');
+    history = [userMessage, assistantMessage];
+    requestStatuses.set(request.requestId, {
+      requestId: request.requestId, status: 'COMPLETED', lastSequence: 3,
+      partialAnswer: '', exchange: { userMessage, assistantMessage },
+    });
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+
+    expect(within(chat).getByText('상태 조회로 복구한 최종 답변')).toBeInTheDocument();
+    expect(requestLog.filter((entry) => entry.path === `/api/assistant/requests/${request.requestId}`)).toHaveLength(1);
+  });
+  it('recovers completion after one delta arrives and the SSE stream becomes silent', async () => {
+    enableFakeEventSource();
+    render(<App />);
+    const chat = await openChat();
+    vi.useFakeTimers();
+    const request = await sendQuestion(chat, '부분 답변 복구 질문');
+    const source = eventSources[0];
+    act(() => source.emit('reply.delta', replyEnvelope(
+      'silent-delta-1', 'reply.delta', request.requestId, 'reply-new', { sequence: 1, delta: '도착한 일부 ' },
+    )));
+    await act(async () => { await vi.advanceTimersByTimeAsync(200); });
+    expect(within(chat).getByText('도착한 일부')).toBeInTheDocument();
+
+    const userMessage = stored('user-partial', 'USER', '부분 답변 복구 질문');
+    const assistantMessage = stored('reply-new', 'ASSISTANT', '도착한 일부 뒤의 최종 답변');
+    history = [userMessage, assistantMessage];
+    requestStatuses.set(request.requestId, {
+      requestId: request.requestId, status: 'COMPLETED', lastSequence: 3,
+      partialAnswer: '', exchange: { userMessage, assistantMessage },
+    });
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+
+    expect(within(chat).getByText('도착한 일부 뒤의 최종 답변')).toBeInTheDocument();
+  });
+  it('cancels recovery polling after a normal SSE completion and accepts the next question', async () => {
+    enableFakeEventSource();
+    render(<App />);
+    const chat = await openChat();
+    vi.useFakeTimers();
+    const first = await sendQuestion(chat, '정상 완료 질문');
+    const userMessage = stored('user-normal', 'USER', '정상 완료 질문');
+    const assistantMessage = stored('reply-normal', 'ASSISTANT', '정상 SSE 최종 답변');
+    history = [userMessage, assistantMessage];
+    act(() => eventSources[0].emit('reply.completed', replyEnvelope(
+      'normal-completed', 'reply.completed', first.requestId, 'reply-normal',
+      { exchange: { userMessage, assistantMessage }, unreadCount: 0 },
+    )));
+    expect(within(chat).getByText('정상 SSE 최종 답변')).toBeInTheDocument();
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(7_000); });
+    expect(requestLog.filter((entry) => entry.path.startsWith('/api/assistant/requests/'))).toHaveLength(0);
+    await sendQuestion(chat, '다음 질문');
+    expect(requestLog.filter((entry) => entry.path === '/api/assistant/requests')).toHaveLength(2);
+  });
+  it('cleans up recovery polling after cancellation and component unmount', async () => {
+    enableFakeEventSource();
+    const view = render(<App />);
+    const chat = await openChat();
+    vi.useFakeTimers();
+    const cancelled = await sendQuestion(chat, '취소 상태 질문');
+    requestStatuses.set(cancelled.requestId, {
+      requestId: cancelled.requestId, status: 'CANCELLED', lastSequence: 0,
+      partialAnswer: '', exchange: null,
+    });
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+    expect(within(chat).getByText('답변 생성을 취소했어요. 질문을 입력창에서 다시 확인해 주세요.')).toBeInTheDocument();
+    const cancelledChecks = requestLog.filter((entry) => entry.path === `/api/assistant/requests/${cancelled.requestId}`).length;
+    await act(async () => { await vi.advanceTimersByTimeAsync(7_000); });
+    expect(requestLog.filter((entry) => entry.path === `/api/assistant/requests/${cancelled.requestId}`)).toHaveLength(cancelledChecks);
+
+    const active = await sendQuestion(chat, '언마운트 질문');
+    view.unmount();
+    await act(async () => { await vi.advanceTimersByTimeAsync(7_000); });
+    expect(requestLog.filter((entry) => entry.path === `/api/assistant/requests/${active.requestId}`)).toHaveLength(0);
   });
   it('fills the original subscription card from server results after consent', async () => {
     render(<StrictMode><App /></StrictMode>);

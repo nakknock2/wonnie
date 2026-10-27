@@ -148,3 +148,21 @@ jobs:
           curl --fail --silent --show-error http://127.0.0.1:3003/ >/dev/null
           ln -sfn "$release" "$root/current"
           REMOTE
+
+      - name: Verify host SSE proxy configuration
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          ssh "${SSH_USER}@${SSH_HOST}" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          wonnie_config="$(sudo nginx -T 2>&1 | awk '
+            /^# configuration file \/etc\/nginx\/sites-enabled\/wonnie:/ { active=1; next }
+            /^# configuration file / { active=0 }
+            active { print }
+          ')"
+          grep -Fq 'location = /api/assistant/events {' <<<"$wonnie_config"
+          grep -Fq 'proxy_buffering off;' <<<"$wonnie_config"
+          grep -Fq 'proxy_cache off;' <<<"$wonnie_config"
+          grep -Fq 'proxy_read_timeout 1h;' <<<"$wonnie_config"
+          REMOTE
