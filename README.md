@@ -1,4 +1,4 @@
-# Wonnie 카드·구독 금융 비서
+# wonnie
 
 React 채팅 → Spring Boot API / Spring AI → OpenAI → 별도 MCP 서버 → 금융 조회 API / JPA 구조의 해커톤 MVP입니다. 캘린더를 제외한 카드·구독 상담과 사전 안내를 구현합니다.
 
