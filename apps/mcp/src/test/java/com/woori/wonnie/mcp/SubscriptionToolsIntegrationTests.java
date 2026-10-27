@@ -30,7 +30,7 @@ class SubscriptionToolsIntegrationTests {
     }
     @BeforeEach void connect() {
         REQUESTS.clear();STATUS.set(200);
-        client=McpClient.sync(HttpClientStreamableHttpTransport.builder("http://127.0.0.1:"+port).endpoint("/mcp").build())
+        client=McpClient.sync(HttpClientStreamableHttpTransport.builder("http://127.0.0.1:"+port).endpoint("/mcp").requestBuilder(java.net.http.HttpRequest.newBuilder().header("X-Wonnie-Customer-Id", "cust-test")).build())
             .requestTimeout(Duration.ofSeconds(10)).build();client.initialize();
     }
     @AfterEach void close(){client.closeGracefully();}
@@ -48,11 +48,11 @@ class SubscriptionToolsIntegrationTests {
             Map.entry("get_usage_analysis","usage"),Map.entry("recommend_cards","card-recommendations"),
             Map.entry("get_customer_context","customer-context"),Map.entry("get_card_schedule","card-schedule"),Map.entry("get_financial_alerts","alerts"));
         tools.forEach((tool,path)->{var result=call(tool,Map.of());assertThat(result.isError()).isFalse();assertThat(text(result)).contains("DATABASE",path);});
-        assertThat(REQUESTS).hasSize(11).allMatch(r->r.startsWith("GET /api/finance/"));
+        assertThat(REQUESTS).hasSize(11).allMatch(r->r.startsWith("GET /api/internal/finance/"));
     }
     @Test void passesMerchantAsEncodedParameterAndRejectsMissingInput() {
         assertThat(call("explain_merchant",Map.of("merchantName","APPLE.COM/BILL & test")).isError()).isFalse();
-        assertThat(REQUESTS.get(0)).contains("/api/finance/merchant?name=APPLE.COM%2FBILL%20%26%20test");
+        assertThat(REQUESTS.get(0)).contains("/api/internal/finance/merchant?name=APPLE.COM%2FBILL%20%26%20test");
         REQUESTS.clear();assertThat(call("explain_merchant",Map.of("merchantName"," ")).isError()).isTrue();assertThat(REQUESTS).isEmpty();
     }
     @Test void reportsUpstreamErrorWithoutPrivateResponseBody() {
