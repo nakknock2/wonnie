@@ -15,10 +15,11 @@ public class AssistantResponderContextPostProcessor implements BeanPostProcessor
                 bean.getClass().getClassLoader(),
                 new Class<?>[]{AssistantResponder.class},
                 (proxy, method, args) -> {
-                    if (!method.getName().equals("respond") || args == null || args.length != 3) {
+                    if ((!method.getName().equals("respond") && !method.getName().equals("respondStreaming"))
+                            || args == null || args.length < 3 || !(args[0] instanceof String customerId)) {
                         return invoke(method, responder, args);
                     }
-                    return AssistantCustomerContext.callAs((String) args[0],
+                    return AssistantCustomerContext.callAs(customerId,
                             () -> invoke(method, responder, args));
                 });
     }
