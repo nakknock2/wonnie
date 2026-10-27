@@ -432,7 +432,7 @@ describe('merged final frontend backend connection', () => {
 
     expect(await within(chat).findByText('결제가 완료됐어요. 현재 구독 목록도 함께 정리했어요.', {}, { timeout: 6000 })).toBeInTheDocument();
     expect(within(chat).getByText('넷플릭스 스탠다드')).toBeInTheDocument();
-    expect(within(chat).getByText('1개 · 월 13,500원')).toBeInTheDocument();
+    expect(within(chat).getByText('1개 · 월 환산 13,500원')).toBeInTheDocument();
     expect(requestLog.some((entry) => entry.path === '/api/subscription-checkout/cards')).toBe(true);
     expect(requestLog.some((entry) => entry.path === '/api/subscription-checkout/subscriptions')).toBe(true);
   }, 12000);
