@@ -30,8 +30,10 @@ import java.util.concurrent.TimeoutException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = "server.shutdown=immediate")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
+        "server.shutdown=immediate",
+        "spring.datasource.url=jdbc:h2:mem:wonnie-sse-tests;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE"
+})
 class AssistantSseNotificationTests {
     private static final JsonMapper JSON = JsonMapper.builder().findAndAddModules().build();
 
