@@ -80,3 +80,4 @@
 @media (prefers-reduced-motion: reduce) {
   .cs-dim, .cs-panel { transition: none !important; }
 }
+.cs-error { margin: 8px 4px 0; color: #d92d20; font-size: 12px; text-align: center; }

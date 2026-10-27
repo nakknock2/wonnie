@@ -2,6 +2,7 @@ package com.woori.wonnie.finance;
 
 import com.woori.wonnie.assistant.AssistantService;
 import com.woori.wonnie.assistant.AssistantMessageRepository;
+import com.woori.wonnie.consent.ConsentService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,6 +25,7 @@ class FinanceFeatureTests {
     @Autowired AssistantService assistant;
     @Autowired AssistantMessageRepository messages;
     @Autowired MockMvc http;
+    @Autowired ConsentService consents;
     @jakarta.persistence.PersistenceContext jakarta.persistence.EntityManager entityManager;
 
     @Test void localHealthIsUpWithoutRabbitBroker() throws Exception {
@@ -94,6 +96,7 @@ class FinanceFeatureTests {
         assertThat(context.get("peerComparison").toString()).contains("가상 집계 데이터");
     }
     @Test void proactiveNoticesArePersistedOnceAndMarkedReadPerConversation() {
+        consents.updateNotifications(FinanceService.CUSTOMER, true, false);
         var candidates=alerts.scan();assertThat(candidates).isPositive();
         var first=assistant.conversation(FinanceService.CUSTOMER);
         assertThat(first.unreadCount()).isEqualTo(candidates);
@@ -101,6 +104,10 @@ class FinanceFeatureTests {
         alerts.scan();assertThat(messages.count()).isEqualTo(candidates);
         assistant.markRead(FinanceService.CUSTOMER);
         assertThat(assistant.unreadCount(FinanceService.CUSTOMER)).isZero();
+    }
+    @Test void paymentReminderIsNotCreatedBeforeD1Consent() {
+        assertThat(alerts.scan()).isZero();
+        assertThat(assistant.conversation(FinanceService.CUSTOMER).messages()).isEmpty();
     }
     @Test void annualMembershipHasMonthlyEquivalentAndPayPerUseBreakEven() {
         entityManager.createNativeQuery("INSERT INTO subscription (id,customer_id,card_id,merchant_id,service_id,display_name,category,billing_cycle,amount,charge_day,next_charge_on,status,detection_confidence) VALUES ('sub-gym','cust-kimwoori','card-1234','mch-watcha','svc-watcha','데모 피트니스 연간권','FITNESS','YEARLY',600000,1,'2026-11-01','ACTIVE',1)").executeUpdate();

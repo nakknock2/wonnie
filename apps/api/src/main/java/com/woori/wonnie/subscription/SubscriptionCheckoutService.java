@@ -220,11 +220,11 @@ public class SubscriptionCheckoutService {
                 Integer.class, customerId, type);
         var now = LocalDateTime.now(ZoneOffset.UTC);
         if (count != null && count > 0) {
-            jdbc.update("UPDATE consent SET required=?,agreed=TRUE,agreed_at=?,withdrawn_at=NULL WHERE customer_id=? AND consent_type=?",
-                    required, now, customerId, type);
+            jdbc.update("UPDATE consent SET required=?,agreed=TRUE,agreed_at=?,withdrawn_at=NULL,decided_at=? WHERE customer_id=? AND consent_type=?",
+                    required, now, now, customerId, type);
         } else {
-            jdbc.update("INSERT INTO consent (id,customer_id,consent_type,required,agreed,agreed_at) VALUES (?,?,?,?,TRUE,?)",
-                    "cons-" + UUID.randomUUID(), customerId, type, required, now);
+            jdbc.update("INSERT INTO consent (id,customer_id,consent_type,required,agreed,agreed_at,decided_at) VALUES (?,?,?,?,TRUE,?,?)",
+                    "cons-" + UUID.randomUUID(), customerId, type, required, now, now);
         }
     }
 

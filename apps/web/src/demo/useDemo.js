@@ -25,6 +25,17 @@ export const initialDemo = {
 
 function reducer(s, a) {
   switch (a.type) {
+    case 'HYDRATE_CONSENTS':
+      return {
+        ...s,
+        consented: a.value.subscriptionDataAgreed,
+        notif: {
+          ...s.notif,
+          asked: a.value.notifications.decided,
+          d1: a.value.notifications.d1,
+          price: a.value.notifications.priceChange,
+        },
+      };
     case 'CONSENT': return { ...s, consented: true };
     case 'SCANNED': return { ...s, scanned: true };
     case 'REMINDER': return { ...s, reminderSent: true };
@@ -47,7 +58,8 @@ function reducer(s, a) {
       };
     case 'NOTIF_SET': return { ...s, notif: { ...s.notif, ...a.value, asked: true } };
     case 'PRICE_SENT': return { ...s, priceSent: true };
-    case 'RESET': return initialDemo;
+    case 'RESET':
+      return { ...initialDemo, consented: s.consented, notif: s.notif };
     default: return s;
   }
 }
