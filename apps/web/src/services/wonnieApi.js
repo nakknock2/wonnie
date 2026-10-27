@@ -34,6 +34,11 @@ const request = async (path, { timeout = 15000, signal, ...options } = {}) => {
 };
 
 export const wonnieApi = {
+  consents: (signal) => request('/api/consents', { signal }),
+  agreeToSubscriptionData: () => request('/api/consents/subscription-data', { method: 'PUT' }),
+  updateNotificationConsents: ({ d1, price }) => request('/api/consents/notifications', {
+    method: 'PUT', body: JSON.stringify({ d1, priceChange: price }),
+  }),
   conversation: (signal) => request('/api/assistant/conversation', { signal }),
   unreadCount: (signal) => request('/api/assistant/unread-count', { signal }),
   markRead: (signal) => request('/api/assistant/conversation/read', { method: 'POST', signal }),

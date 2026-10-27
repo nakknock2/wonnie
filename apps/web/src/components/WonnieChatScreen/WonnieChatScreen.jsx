@@ -96,7 +96,7 @@ function Reply({ intro, children }) {
 let seq = 1;
 const mk = (from, kind, extra = {}) => ({ id: seq++, from, kind, time: nowTime(), createdAt: Date.now(), ...extra });
 
-export default function WonnieChatScreen({ open, request, demo, dispatch, onClose, backend }) {
+export default function WonnieChatScreen({ open, request, demo, dispatch, onConsent: persistConsent, onClose, backend }) {
   const [messages, setMessages] = useState([]);
   const [typing, setTyping] = useState(false);
   const [fetchingSubscriptions, setFetchingSubscriptions] = useState(false);
@@ -212,14 +212,24 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
   /* ----- 알림 동의 ----- */
   const notifLabel = (sel) => NOTIF_TYPES.filter((t) => sel[t.id]).map((t) => t.title).join(', ');
 
-  const submitNotif = (msgId, sel) => {
-    setMessages((ms) => ms.map((m) => (m.id === msgId ? { ...m, locked: true, value: sel } : m)));
-    const any = sel.d1 || sel.price;
-    userSays(any ? `${notifLabel(sel)} 받을게요` : '알림은 안 받을게요');
-    if (any) later(() => setOsAsk(sel), 500);
-    else {
-      dispatch({ type: 'NOTIF_SET', value: { d1: false, price: false, os: null } });
-      say(mk('assistant', 'notif-done', { value: { d1: false, price: false, os: null } }));
+  const submitNotif = async (msgId, sel) => {
+    try {
+      const state = await wonnieApi.updateNotificationConsents(sel);
+      const saved = {
+        d1: state.notifications.d1,
+        price: state.notifications.priceChange,
+      };
+      setMessages((ms) => ms.map((m) => (m.id === msgId ? { ...m, locked: true, value: saved } : m)));
+      const any = saved.d1 || saved.price;
+      userSays(any ? `${notifLabel(saved)} 받을게요` : '알림은 안 받을게요');
+      if (any) later(() => setOsAsk(saved), 500);
+      else {
+        const value = { ...saved, os: null };
+        dispatch({ type: 'NOTIF_SET', value });
+        say(mk('assistant', 'notif-done', { value }));
+      }
+    } catch (error) {
+      showToast(error.message);
     }
   };
 
@@ -238,11 +248,15 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onClos
     else startScan();
   }, [say, startScan]);
 
-  const onConsent = () => {
-    dispatch({ type: 'CONSENT' });
-    userSays('동의할게요');
-    say(mk('assistant', 'text', { text: '동의해 주셔서 고마워요! 카드 결제내역에서 정기결제를 찾아볼게요.' }), 700);
-    startScan();
+  const onConsent = async () => {
+    try {
+      await persistConsent();
+      userSays('동의할게요');
+      say(mk('assistant', 'text', { text: '동의해 주셔서 고마워요! 카드 결제내역에서 정기결제를 찾아볼게요.' }), 700);
+      startScan();
+    } catch (error) {
+      showToast(error.message);
+    }
   };
 
   const answerReminder = (keep) => {

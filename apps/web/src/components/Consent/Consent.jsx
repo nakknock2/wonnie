@@ -15,7 +15,7 @@ const Check = ({ on }) => (
 );
 
 // 동의 폼 (홈 위 바텀시트와 상담 화면 안 카드에서 같이 사용)
-export function ConsentForm({ onAgree, onLater, compact = false, disabled = false }) {
+export function ConsentForm({ onAgree, onLater, compact = false, disabled = false, saving = false, error = null }) {
   const [checked, setChecked] = useState({ card: false, use: false });
   const all = ITEMS.every((i) => checked[i.id]);
   const requiredOk = ITEMS.filter((i) => i.required).every((i) => checked[i.id]);
@@ -42,15 +42,16 @@ export function ConsentForm({ onAgree, onLater, compact = false, disabled = fals
         ))}
       </ul>
       <button type="button" className="cs-agree" disabled={!requiredOk || disabled} onClick={() => onAgree(checked)}>
-        {disabled ? '동의 완료' : '동의하고 내 구독 찾기'}
+        {disabled && !saving ? '동의 완료' : saving ? '저장 중…' : '동의하고 내 구독 찾기'}
       </button>
+      {error && <p role="alert" className="cs-error">{error}</p>}
       {onLater && !disabled && <button type="button" className="cs-later" onClick={onLater}>다음에 할게요</button>}
     </div>
   );
 }
 
 // 앱 진입 시 홈 위로 올라오는 동의 바텀시트
-export default function ConsentSheet({ open, onAgree, onClose }) {
+export default function ConsentSheet({ open, onAgree, onClose, saving = false, error = null }) {
   const [show, setShow] = useState(false);
   useEffect(() => {
     if (!open) { setShow(false); return undefined; }
@@ -72,7 +73,7 @@ export default function ConsentSheet({ open, onAgree, onClose }) {
           </div>
           <img src={wonnieImg} alt="" className="cs-mascot" />
         </div>
-        <ConsentForm onAgree={onAgree} onLater={onClose} />
+        <ConsentForm onAgree={onAgree} onLater={onClose} disabled={saving} saving={saving} error={error} />
       </section>
     </div>
   );

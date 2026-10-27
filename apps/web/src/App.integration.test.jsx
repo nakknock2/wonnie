@@ -10,6 +10,7 @@ let requestLog;
 let requestStatuses;
 let restoreEventSource;
 let checkoutCardIssued;
+let consentState;
 const eventSources = [];
 
 class FakeEventSource {
@@ -48,9 +49,20 @@ const replyEnvelope = (eventId, type, requestId, messageId, data) => ({
 
 beforeEach(() => {
   history = []; failSend = false; unread = 0; requestLog = []; requestStatuses = new Map(); restoreEventSource = null; eventSources.length = 0; checkoutCardIssued = false;
+  consentState = { subscriptionDataAgreed: false, notifications: { decided: false, d1: false, priceChange: false } };
   Object.defineProperty(HTMLElement.prototype, 'scrollTo', { value: vi.fn(), configurable: true });
   vi.stubGlobal('fetch', vi.fn(async (path, options = {}) => {
     requestLog.push({ path, options });
+    if (path === '/api/consents') return response(consentState);
+    if (path === '/api/consents/subscription-data') {
+      consentState = { ...consentState, subscriptionDataAgreed: true };
+      return response(consentState);
+    }
+    if (path === '/api/consents/notifications') {
+      const value = JSON.parse(options.body);
+      consentState = { ...consentState, notifications: { decided: true, d1: value.d1, priceChange: value.priceChange } };
+      return response(consentState);
+    }
     if (path === '/api/assistant/unread-count') return response({ unreadCount: unread });
     if (path === '/api/assistant/conversation') return response({ conversationId: 'conversation', messages: history, unreadCount: unread });
     if (path === '/api/assistant/conversation/read') { unread = 0; return response({ unreadCount: 0 }); }
@@ -215,27 +227,50 @@ describe('merged final frontend backend connection', () => {
     const consent = await screen.findByRole('dialog', { name: /매달 새는/ }, { timeout: 2500 });
     fireEvent.click(within(consent).getByRole('button', { name: '전체 동의' }));
     fireEvent.click(within(consent).getByRole('button', { name: '동의하고 내 구독 찾기' }));
-    const chat = screen.getByRole('dialog', { name: 'WONNIE와 대화중' });
+    const chat = await screen.findByRole('dialog', { name: 'WONNIE와 대화중' });
     expect(await within(chat).findByText('카드 결제에서 찾은 구독 2개')).toBeInTheDocument();
     expect(within(chat).getByText('매달 77,000원')).toBeInTheDocument();
     expect(within(chat).getByText('서버 구독 A')).toBeInTheDocument();
     expect(within(chat).getByText('서버 구독 B')).toBeInTheDocument();
     expect(within(chat).getByText('매년 720,000원')).toBeInTheDocument();
     expect(chat.querySelectorAll('.wc-card .wc-rows .wc-row')).toHaveLength(2);
+    expect(requestLog.some((entry) => entry.path === '/api/consents/subscription-data')).toBe(true);
   });
-  it('keeps the consent/chat screen mounted when the proxy returns HTML instead of API JSON', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200,
-      json: async () => { throw new SyntaxError('Unexpected token < in JSON'); },
-    })));
+  it('restores saved consent choices and does not ask again', async () => {
+    consentState = { subscriptionDataAgreed: true, notifications: { decided: true, d1: true, priceChange: false } };
+    render(<App />);
+    await waitFor(() => expect(requestLog.some((entry) => entry.path === '/api/consents')).toBe(true));
+    await new Promise((resolve) => setTimeout(resolve, 1300));
+    expect(screen.queryByRole('dialog', { name: /매달 새는/ })).not.toBeInTheDocument();
+    expect(screen.getByText((_, element) => element?.classList.contains('dp-notif') && element.textContent.includes('결제 하루 전 ON'))).toBeInTheDocument();
+  });
+  it('stores notification selections before requesting device permission', async () => {
+    consentState = { subscriptionDataAgreed: false, notifications: { decided: false, d1: false, priceChange: false } };
+    render(<App />);
+    const consent = await screen.findByRole('dialog', { name: /매달 새는/ }, { timeout: 2500 });
+    fireEvent.click(within(consent).getByRole('button', { name: '전체 동의' }));
+    fireEvent.click(within(consent).getByRole('button', { name: '동의하고 내 구독 찾기' }));
+    const chat = await screen.findByRole('dialog', { name: 'WONNIE와 대화중' });
+    const d1 = await within(chat).findByRole('switch', { name: /결제 하루 전 알림/ }, { timeout: 4000 });
+    fireEvent.click(d1);
+    fireEvent.click(within(chat).getByRole('button', { name: '선택한 알림 받기 (1)' }));
+    await waitFor(() => expect(requestLog.some((entry) => entry.path === '/api/consents/notifications')).toBe(true));
+    const saved = requestLog.find((entry) => entry.path === '/api/consents/notifications');
+    expect(JSON.parse(saved.options.body)).toEqual({ d1: true, priceChange: false });
+    expect(await screen.findByRole('alertdialog', { name: /우리WON뱅킹/ })).toBeInTheDocument();
+  });
+  it('keeps consent available for retry when saving receives HTML instead of API JSON', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (path) => path === '/api/consents'
+      ? response(consentState)
+      : ({ ok: true, status: 200, json: async () => { throw new SyntaxError('Unexpected token < in JSON'); } })));
     render(<StrictMode><App /></StrictMode>);
     const consent = await screen.findByRole('dialog', { name: /매달 새는/ }, { timeout: 2500 });
     fireEvent.click(within(consent).getByRole('button', { name: '전체 동의' }));
     fireEvent.click(within(consent).getByRole('button', { name: '동의하고 내 구독 찾기' }));
-    const chat = screen.getByRole('dialog', { name: 'WONNIE와 대화중' });
-    expect(await within(chat).findByText(/API 응답 형식이 올바르지 않아요/)).toBeInTheDocument();
+    expect(await within(consent).findByText(/API 응답 형식이 올바르지 않아요/)).toBeInTheDocument();
     expect(document.querySelector('.phone-screen')).not.toBeNull();
-    expect(within(chat).getByRole('textbox', { name: '메시지 입력' })).toBeInTheDocument();
-    expect(within(chat).queryByText(/카드 결제에서 찾은 구독/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'WONNIE와 대화중' })).not.toBeInTheDocument();
+    expect(within(consent).getByRole('button', { name: '동의하고 내 구독 찾기' })).toBeEnabled();
   });
 
   it('issues a recommended Woori card and completes a mock Netflix subscription from chat', async () => {

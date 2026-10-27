@@ -4,6 +4,14 @@ import { apiDueLabel, mergeChatMessages, toChatMessage, toSubscriptionCard, wonn
 afterEach(() => vi.unstubAllGlobals());
 
 describe('backend adapter', () => {
+  it('stores both notification choices in the backend consent model', async () => {
+    const fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ notifications: { decided: true, d1: true, priceChange: false } }) });
+    vi.stubGlobal('fetch', fetch);
+    await wonnieApi.updateNotificationConsents({ d1: true, price: false });
+    expect(fetch).toHaveBeenCalledWith('/api/consents/notifications', expect.objectContaining({
+      method: 'PUT', credentials: 'include', body: JSON.stringify({ d1: true, priceChange: false }),
+    }));
+  });
   it('sends the original question and optional topic with session credentials', async () => {
     const fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ userMessage: {}, assistantMessage: {} }) });
     vi.stubGlobal('fetch', fetch);

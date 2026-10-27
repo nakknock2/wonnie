@@ -2,6 +2,7 @@ package com.woori.wonnie.assistant;
 
 import com.woori.wonnie.dashboard.DashboardService;
 import com.woori.wonnie.finance.BusinessClock;
+import com.woori.wonnie.consent.ConsentService;
 import com.woori.wonnie.subscription.SubscriptionPriceObservationEvent;
 import com.woori.wonnie.subscription.SubscriptionPriceObservationService;
 import org.junit.jupiter.api.Test;
@@ -43,10 +44,12 @@ class AssistantSseNotificationTests {
     @Autowired SubscriptionPriceObservationService observationService;
     @Autowired BusinessClock clock;
     @Autowired PlatformTransactionManager transactionManager;
+    @Autowired ConsentService consents;
 
     @Test
     void emitsCommittedNoticeAndUnreadEventsButNotRolledBackNotice() throws Exception {
         var customerId = DashboardService.DEMO_CUSTOMER_ID;
+        consents.updateNotifications(customerId, false, true);
         var unreadBefore = assistantService.unreadCount(customerId);
         var connection = (HttpURLConnection) URI.create("http://127.0.0.1:" + port + "/api/assistant/events")
                 .toURL().openConnection();

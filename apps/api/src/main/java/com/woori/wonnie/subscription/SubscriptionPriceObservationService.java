@@ -1,6 +1,7 @@
 package com.woori.wonnie.subscription;
 
 import com.woori.wonnie.assistant.AssistantService;
+import com.woori.wonnie.consent.ConsentService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,17 +15,20 @@ public class SubscriptionPriceObservationService {
     private final SubscriptionPriceObservationRepository observationRepository;
     private final AssistantService assistantService;
     private final com.woori.wonnie.finance.BusinessClock clock;
+    private final ConsentService consents;
 
     public SubscriptionPriceObservationService(
             SubscriptionRepository subscriptionRepository,
             SubscriptionPriceObservationRepository observationRepository,
             AssistantService assistantService,
-            com.woori.wonnie.finance.BusinessClock clock
+            com.woori.wonnie.finance.BusinessClock clock,
+            ConsentService consents
     ) {
         this.subscriptionRepository = subscriptionRepository;
         this.observationRepository = observationRepository;
         this.assistantService = assistantService;
         this.clock = clock;
+        this.consents = consents;
     }
 
     @Transactional
@@ -58,12 +62,13 @@ public class SubscriptionPriceObservationService {
         observationRepository.save(observation);
         if(isStale)return;
         subscription.updateAmount(event.amount());
-        if(increased) {
+        if(increased && consents.isAgreed(event.customerId(), ConsentService.PUSH_PRICE_CHANGE)) {
             var content=subscription.getName()+" 원통화 구독료가 "+originalBefore.toPlainString()+" "+event.currency()+"에서 "
                     +event.originalAmount().toPlainString()+" "+event.currency()+"로 올랐어요. 원화 결제 금액은 "+previousAmount.toPlainString()+"원 → "
                     +event.amount().toPlainString()+"원이에요. 요금제·프로모션 변경 여부도 확인해보세요.";
             assistantService.addPriceIncreaseNotice(event.customerId(),content,"price-increase:"+event.eventId());
-        } else if(event.amount().compareTo(previousAmount)>0) {
+        } else if(event.amount().compareTo(previousAmount)>0
+                && consents.isAgreed(event.customerId(), ConsentService.PUSH_PRICE_CHANGE)) {
             var content=subscription.getName()+" 원화 결제 금액이 "+previousAmount.toPlainString()+"원에서 "+event.amount().toPlainString()+"원으로 증가했어요. "
                     +("FX_OR_FEE_CHANGE".equals(reason)?"원통화 금액은 같아 환율·수수료 변화 가능성이 있어요.":"원통화 요금 자료가 없어 실제 구독료 인상인지는 아직 확인되지 않았어요.");
             assistantService.addFinanceNotice(event.customerId(),content,"amount-change:"+event.eventId());
