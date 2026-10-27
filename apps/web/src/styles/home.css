@@ -52,6 +52,7 @@
 .app .mode-toggle__btn:active { transform: none; }
 
 .header-icons { display: flex; align-items: center; gap: 6px; }
+.header-menu-wrap { position: relative; }
 .icon-btn {
   position: relative;
   width: 36px;
@@ -72,6 +73,53 @@
   border-radius: 50%;
   background: #f04452;
 }
+
+.popover.header-account-popover {
+  top: 42px;
+  right: 0;
+  width: min(240px, calc(100vw - 28px));
+}
+.header-account-popover__profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+}
+.header-account-popover__avatar {
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.header-account-popover__avatar--fallback {
+  display: grid;
+  place-items: center;
+  background: var(--blue);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+}
+.header-account-popover__user {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.header-account-popover__user strong,
+.header-account-popover__user small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.header-account-popover__user strong { font-size: 14px; }
+.header-account-popover__user small { color: var(--text-3); font-size: 12px; }
+.header-account-popover__divider {
+  height: 1px;
+  margin: 2px 6px;
+  background: var(--line);
+}
+.popover .header-account-popover__logout { color: #f04452; font-weight: 600; }
 
 /* ===== 스크롤 영역 ===== */
 .app-scroll {
@@ -576,4 +624,3 @@
 .app.is-easy .promo { zoom: 1.1; }
 .app.is-easy .tab span { font-size: 13px; }
 .app.is-easy .balance { font-size: 26px; }
-

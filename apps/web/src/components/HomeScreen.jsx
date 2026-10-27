@@ -56,31 +56,19 @@ export default function HomeScreen({ onOpenChat, demo, user }) {
         }}
         onAction={(name) => {
           if (name === 'AI 상담' && onOpenChat) onOpenChat();
-          else if (name === '전체 메뉴') setAccountOpen(true);
           else soon(name);
         }}
         hasNotice
+        menuOpen={accountOpen}
+        onToggleMenu={() => setAccountOpen((open) => !open)}
+        onCloseMenu={() => setAccountOpen(false)}
+        user={user}
+        onLogout={() => {
+          setAccountOpen(false);
+          fetch('/logout', { method: 'POST', credentials: 'include' })
+            .finally(() => window.location.assign('/'));
+        }}
       />
-
-      {accountOpen && (
-        <>
-          <button className="fixed inset-0 z-40 bg-slate-950/25" aria-label="메뉴 닫기" onClick={() => setAccountOpen(false)} />
-          <aside className="fixed inset-y-0 left-0 z-50 w-[min(86vw,360px)] bg-white p-6 text-left shadow-2xl" aria-label="계정 메뉴">
-            <div className="flex items-center justify-between">
-              <h2 className="m-0 text-[20px] font-bold">내 계정</h2>
-              <button className="text-2xl" aria-label="메뉴 닫기" onClick={() => setAccountOpen(false)}>×</button>
-            </div>
-            <div className="mt-8 flex items-center gap-3 rounded-2xl bg-sky-50 p-4">
-              {user?.picture ? <img className="size-12 rounded-full" src={user.picture} alt="" /> : <div className="grid size-12 place-items-center rounded-full bg-[#2789ec] text-lg font-bold text-white">{(user?.name || 'W').slice(0, 1)}</div>}
-              <div className="min-w-0">
-                <p className="m-0 truncate text-[15px] font-bold">{user?.name || 'WONNIE 사용자'}</p>
-                {user?.email && <p className="m-0 mt-1 truncate text-[12px] text-slate-500">{user.email}</p>}
-              </div>
-            </div>
-            <button className="mt-8 w-full rounded-xl border border-red-100 px-4 py-3 text-left text-[14px] font-semibold text-red-600" onClick={() => fetch('/logout', { method: 'POST', credentials: 'include' }).finally(() => window.location.assign('/'))}>로그아웃</button>
-          </aside>
-        </>
-      )}
 
       <main className="app-scroll">
         {activeTab === 'home' ? (
