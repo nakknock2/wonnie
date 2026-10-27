@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 @Service
 public class DashboardService {
 
-    public static final String DEMO_CUSTOMER_ID = "customer-demo";
+    public static final String DEMO_CUSTOMER_ID = "cust-kimwoori";
 
     private final SubscriptionRepository subscriptionRepository;
     private final CalendarSignalRepository calendarSignalRepository;

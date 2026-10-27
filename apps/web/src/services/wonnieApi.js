@@ -66,7 +66,7 @@ export const mergeChatMessages = (...groups) => {
 export const toSubscriptionCard = (report, dashboard) => {
   const appearance = new Map((dashboard?.subscriptions || []).map((sub) => [sub.id, sub]));
   return {
-    monthlyTotal: Number(report.data.projectedMonthlyCostAfterTrials),
+    monthlyTotal: Number(report.data.confirmedMonthlyCost ?? report.data.projectedMonthlyCostAfterTrials),
     dataSource: report.dataSource,
     subscriptions: report.data.subscriptions.map((sub) => {
       const visual = appearance.get(sub.id);

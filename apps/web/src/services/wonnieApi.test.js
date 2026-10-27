@@ -30,7 +30,7 @@ describe('backend adapter', () => {
     expect(mergeChatMessages([normalized], [toChatMessage(message)])).toHaveLength(1);
   });
   it('adapts live subscription count, amounts and existing brand appearance', () => {
-    const result = toSubscriptionCard({ dataSource: 'DEMO', data: { projectedMonthlyCostAfterTrials: 50000, subscriptions: [{
+    const result = toSubscriptionCard({ dataSource: 'DATABASE', data: { projectedMonthlyCostAfterTrials: 50000, subscriptions: [{
       id: 'sub-gym', name: '연간권', amount: 600000, monthlyEquivalent: 50000, billingCycle: '매년', nextPaymentDate: '2026-11-01',
     }] } }, { subscriptions: [{ id: 'sub-gym', brandColor: '#123456', initial: 'G' }] });
     expect(result.monthlyTotal).toBe(50000);
@@ -40,5 +40,13 @@ describe('backend adapter', () => {
   it('never treats a past scheduled payment date as proof of successful payment', () => {
     expect(apiDueLabel('2026-10-20', new Date('2026-10-27T12:00:00+09:00'))).toBe('결제 내역 확인 필요');
     expect(apiDueLabel('2026-10-28', new Date('2026-10-27T12:00:00+09:00'))).toBe('내일 결제');
+  });
+  it('shows active cost separately from the trial-inclusive projection', () => {
+    const result = toSubscriptionCard({ dataSource: 'DATABASE', data: {
+      confirmedMonthlyCost: 17000, projectedMonthlyCostAfterTrials: 24890,
+      subscriptions: [{ id: 'sub-netflix', name: 'Netflix', amount: 17000, monthlyEquivalent: 17000, billingCycle: '매월', nextPaymentDate: '2026-11-01' }],
+    } });
+    expect(result.monthlyTotal).toBe(17000);
+    expect(result.subscriptions).toHaveLength(1);
   });
 });
