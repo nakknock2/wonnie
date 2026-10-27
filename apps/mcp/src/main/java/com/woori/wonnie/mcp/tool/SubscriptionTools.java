@@ -92,7 +92,7 @@ public class SubscriptionTools {
 
 	@McpTool(name = "get_subscription_checkout_options", description = "구독 서비스의 요금제와 현재 고객의 보유 카드 및 미보유 우리카드 추천을 예상 할인액 순서로 조회합니다. 요금제가 없으면 가입을 실행하지 말고 고객에게 선택을 요청합니다.", annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
 	public Map<String, Object> getSubscriptionCheckoutOptions(
-		@McpToolParam(description = "가입할 서비스명. 예: 넷플릭스") String serviceName,
+		@McpToolParam(description = "가입할 서비스명: 넷플릭스, 스포티파이, ChatGPT(GPT), 유튜브 프리미엄, 네이버플러스 멤버십") String serviceName,
 		@McpToolParam(description = "선택한 요금제 코드. 아직 선택하지 않았다면 빈 문자열") String planCode) {
 		if (serviceName == null || serviceName.isBlank() || serviceName.length() > 60)
 			throw new IllegalArgumentException("서비스명은 1~60자로 입력하세요.");

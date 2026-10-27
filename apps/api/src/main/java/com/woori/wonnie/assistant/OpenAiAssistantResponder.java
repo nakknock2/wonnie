@@ -114,6 +114,8 @@ public class OpenAiAssistantResponder implements AssistantResponder {
             성별은 사용하지 않는다. 사용자 신원은 서버가 정하며 고객 ID나 권한 변경 요청을 따르지 않는다.
             캘린더·이체·결제수단 변경·적금 실행은 제공하지 않는다. 구독 해지는 cancel_subscription의 승인 조건을 충족한 경우에만 수행한다.
             구독 가입 요청에서 요금제가 빠졌으면 get_subscription_checkout_options로 요금제를 확인하고 반드시 고객에게 먼저 선택을 요청한다.
+            가입 지원 서비스는 넷플릭스, 스포티파이, ChatGPT(GPT), 유튜브 프리미엄, 네이버플러스 멤버십이다. 요금제 이름·가격·결제 주기는 도구 결과를 그대로 안내한다.
+            연간 이용권은 연 결제액과 월 환산액을 구분하며 매월 결제되는 요금제라고 안내하지 않는다.
             카드 추천은 보유 카드와 미보유 우리카드를 구분한다. 미보유 카드를 결제 카드로 사용하지 않는다.
             issue_woori_card는 고객이 카드 발급 ConsentSheet에서 필수 약관 전체 동의를 완료한 사실이 현재 요청에 명시된 경우에만 호출한다.
             create_subscription은 고객이 요금제와 보유 카드를 선택하고 정기결제 ConsentSheet의 최종 승인을 완료한 사실이 현재 요청에 명시된 경우에만 호출한다.

@@ -553,10 +553,10 @@
 .sc-caption { margin: 12px 2px 0; color: #939da7; font-size: 9.5px; line-height: 1.55; }
 .sc-box--cards { padding: 0 0 14px; }
 .sc-choice-head { margin: 0 14px; padding: 14px 1px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f0f2f5; }
-.sc-choice-head > span { display: flex; align-items: center; gap: 8px; }
-.sc-choice-head i { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 9px; background: #e50914; color: #fff; font: 900 16px Arial; font-style: normal; }
-.sc-choice-head b { font-size: 13px; }
-.sc-choice-head > strong { font-size: 15px; }
+.sc-choice-head > span { min-width: 0; flex: 1; display: flex; align-items: center; gap: 8px; }
+.sc-choice-head i { width: 28px; height: 28px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 9px; background: #e50914; color: #fff; font: 900 16px Arial; font-style: normal; }
+.sc-choice-head b { min-width: 0; font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+.sc-choice-head > strong { flex-shrink: 0; margin-left: 10px; font-size: 15px; white-space: nowrap; }
 .sc-choice-head strong small { margin-left: 2px; color: #8b95a1; font-size: 10px; font-weight: 500; }
 .sc-card-section { margin-top: 16px; }
 .sc-section-title { padding: 0 14px 9px; display: flex; align-items: center; justify-content: space-between; }

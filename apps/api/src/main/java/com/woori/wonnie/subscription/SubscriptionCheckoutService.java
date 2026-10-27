@@ -22,16 +22,6 @@ import java.util.UUID;
 
 @Service
 public class SubscriptionCheckoutService {
-    private static final String NETFLIX_SERVICE_ID = "svc-netflix";
-    private static final List<PlanOption> NETFLIX_PLANS = List.of(
-            new PlanOption("AD_STANDARD", "광고형 스탠다드", new BigDecimal("7000"),
-                    "광고 포함 · Full HD · 동시접속 2명", false),
-            new PlanOption("STANDARD", "스탠다드", new BigDecimal("13500"),
-                    "광고 없이 · Full HD · 동시접속 2명", true),
-            new PlanOption("PREMIUM", "프리미엄", new BigDecimal("17000"),
-                    "광고 없이 · 4K · 동시접속 4명", false)
-    );
-
     private final JdbcOperations jdbc;
     private final BusinessClock clock;
 
@@ -43,15 +33,16 @@ public class SubscriptionCheckoutService {
     @Transactional(readOnly = true)
     public CheckoutOptions options(String customerId, String serviceName, String planCode) {
         requireCustomer(customerId);
-        var service = normalizeService(serviceName);
-        var selectedPlan = planCode == null || planCode.isBlank() ? null : plan(planCode);
-        var price = selectedPlan == null ? NETFLIX_PLANS.get(1).price() : selectedPlan.price();
-        var owned = cards(customerId, service.serviceId(), price, true);
-        var recommended = cards(customerId, service.serviceId(), price, false).stream()
+        var service = SubscriptionCheckoutCatalog.service(serviceName);
+        var selectedPlan = planCode == null || planCode.isBlank() ? null : SubscriptionCheckoutCatalog.plan(service, planCode);
+        var defaultPlan = service.plans().stream().filter(PlanOption::recommended).findFirst().orElse(service.plans().get(0));
+        var price = selectedPlan == null ? defaultPlan.price() : selectedPlan.price();
+        var owned = cards(customerId, service.id(), price, true);
+        var recommended = cards(customerId, service.id(), price, false).stream()
                 .filter(card -> "우리카드".equals(card.issuer()))
                 .toList();
-        return new CheckoutOptions(service.serviceId(), service.name(), service.category(), service.brandColor(),
-                service.initial(), NETFLIX_PLANS, selectedPlan, owned, recommended, true);
+        return new CheckoutOptions(service.id(), service.name(), service.category(), service.brandColor(),
+                service.initial(), service.plans(), selectedPlan, owned, recommended, true, service.pricingNote());
     }
 
     @Transactional
@@ -94,11 +85,24 @@ public class SubscriptionCheckoutService {
             String cardId, boolean allTermsAgreed) {
         requireCustomer(customerId);
         if (!allTermsAgreed) throw badRequest("정기결제 필수 약관에 모두 동의해 주세요.");
-        var service = normalizeService(serviceName);
-        var selectedPlan = plan(planCode);
+        var service = SubscriptionCheckoutCatalog.service(serviceName);
+        var selectedPlan = SubscriptionCheckoutCatalog.plan(service, planCode);
         var subscriptionId = "sub-checkout-" + requestId;
-        if (Boolean.TRUE.equals(jdbc.queryForObject("SELECT COUNT(*)>0 FROM subscription WHERE id=?", Boolean.class,
-                subscriptionId))) return result(customerId, subscriptionId, cardId, selectedPlan, false);
+        var previous = jdbc.query("""
+                SELECT customer_id,service_id,card_id,user_label,amount,billing_cycle FROM subscription WHERE id=?
+                """, (rs, rowNum) -> new ExistingCheckout(rs.getString("customer_id"), rs.getString("service_id"),
+                rs.getString("card_id"), rs.getString("user_label"), rs.getBigDecimal("amount"),
+                rs.getString("billing_cycle")), subscriptionId);
+        if (!previous.isEmpty()) {
+            var existing = previous.get(0);
+            if (!customerId.equals(existing.customerId()) || !service.id().equals(existing.serviceId())
+                    || !cardId.equals(existing.cardId()) || !selectedPlan.name().equals(existing.planName())
+                    || selectedPlan.price().compareTo(existing.amount()) != 0
+                    || !selectedPlan.billingCycle().equals(existing.billingCycle())) {
+                throw conflict("이미 다른 결제에 사용된 요청 ID예요. 결제 내용을 다시 확인해 주세요.");
+            }
+            return result(customerId, subscriptionId, cardId, service.name(), selectedPlan, false);
+        }
 
         var card = jdbc.query("""
                 SELECT c.id,c.status,c.available_limit,p.card_type,p.name,p.id product_id
@@ -115,7 +119,7 @@ public class SubscriptionCheckoutService {
         var duplicate = jdbc.queryForObject("""
                 SELECT COUNT(*) FROM subscription
                 WHERE customer_id=? AND service_id=? AND status IN ('ACTIVE','TRIAL')
-                """, Integer.class, customerId, service.serviceId());
+                """, Integer.class, customerId, service.id());
         if (duplicate != null && duplicate > 0) throw conflict(service.name() + " 구독을 이미 이용 중이에요.");
 
         var today = clock.today();
@@ -125,15 +129,16 @@ public class SubscriptionCheckoutService {
                   category,billing_cycle,amount,currency,original_amount,previous_amount,charge_day,first_charged_on,
                   last_charged_on,next_charge_on,status,status_changed_at,created_at,updated_at,detection_confidence,
                   user_confirmed,detected_at)
-                VALUES (?,?,?,?,?,?,?,'OTT','MONTHLY',?,'KRW',NULL,NULL,?,?,?,?, 'ACTIVE',?,?,?,?,TRUE,?)
-                """, subscriptionId, customerId, card.id(), "mch-netflix", service.serviceId(), service.name(),
-                selectedPlan.name(), selectedPlan.price(), today.getDayOfMonth(), today, today, today.plusMonths(1),
+                VALUES (?,?,?,?,?,?,?,?,?,?,'KRW',NULL,NULL,?,?,?,?, 'ACTIVE',?,?,?,?,TRUE,?)
+                """, subscriptionId, customerId, card.id(), service.merchantId(), service.id(), service.name(),
+                selectedPlan.name(), service.category(), selectedPlan.billingCycle(), selectedPlan.price(),
+                today.getDayOfMonth(), today, today, today.plusMonths(selectedPlan.billingMonths()),
                 now, now, now, new BigDecimal("1.0000"), now);
         jdbc.update("""
                 INSERT INTO card_transaction (id,card_id,customer_id,approved_at,merchant_id,merchant_name_raw,
                   category,amount,currency,original_amount,exchange_rate,status,canceled_at,decline_reason,subscription_id)
-                VALUES (?,?,?,?,?,'NETFLIX.COM','SUBSCRIPTION',?,'KRW',?,NULL,'APPROVED',NULL,NULL,?)
-                """, "tx-checkout-" + requestId, card.id(), customerId, now, "mch-netflix",
+                VALUES (?,?,?,?,?,?,'SUBSCRIPTION',?,'KRW',?,NULL,'APPROVED',NULL,NULL,?)
+                """, "tx-checkout-" + requestId, card.id(), customerId, now, service.merchantId(), service.merchantName(),
                 selectedPlan.price(), selectedPlan.price(), subscriptionId);
         jdbc.update("""
                 UPDATE card SET outstanding_amount=COALESCE(outstanding_amount,0)+?,
@@ -141,7 +146,7 @@ public class SubscriptionCheckoutService {
                 WHERE id=? AND customer_id=?
                 """, selectedPlan.price(), selectedPlan.price(), card.id(), customerId);
         saveConsent(customerId, "SUBSCRIPTION_PURCHASE", true);
-        return result(customerId, subscriptionId, card.id(), selectedPlan, true);
+        return result(customerId, subscriptionId, card.id(), service.name(), selectedPlan, true);
     }
 
     @Transactional
@@ -175,12 +180,12 @@ public class SubscriptionCheckoutService {
                         monthlySaved.multiply(BigDecimal.valueOf(12)), "해지로 아낀 금액을 매달 모을 수 있어요."));
     }
 
-    private CheckoutResult result(String customerId, String subscriptionId, String cardId, PlanOption selectedPlan,
+    private CheckoutResult result(String customerId, String subscriptionId, String cardId, String serviceName, PlanOption selectedPlan,
             boolean created) {
         var cardName = jdbc.queryForObject("""
                 SELECT p.name FROM card c JOIN card_product p ON p.id=c.card_product_id WHERE c.id=?
                 """, String.class, cardId);
-        return new CheckoutResult(subscriptionId, "넷플릭스", selectedPlan, cardId, cardName,
+        return new CheckoutResult(subscriptionId, serviceName, selectedPlan, cardId, cardName,
                 selectedPlan.price(), clock.today(), "APPROVED", created, subscriptions(customerId));
     }
 
@@ -265,19 +270,6 @@ public class SubscriptionCheckoutService {
         if (exists == null || exists == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "고객 정보를 찾을 수 없어요.");
     }
 
-    private static ServiceOption normalizeService(String serviceName) {
-        var normalized = serviceName == null ? "" : serviceName.toLowerCase(Locale.ROOT).replaceAll("\\s+", "");
-        if (!normalized.contains("넷플릭스") && !normalized.contains("netflix")) {
-            throw badRequest("현재 즉시 가입은 넷플릭스를 지원해요.");
-        }
-        return new ServiceOption(NETFLIX_SERVICE_ID, "넷플릭스", "OTT", "#e50914", "N");
-    }
-
-    private static PlanOption plan(String code) {
-        return NETFLIX_PLANS.stream().filter(option -> option.code().equalsIgnoreCase(code)).findFirst()
-                .orElseThrow(() -> badRequest("넷플릭스 요금제를 선택해 주세요."));
-    }
-
     private static String[] cardColors(String productId) {
         return switch (productId) {
             case "prd-daily" -> new String[]{"#171b2e", "#596784"};
@@ -303,7 +295,10 @@ public class SubscriptionCheckoutService {
         return new ResponseStatusException(HttpStatus.CONFLICT, message);
     }
 
-    public record PlanOption(String code, String name, BigDecimal price, String description, boolean recommended) {}
+    public record PlanOption(String code, String name, BigDecimal price, String description, boolean recommended,
+                             String billingCycle) {
+        int billingMonths() { return "YEARLY".equals(billingCycle) ? 12 : 1; }
+    }
     public record CardOption(String id, String productId, String name, String issuer, boolean owned,
                              String maskedNumber, BigDecimal annualFee, BigDecimal discountRate,
                              BigDecimal potentialDiscount, BigDecimal estimatedDiscount, BigDecimal minimumSpend,
@@ -312,7 +307,7 @@ public class SubscriptionCheckoutService {
     public record CheckoutOptions(String serviceId, String serviceName, String category, String brandColor,
                                   String initial, List<PlanOption> plans, PlanOption selectedPlan,
                                   List<CardOption> ownedCards, List<CardOption> recommendedCards,
-                                  boolean mockTransaction) {}
+                                  boolean mockTransaction, String pricingNote) {}
     public record IssuedCard(String cardId, String productId, String name, String maskedNumber,
                              BigDecimal annualFee, boolean newlyIssued) {}
     public record SubscriptionItem(String id, String name, String plan, BigDecimal price, String billingCycle,
@@ -326,7 +321,8 @@ public class SubscriptionCheckoutService {
                                      SavingsRecommendation recommendation) {}
     public record SavingsRecommendation(String name, String type, BigDecimal monthlyAmount,
                                         BigDecimal yearlyAmount, String description) {}
-    private record ServiceOption(String serviceId, String name, String category, String brandColor, String initial) {}
+    private record ExistingCheckout(String customerId, String serviceId, String cardId, String planName,
+                                    BigDecimal amount, String billingCycle) {}
     private record Product(String id, String name, String cardType, BigDecimal annualFee, String summary, String issuer) {}
     private record PaymentCard(String id, String status, BigDecimal availableLimit, String cardType,
                                String name, String productId) {}
