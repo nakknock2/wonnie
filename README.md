@@ -90,7 +90,6 @@ Docker에서는 업무 변경과 Outbox를 함께 기록하고 RabbitMQ 워커�
 ```bash
 ./apps/api/gradlew -p apps/api test bootJar
 ./apps/mcp/gradlew -p apps/mcp test bootJar
-pnpm --dir apps/web typecheck
 pnpm --dir apps/web test
 pnpm --dir apps/web build
 python3 scripts/verify-final-schema.py
@@ -99,3 +98,11 @@ pnpm verify:mcp-flow
 ```
 
 MySQL 검증 스크립트는 기존 컨테이너 안에 새 임시 DB/계정만 만들고 정리한다. MCP 흐름 검증은 로컬 모델 HTTP 스텁을 사용하며 실제 OpenAI를 호출하지 않는다. H2용 SQL은 `python3 scripts/generate-h2-migrations.py`로 MySQL 마이그레이션에서 생성한다. [기능 범위](docs/feature-matrix.md)도 참고할 수 있다.
+
+OpenAI 통합 테스트는 로컬 HTTP 응답 서버를 사용하고 실제 외부 모델·과금을 사용하지 않습니다. MCP 테스트는 실제 Streamable HTTP 클라이언트와 MCP 서버를 연결합니다.
+
+참고: [OpenAI Function Calling](https://developers.openai.com/api/docs/guides/function-calling), [Spring AI 도구 호출](https://docs.spring.io/spring-ai/reference/api/tools.html).
+
+## 배포
+
+`main` 브랜치에 push되면 테스트와 빌드 후 Oracle 서버에 자동 배포됩니다. 프로덕션 Docker Compose, GitHub Actions 시크릿, DNS와 HTTPS 최초 설정은 [배포 문서](infra/DEPLOYMENT.md)를 참고하세요.

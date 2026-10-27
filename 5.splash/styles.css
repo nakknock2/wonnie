@@ -1,0 +1,91 @@
+:root { color-scheme: light; background: #233e50; }
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: radial-gradient(ellipse at 50% 88%, #65716f 0%, #354d5b 43%, #17344d 100%);
+  font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.splash {
+  position: relative;
+  width: min(402px, calc((100dvh - 48px) * 402 / 874));
+  aspect-ratio: 402 / 874;
+  overflow: hidden;
+  background: #fff;
+  border-radius: 52px;
+  box-shadow: 0 24px 90px #0c1c2c35;
+  container-type: inline-size;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  isolation: isolate;
+}
+.campaign { position: absolute; inset: 0; }
+.campaign-logo {
+  position: absolute;
+  display: block;
+  left: 24.46%;
+  top: 33.52%;
+  width: 51.45%;
+  height: auto;
+  aspect-ratio: 452 / 322;
+  overflow: hidden;
+}
+.wonnie {
+  position: absolute;
+  left: 39%;
+  top: 28.65%;
+  width: 20.4%;
+  height: auto;
+  z-index: 1;
+  user-select: none;
+  pointer-events: none;
+}
+.campaign-message {
+  position: absolute;
+  top: 53.81%;
+  left: 4%;
+  width: 92%;
+  margin: 0;
+  color: #737777;
+  text-align: center;
+  font-size: 3.18cqw;
+  font-weight: 600;
+  line-height: 1.48;
+  letter-spacing: -.045em;
+  word-break: keep-all;
+}
+.brand-footer { position: absolute; inset: 0; pointer-events: none; }
+.accessibility {
+  position: absolute;
+  left: 34.81%;
+  top: 83.42%;
+  width: 30.74%;
+  aspect-ratio: 270 / 92;
+  overflow: hidden;
+}
+.bank-logo {
+  position: absolute;
+  left: 41.75%;
+  top: 92.71%;
+  width: 16.85%;
+  aspect-ratio: 148 / 52;
+  overflow: hidden;
+}
+.home-indicator {
+  position: absolute;
+  left: 34.58%;
+  bottom: .92%;
+  width: 35.57%;
+  height: .63%;
+  border-radius: 999px;
+  background: #000;
+}
+@media (max-width: 480px) {
+  html, body { background: #fff; }
+  body { padding: 0; }
+  .splash { width: 100%; height: 100dvh; aspect-ratio: auto; border-radius: 0; box-shadow: none; }
+}

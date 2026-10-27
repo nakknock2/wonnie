@@ -1,0 +1,42 @@
+spring:
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:mysql}:3306/${MYSQL_DATABASE:wonnie}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+    username: ${MYSQL_USER:wonnie}
+    password: ${MYSQL_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: 5672
+    username: ${RABBITMQ_USER:wonnie}
+    password: ${RABBITMQ_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  session:
+    store-type: redis
+    timeout: 30d
+
+server:
+  forward-headers-strategy: framework
+  shutdown: graceful
+  servlet:
+    session:
+      cookie:
+        domain: minngyuseong.com
+        http-only: true
+        secure: true
+        same-site: lax
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+app:
+  auth:
+    frontend-url: https://wonnie.minngyuseong.com
+  messaging:
+    enabled: true

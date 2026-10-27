@@ -10,7 +10,7 @@ import useSubscriptionNudge from './hooks/useSubscriptionNudge.js';
 import useWonnieBackend from './hooks/useWonnieBackend.js';
 import { WATCHA } from './data/subscriptions.js';
 
-export default function App() {
+export default function App({ showDemoPanel = true }) {
   const [demo, dispatch] = useDemo();
   const [runId, setRunId] = useState(0);            // 처음부터 → 폰 화면 전체 다시 그림
   const [chatOpen, setChatOpen] = useState(false);
@@ -87,16 +87,16 @@ export default function App() {
 
   return (
     <div className="stage">
-      <DemoPanel
-        demo={demo}
-        canRemind={d1Event}
-        onRemind={sendReminder}
-        canPrice={priceEvent}
-        onPrice={sendPrice}
-        onAdvance={advanceDay}
-        onRestart={restart}
-        onScenarios={() => openChat('picker')}
-      />
+      {showDemoPanel && <DemoPanel
+          demo={demo}
+          canRemind={d1Event}
+          onRemind={sendReminder}
+          canPrice={priceEvent}
+          onPrice={sendPrice}
+          onAdvance={advanceDay}
+          onRestart={restart}
+          onScenarios={() => openChat('picker')}
+        />}
 
       {/* PhoneFrame 의 children 은 폰 화면 컨테이너(.phone-screen)의 직계 자식으로 렌더링됨 */}
       <PhoneFrame key={runId}>
