@@ -6,9 +6,9 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://localhost:8080',
-      '/oauth2': 'http://localhost:8080',
-      '/login': 'http://localhost:8080',
+      '/api': 'http://127.0.0.1:8080',
+      '/oauth2': 'http://127.0.0.1:8080',
+      '/login': 'http://127.0.0.1:8080',
     },
   },
 })

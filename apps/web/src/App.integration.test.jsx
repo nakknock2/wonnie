@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { StrictMode } from 'react';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import App from './App.jsx';
 
@@ -79,7 +80,7 @@ describe('merged final frontend backend connection', () => {
     expect(within(chat).queryByText('서버에서 확인한 상담 답변입니다.')).not.toBeInTheDocument();
   });
   it('fills the original subscription card from server results after consent', async () => {
-    render(<App />);
+    render(<StrictMode><App /></StrictMode>);
     const consent = await screen.findByRole('dialog', { name: /매달 새는/ }, { timeout: 2500 });
     fireEvent.click(within(consent).getByRole('button', { name: '전체 동의' }));
     fireEvent.click(within(consent).getByRole('button', { name: '동의하고 내 구독 찾기' }));
@@ -90,5 +91,19 @@ describe('merged final frontend backend connection', () => {
     expect(within(chat).getByText('서버 구독 B')).toBeInTheDocument();
     expect(within(chat).getByText('매년 720,000원')).toBeInTheDocument();
     expect(chat.querySelectorAll('.wc-card .wc-rows .wc-row')).toHaveLength(2);
+  });
+  it('keeps the consent/chat screen mounted when the proxy returns HTML instead of API JSON', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200,
+      json: async () => { throw new SyntaxError('Unexpected token < in JSON'); },
+    })));
+    render(<StrictMode><App /></StrictMode>);
+    const consent = await screen.findByRole('dialog', { name: /매달 새는/ }, { timeout: 2500 });
+    fireEvent.click(within(consent).getByRole('button', { name: '전체 동의' }));
+    fireEvent.click(within(consent).getByRole('button', { name: '동의하고 내 구독 찾기' }));
+    const chat = screen.getByRole('dialog', { name: 'WONNIE와 대화중' });
+    expect(await within(chat).findByText(/API 응답 형식이 올바르지 않아요/)).toBeInTheDocument();
+    expect(document.querySelector('.phone-screen')).not.toBeNull();
+    expect(within(chat).getByRole('textbox', { name: '메시지 입력' })).toBeInTheDocument();
+    expect(within(chat).queryByText(/카드 결제에서 찾은 구독/)).not.toBeInTheDocument();
   });
 });

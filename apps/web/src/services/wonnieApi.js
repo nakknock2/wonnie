@@ -14,6 +14,9 @@ const request = async (path, { timeout = 15000, signal, ...options } = {}) => {
     });
     const payload = response.status === 204 ? null : await response.json().catch(() => null);
     if (!response.ok) throw new Error(payload?.message || `요청을 처리하지 못했어요. (HTTP ${response.status})`);
+    if (response.status !== 204 && (payload === null || typeof payload !== 'object' || Array.isArray(payload))) {
+      throw new Error('API 응답 형식이 올바르지 않아요. 프론트의 /api 프록시 설정을 확인해 주세요.');
+    }
     return payload;
   } catch (error) {
     if (signal?.aborted) throw error;

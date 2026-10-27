@@ -44,6 +44,8 @@ pnpm --dir apps/web dev
 
 MCP는 첫 상담 요청에서 연결합니다. 따라서 API와 MCP 시작 순서에 의존하지 않습니다. 모델·MCP 오류는 `503 ASSISTANT_UNAVAILABLE`로 표시하며 고정 응답으로 조용히 대체하지 않습니다. 기본 `pnpm dev`는 별도의 규칙 기반 모드입니다.
 
+채팅 전송이 503으로 실패하면 API 콘솔의 `ASSISTANT_UNAVAILABLE method=POST path=/api/assistant/messages` 로그를 확인합니다. `stage=MCP_TOOLS`는 MCP 초기화·도구 목록 조회 단계이며, `stage=OPENAI_CHAT`는 OpenAI 요청·도구 실행·응답 처리 단계입니다. `cause=`에 원인 예외와 오류 내용이 표시되고 키·Bearer 토큰은 마스킹됩니다. 이 로그가 없는 이전 API 프로세스는 중지 후 다시 실행해야 합니다.
+
 병합된 최종 프론트는 `apps/web/src/main.jsx` → `App.jsx`를 사용합니다. 기존 화면에서 일반 상담 전송·대화 기록·읽지 않은 알림·읽음 처리·동의 후 구독 조회를 API에 연결했습니다. 캐릭터 알림은 15초 간격과 창 포커스 시 갱신됩니다. CSS·이미지·화면 배치는 유지했습니다. 실행 중인 개발 서버는 병합 후 한 번 재시작하세요. 해지·이체·캘린더·알림 동의 설정의 시연 동작에는 아직 실행/설정 저장 API가 없어 기존 모의 동작을 유지합니다. 자세한 연결 경로는 [프론트 README](apps/web/README.md)에 있습니다.
 
 ## MySQL·RabbitMQ 실행

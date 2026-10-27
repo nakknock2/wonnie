@@ -80,8 +80,19 @@ class OpenAiMcpConversationTests {
     }
     @Test void upstreamFailureReturns503WithoutSavingFakeAssistantReply() throws Exception {
         FAIL.set(true);
-        http.perform(post("/api/assistant/messages").contentType("application/json").content("{\"message\":\"구독 조회\"}"))
-            .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.code").value("ASSISTANT_UNAVAILABLE"));
+        var result = http.perform(post("/api/assistant/messages").contentType("application/json").content("{\"message\":\"구독 조회\"}"))
+            .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.code").value("ASSISTANT_UNAVAILABLE"))
+            .andReturn();
+        assertThat(((AssistantUnavailableException) result.getResolvedException()).getStage()).isEqualTo("OPENAI_CHAT");
+        assertThat(messages.count()).isZero();
+    }
+    @Test void mcpDiscoveryFailureIsIdentifiedBeforeCallingOpenAi() throws Exception {
+        when(mcp.callbacks()).thenThrow(new IllegalStateException("MCP initialization failed"));
+        var result = http.perform(post("/api/assistant/messages").contentType("application/json").content("{\"message\":\"구독 조회\"}"))
+            .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.code").value("ASSISTANT_UNAVAILABLE"))
+            .andReturn();
+        assertThat(((AssistantUnavailableException) result.getResolvedException()).getStage()).isEqualTo("MCP_TOOLS");
+        assertThat(REQUESTS).isEmpty();
         assertThat(messages.count()).isZero();
     }
     @Test void repeatedToolCallsStopAtRequestLimitWithoutSavingReply() throws Exception {

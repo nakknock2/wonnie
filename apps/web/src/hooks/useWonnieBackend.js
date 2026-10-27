@@ -20,7 +20,10 @@ export default function useWonnieBackend(open) {
   const refresh = useCallback(async (signal) => {
     const conversation = await wonnieApi.conversation(signal);
     if (!mounted.current || signal?.aborted) return;
-    setMessages((current) => mergeChatMessages(current, conversation.messages.map(toChatMessage)));
+    if (!Array.isArray(conversation.messages)) throw new Error('저장된 대화의 응답 형식을 확인해 주세요.');
+    // Validate/convert outside React's state updater so polling catches malformed responses.
+    const incoming = conversation.messages.map(toChatMessage);
+    setMessages((current) => mergeChatMessages(current, incoming));
     setUnreadCount(conversation.unreadCount);
     setError(null);
     if (openRef.current) {
@@ -68,7 +71,8 @@ export default function useWonnieBackend(open) {
     try {
       const exchange = await wonnieApi.sendMessage(text, topic);
       if (!mounted.current) return true;
-      setMessages((current) => mergeChatMessages(current, [toChatMessage(exchange.userMessage), toChatMessage(exchange.assistantMessage)]));
+      const incoming = [toChatMessage(exchange.userMessage), toChatMessage(exchange.assistantMessage)];
+      setMessages((current) => mergeChatMessages(current, incoming));
       // Synchronize proactive messages too. A failed refresh does not turn a successful send into a retry.
       void refresh().catch(() => {});
       return true;

@@ -12,7 +12,9 @@ pnpm dev:openai
 ```
 브라우저에서 http://localhost:5173 접속
 
-웹만 실행하려면 `pnpm --dir apps/web dev`를 사용합니다. API(8080)가 별도로 실행되어 있어야 합니다. Vite의 `/api` 프록시가 `http://localhost:8080`으로 전달하며, 운영 환경에서도 동일 출처 `/api`를 API 서버로 전달해야 합니다. 프론트에 OpenAI 키를 넣지 않습니다.
+웹만 실행하려면 `pnpm --dir apps/web dev`를 사용합니다. API(8080)가 별도로 실행되어 있어야 합니다. Vite의 `/api` 프록시가 `http://127.0.0.1:8080`으로 전달하며, 운영 환경에서도 동일 출처 `/api`를 API 서버로 전달해야 합니다. 프론트에 OpenAI 키를 넣지 않습니다.
+
+실행·빌드 스크립트는 `vite.config.ts`를 명시해서 사용합니다. 예전에 남은 `vite.config.js`가 API 프록시를 덮어쓰지 않도록 하기 위한 설정입니다. 프록시 대상은 `http://127.0.0.1:8080`입니다.
 
 ## 백엔드 연결
 

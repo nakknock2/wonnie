@@ -16,6 +16,13 @@ describe('backend adapter', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503, json: async () => ({ message: '상담 연결 오류' }) }));
     await expect(wonnieApi.sendMessage('추천해줘')).rejects.toThrow('상담 연결 오류');
   });
+  it('rejects an HTTP 200 HTML fallback instead of passing null to React state', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200,
+      json: async () => { throw new SyntaxError('Unexpected token < in JSON'); },
+    }));
+    await expect(wonnieApi.conversation()).rejects.toThrow('/api 프록시 설정');
+    await expect(wonnieApi.subscriptions()).rejects.toThrow('/api 프록시 설정');
+  });
   it('merges persisted exchanges by server id without duplicating a polled message', () => {
     const message = { id: 'one', role: 'ASSISTANT', source: 'PRICE_INCREASE', content: '구독료 변동', createdAt: '2026-10-27T13:02:03.123456' };
     const normalized = toChatMessage(message);
