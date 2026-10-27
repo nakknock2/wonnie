@@ -24,13 +24,14 @@ function useToast() {
 }
 
 // demo: 데모 시나리오 상태 (잔액 · 워니 절약 적금 · 구독 현황 반영)
-export default function HomeScreen({ onOpenChat, demo }) {
+export default function HomeScreen({ onOpenChat, demo, user }) {
   const [easyMode, setEasyMode] = useState(false);
   const [hideBalance, setHideBalance] = useState(true);
   const [showPromo, setShowPromo] = useState(true);
   const [showOtherBank, setShowOtherBank] = useState(true);
   const [activeTab, setActiveTab] = useState('home');
   const [toast, showToast] = useToast();
+  const [accountOpen, setAccountOpen] = useState(false);
 
   const soon = (name) => showToast(`'${name}' 화면은 준비 중이에요`);
 
@@ -53,9 +54,33 @@ export default function HomeScreen({ onOpenChat, demo }) {
           setEasyMode(v);
           showToast(v ? '쉬운 홈으로 전환했어요' : '일반홈으로 전환했어요');
         }}
-        onAction={(name) => (name === 'AI 상담' && onOpenChat ? onOpenChat() : soon(name))}
+        onAction={(name) => {
+          if (name === 'AI 상담' && onOpenChat) onOpenChat();
+          else if (name === '전체 메뉴') setAccountOpen(true);
+          else soon(name);
+        }}
         hasNotice
       />
+
+      {accountOpen && (
+        <>
+          <button className="fixed inset-0 z-40 bg-slate-950/25" aria-label="메뉴 닫기" onClick={() => setAccountOpen(false)} />
+          <aside className="fixed inset-y-0 left-0 z-50 w-[min(86vw,360px)] bg-white p-6 text-left shadow-2xl" aria-label="계정 메뉴">
+            <div className="flex items-center justify-between">
+              <h2 className="m-0 text-[20px] font-bold">내 계정</h2>
+              <button className="text-2xl" aria-label="메뉴 닫기" onClick={() => setAccountOpen(false)}>×</button>
+            </div>
+            <div className="mt-8 flex items-center gap-3 rounded-2xl bg-sky-50 p-4">
+              {user?.picture ? <img className="size-12 rounded-full" src={user.picture} alt="" /> : <div className="grid size-12 place-items-center rounded-full bg-[#2789ec] text-lg font-bold text-white">{(user?.name || 'W').slice(0, 1)}</div>}
+              <div className="min-w-0">
+                <p className="m-0 truncate text-[15px] font-bold">{user?.name || 'WONNIE 사용자'}</p>
+                {user?.email && <p className="m-0 mt-1 truncate text-[12px] text-slate-500">{user.email}</p>}
+              </div>
+            </div>
+            <button className="mt-8 w-full rounded-xl border border-red-100 px-4 py-3 text-left text-[14px] font-semibold text-red-600" onClick={() => fetch('/logout', { method: 'POST', credentials: 'include' }).finally(() => window.location.assign('/'))}>로그아웃</button>
+          </aside>
+        </>
+      )}
 
       <main className="app-scroll">
         {activeTab === 'home' ? (

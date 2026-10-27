@@ -1,39 +1,48 @@
 import { useEffect, useState } from 'react';
-import { LogIn, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, Check, ScanFace } from 'lucide-react';
+import PhoneFrame from '../../components/PhoneFrame.jsx';
+import splashReference from '../../assets/splash-reference.png';
+import wonnieLeaning from '../../assets/wonnie-leaning.png';
+
+const PhonePage = ({ children }) => <PhoneFrame>{children}</PhoneFrame>;
 
 const Splash = () => (
-  <main className="grid min-h-screen place-items-center content-center gap-1 bg-[radial-gradient(circle_at_50%_0%,rgb(54_169_225_/_14%),transparent_34rem)] px-6">
-    <div className="grid size-[72px] place-items-center rounded-[24px] bg-gradient-to-br from-sky-100 to-violet-100 text-[34px]" aria-hidden="true">🌱</div>
-    <p className="m-0 mt-2 text-[13px] font-extrabold tracking-[.18em] text-woori-blue">WONNIE</p>
-    <p className="m-0 mt-1 text-[13px] text-woori-muted">내 금융 생활을 가볍게</p>
-    <span className="mt-7 size-5 animate-spin rounded-full border-2 border-woori-blue/20 border-t-woori-blue" aria-label="불러오는 중" />
-  </main>
+  <PhonePage>
+    <main className="relative h-full overflow-hidden bg-white" aria-label="WONNIE 시작 화면">
+      <svg className="absolute left-[24.46%] top-[33.52%] block h-auto w-[51.45%] overflow-hidden" viewBox="285 659 452 322" role="img" aria-label="2026 우리금융 다함께 페스타">
+        <image href={splashReference} width="970" height="1963" />
+      </svg>
+      <img className="absolute left-[39%] top-[28.65%] z-[1] h-auto w-[20.4%] select-none" src={wonnieLeaning} alt="웃는 워니" draggable="false" />
+      <p className="absolute left-[4%] top-[53.81%] m-0 w-[92%] text-center text-[3.18cqw] font-semibold leading-[1.48] tracking-[-.045em] text-[#737777]">우리와 손잡는 순간,<br />비교할 수 없는 역대급 혜택이 펼쳐집니다</p>
+      <svg className="absolute left-[34.81%] top-[83.42%] h-auto w-[30.74%] overflow-hidden" viewBox="376 1610 270 92" role="img" aria-label="Mobile Accessibility">
+        <image href={splashReference} width="970" height="1963" />
+      </svg>
+      <svg className="absolute left-[41.75%] top-[92.71%] h-auto w-[16.85%] overflow-hidden" viewBox="437 1787 148 52" role="img" aria-label="우리은행">
+        <image href={splashReference} width="970" height="1963" />
+      </svg>
+    </main>
+  </PhonePage>
 );
 
-const Login = ({ onRetry }) => {
-  const loginUrl = window.location.hostname === 'wonnie.minngyuseong.com'
-    ? 'https://api.wonnie.minngyuseong.com/oauth2/authorization/google'
-    : '/oauth2/authorization/google';
-
-  return (
-    <main className="grid min-h-screen place-items-center bg-[radial-gradient(circle_at_50%_0%,rgb(54_169_225_/_14%),transparent_34rem)] px-6">
-      <div className="w-full max-w-[380px] rounded-[28px] border border-blue-950/10 bg-white/95 px-[26px] pb-7 pt-[34px] text-center shadow-[0_24px_70px_rgb(33_87_140_/_12%)]">
-        <div className="mx-auto grid size-[72px] place-items-center rounded-[24px] bg-gradient-to-br from-sky-100 to-violet-100 text-[34px]" aria-hidden="true">🌱</div>
-        <p className="m-0 mt-2 text-[13px] font-extrabold tracking-[.18em] text-woori-blue">WONNIE</p>
-        <h1 className="mb-0 mt-7 text-[22px] font-bold tracking-[-.04em]">WONNIE를 시작해 보세요</h1>
-        <p className="mb-6 mt-2 text-[13px] leading-[1.65] text-woori-muted">Google 계정으로 로그인하고 캘린더와 함께 금융 생활을 관리해요.</p>
-        <a className="flex min-h-[50px] w-full items-center justify-center gap-2 rounded-[14px] bg-[#1a73e8] text-[14px] font-bold text-white no-underline" href={loginUrl}>
-          <LogIn size={19} aria-hidden="true" /> Google로 계속하기
-        </a>
-        <p className="mt-3 flex items-center justify-center gap-1 text-[11px] text-woori-muted"><ShieldCheck size={14} aria-hidden="true" /> 일정 권한은 로그인 동의 화면에서 직접 선택해요.</p>
-        <button className="mt-[18px] text-[12px] text-woori-blue underline" type="button" onClick={onRetry}>로그인 상태 다시 확인</button>
-      </div>
+const Login = ({ onLogin }) => (
+  <PhonePage>
+    <main className="relative flex h-full flex-col bg-white px-7 pb-9 pt-12 text-[#353b43]" aria-label="로그인">
+      <button className="absolute left-5 top-5 text-[#353b43]" aria-label="뒤로 가기" type="button"><ChevronLeft size={30} strokeWidth={2} /></button>
+      <section className="flex flex-1 flex-col items-center pt-[25%]">
+        <h1 className="m-0 text-[27px] font-bold tracking-[-.07em]">우리WON인증서</h1>
+        <p className="mb-0 mt-3 text-[19px] font-medium text-[#737a83]">로그인하고 WONNIE를 시작해 보세요.</p>
+        <button className="mt-28 grid size-[128px] place-items-center rounded-full bg-[#e3f2ff] text-[#28323b]" type="button" onClick={onLogin} aria-label="Google 로그인">
+          <ScanFace size={66} strokeWidth={1.8} />
+        </button>
+        <p className="mt-12 flex items-center gap-3 text-[20px] font-semibold"><span className="grid size-8 place-items-center rounded-full border-[3px] border-[#353b43]"><Check size={21} strokeWidth={3} /></span>Google 자동 로그인</p>
+      </section>
+      <button className="h-16 rounded-full border-2 border-[#e0e4e8] text-[20px] font-semibold text-[#353b43]" type="button" onClick={onLogin}>다른 방법으로 로그인</button>
     </main>
-  );
-};
+  </PhonePage>
+);
 
 export const AuthGate = ({ children }) => {
-  const [state, setState] = useState('loading');
+  const [state, setState] = useState('splash');
   const [user, setUser] = useState(null);
 
   const check = () => {
@@ -47,9 +56,19 @@ export const AuthGate = ({ children }) => {
       .catch((error) => { setState(/401|403|unauthorized/i.test(error.message) ? 'signed-out' : 'error'); });
   };
 
-  useEffect(check, []);
+  useEffect(() => {
+    const timer = window.setTimeout(check, 2000);
+    return () => window.clearTimeout(timer);
+  }, []);
 
-  if (state === 'loading') return <Splash />;
-  if (state === 'signed-out' || state === 'error') return <Login onRetry={check} />;
+  const login = () => {
+    const url = window.location.hostname === 'wonnie.minngyuseong.com'
+      ? 'https://api.wonnie.minngyuseong.com/oauth2/authorization/google'
+      : '/oauth2/authorization/google';
+    window.location.assign(url);
+  };
+
+  if (state === 'splash' || state === 'loading') return <Splash />;
+  if (state === 'signed-out' || state === 'error') return <Login onLogin={login} />;
   return user ? children(user) : <Splash />;
 };

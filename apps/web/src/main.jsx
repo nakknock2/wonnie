@@ -12,7 +12,7 @@ if (window.location.hostname.startsWith('demo.')) {
   Promise.all([import('./App.jsx'), import('./styles/global.css')]).then(([{ default: ServiceApp }]) => {
     root.render(
       <StrictMode>
-        <AuthGate>{() => <ServiceApp showDemoPanel={false} />}</AuthGate>
+        <AuthGate>{(user) => <ServiceApp showDemoPanel={false} user={user} />}</AuthGate>
       </StrictMode>,
     );
   });

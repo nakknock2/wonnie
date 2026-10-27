@@ -10,7 +10,7 @@ import useSubscriptionNudge from './hooks/useSubscriptionNudge.js';
 import useWonnieBackend from './hooks/useWonnieBackend.js';
 import { WATCHA } from './data/subscriptions.js';
 
-export default function App({ showDemoPanel = true }) {
+export default function App({ showDemoPanel = true, user = null }) {
   const [demo, dispatch] = useDemo();
   const [runId, setRunId] = useState(0);            // 처음부터 → 폰 화면 전체 다시 그림
   const [chatOpen, setChatOpen] = useState(false);
@@ -100,7 +100,7 @@ export default function App({ showDemoPanel = true }) {
 
       {/* PhoneFrame 의 children 은 폰 화면 컨테이너(.phone-screen)의 직계 자식으로 렌더링됨 */}
       <PhoneFrame key={runId}>
-        <HomeScreen onOpenChat={() => openChat('default')} demo={demo} />
+        <HomeScreen onOpenChat={() => openChat('default')} demo={demo} user={user} />
         <WonnieChatFab hidden={chatOpen || consentOpen} nudge={!!nudgeMode || backend.unreadCount > 0} onOpen={onFab} />
         <ConsentSheet open={consentOpen && !demo.consented} onAgree={agree} onClose={() => setConsentOpen(false)} />
         <WonnieChatScreen backend={backend} open={chatOpen} request={chatRequest} demo={demo} dispatch={dispatch} onClose={closeChat} />
