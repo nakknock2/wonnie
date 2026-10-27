@@ -3,6 +3,7 @@ package com.woori.wonnie.dashboard;
 import com.woori.wonnie.api.ApiDtos.CalendarSignalResponse;
 import com.woori.wonnie.api.ApiDtos.DashboardResponse;
 import com.woori.wonnie.api.ApiDtos.SubscriptionSummary;
+import com.woori.wonnie.auth.CustomerAccountRepository;
 import com.woori.wonnie.calendar.CalendarSignalRepository;
 import com.woori.wonnie.subscription.Subscription;
 import com.woori.wonnie.subscription.SubscriptionRepository;
@@ -18,24 +19,27 @@ public class DashboardService {
 
     private final SubscriptionRepository subscriptionRepository;
     private final CalendarSignalRepository calendarSignalRepository;
+    private final CustomerAccountRepository customerAccountRepository;
 
     public DashboardService(
             SubscriptionRepository subscriptionRepository,
-            CalendarSignalRepository calendarSignalRepository
+            CalendarSignalRepository calendarSignalRepository,
+            CustomerAccountRepository customerAccountRepository
     ) {
         this.subscriptionRepository = subscriptionRepository;
         this.calendarSignalRepository = calendarSignalRepository;
+        this.customerAccountRepository = customerAccountRepository;
     }
 
     @Transactional(readOnly = true)
-    public DashboardResponse getDashboard() {
+    public DashboardResponse getDashboard(String customerId) {
         var subscriptions = subscriptionRepository
-                .findAllByCustomerIdOrderByNextPaymentDateAsc(DEMO_CUSTOMER_ID).stream()
+                .findAllByCustomerIdOrderByNextPaymentDateAsc(customerId).stream()
                 .filter(subscription -> subscription.getStatus() == com.woori.wonnie.subscription.SubscriptionStatus.ACTIVE)
                 .toList();
         var subscriptionResponses = subscriptions.stream().map(this::toSummary).toList();
         var signals = calendarSignalRepository
-                .findAllByCustomerIdOrderByStartsOnAsc(DEMO_CUSTOMER_ID)
+                .findAllByCustomerIdOrderByStartsOnAsc(customerId)
                 .stream()
                 .map(signal -> new CalendarSignalResponse(
                         signal.getId(),
@@ -53,7 +57,7 @@ public class DashboardService {
         var next = subscriptions.isEmpty() ? null : subscriptions.get(0);
 
         return new DashboardResponse(
-                "김우리",
+                customerAccountRepository.findById(customerId).map(account -> account.getName()).orElse("고객"),
                 total,
                 subscriptions.size(),
                 next == null ? "없음" : next.getName(),

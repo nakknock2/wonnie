@@ -1,5 +1,6 @@
 package com.woori.wonnie.api;
 
+import com.woori.wonnie.auth.CurrentCustomer;
 import java.security.Principal;
 
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+    private final CurrentCustomer currentCustomer;
+
+    public AuthController(CurrentCustomer currentCustomer) {
+        this.currentCustomer = currentCustomer;
+    }
 
     @GetMapping("/me")
     ResponseEntity<AuthUser> me(Principal principal) {
@@ -20,7 +26,7 @@ public class AuthController {
         if (principal instanceof OAuth2AuthenticationToken oauth) {
             var attributes = oauth.getPrincipal().getAttributes();
             return ResponseEntity.ok(new AuthUser(
-                    String.valueOf(attributes.getOrDefault("sub", principal.getName())),
+                    currentCustomer.id(),
                     String.valueOf(attributes.getOrDefault("name", principal.getName())),
                     String.valueOf(attributes.getOrDefault("email", "")),
                     attributes.get("picture") == null ? null : String.valueOf(attributes.get("picture"))

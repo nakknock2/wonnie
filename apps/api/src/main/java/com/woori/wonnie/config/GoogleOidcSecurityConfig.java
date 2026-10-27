@@ -1,5 +1,6 @@
 package com.woori.wonnie.config;
 
+import com.woori.wonnie.auth.CustomerProvisioningAuthenticationSuccessHandler;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,9 +15,12 @@ import org.springframework.http.HttpStatus;
 public class GoogleOidcSecurityConfig {
 
     private final String frontendUrl;
+    private final CustomerProvisioningAuthenticationSuccessHandler successHandler;
 
-    GoogleOidcSecurityConfig(@Value("${app.auth.frontend-url}") String frontendUrl) {
+    GoogleOidcSecurityConfig(@Value("${app.auth.frontend-url}") String frontendUrl,
+            CustomerProvisioningAuthenticationSuccessHandler successHandler) {
         this.frontendUrl = frontendUrl;
+        this.successHandler = successHandler;
     }
 
     @Bean
@@ -29,7 +33,7 @@ public class GoogleOidcSecurityConfig {
                 .exceptionHandling(exceptions -> exceptions.defaultAuthenticationEntryPointFor(
                         new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
                         request -> request.getRequestURI().startsWith("/api/")))
-                .oauth2Login(oauth -> oauth.defaultSuccessUrl(frontendUrl, true))
+                .oauth2Login(oauth -> oauth.successHandler(successHandler))
                 .logout(logout -> logout.logoutSuccessUrl(frontendUrl))
                 .build();
     }

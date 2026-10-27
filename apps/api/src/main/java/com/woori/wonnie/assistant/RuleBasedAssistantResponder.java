@@ -29,7 +29,7 @@ public class RuleBasedAssistantResponder implements AssistantResponder {
         else if(has(text,"소득","또래","말투","알림 시간"))topic="customer-context";
         else if(has(text,"구독","총액","월간","보고서","리포트"))topic="subscriptions";
         else return "안녕하세요! 카드·구독 내역을 바탕으로 구독 총액, 가격 인상, 중복 구독, 카드 혜택과 결제 일정을 안내해드려요. 예를 들어 ‘구독료가 오른 내역 알려줘’라고 물어보세요.";
-        var report=finance.report(topic,merchant);
+        var report=finance.report(customerId,topic,merchant);
         var answer=new StringBuilder(report.summary());
         if(topic.equals("subscriptions")) {
             for(var row:rows(report.data().get("subscriptions"))) answer.append("\n· ").append(row.get("name")).append(": ").append(row.get("amount")).append("원 / ").append(row.get("billingCycle"));
