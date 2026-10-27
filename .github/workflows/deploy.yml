@@ -75,28 +75,6 @@ jobs:
           printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/known_hosts"
 
-      - name: Configure OpenAI key
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          set -Eeuo pipefail
-          if [ -z "$OPENAI_API_KEY" ]; then
-            echo "OPENAI_API_KEY secret is required" >&2
-            exit 1
-          fi
-          printf '%s' "$OPENAI_API_KEY" | ssh "${SSH_USER}@${SSH_HOST}" '
-            set -eu
-            umask 077
-            test -f /srv/wonnie/shared/.env
-            key_file=$(mktemp /srv/wonnie/shared/.openai-api-key.XXXXXX)
-            trap '\''rm -f "$key_file"'\'' EXIT
-            cat > "$key_file"
-            chmod 600 "$key_file"
-            mv -f "$key_file" /srv/wonnie/shared/.openai-api-key
-          '
-
       - name: Upload release
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
@@ -124,25 +102,22 @@ jobs:
           archive="/tmp/wonnie-$sha.tar.gz"
 
           test -f "$root/shared/.env"
-          test -s "$root/shared/.openai-api-key"
-          OPENAI_API_KEY="$(cat "$root/shared/.openai-api-key")"
-          export OPENAI_API_KEY
           mkdir -p "$release"
           tar -xzf "$archive" -C "$release"
           rm -f "$archive"
 
           cd "$release"
-          SPRING_PROFILES_ACTIVE=prod,google-oidc,openai docker compose \
+          SPRING_PROFILES_ACTIVE=prod,google-oidc docker compose \
             --project-name wonnie \
             --env-file "$root/shared/.env" \
             --file infra/docker-compose.prod.yml \
             build --no-cache web
 
-          SPRING_PROFILES_ACTIVE=prod,google-oidc,openai docker compose \
+          SPRING_PROFILES_ACTIVE=prod,google-oidc docker compose \
             --project-name wonnie \
             --env-file "$root/shared/.env" \
             --file infra/docker-compose.prod.yml \
-            up --build --detach --force-recreate --remove-orphans --wait --wait-timeout 300
+            up --detach --force-recreate --remove-orphans --wait --wait-timeout 300
 
           curl --fail --silent --show-error http://127.0.0.1:8083/actuator/health
           curl --fail --silent --show-error http://127.0.0.1:3003/ >/dev/null

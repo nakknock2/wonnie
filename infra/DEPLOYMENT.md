@@ -19,13 +19,6 @@
 - `SSH_USER`: SSH 사용자
 - `SSH_PRIVATE_KEY`: 배포용 개인 키
 - `SSH_KNOWN_HOSTS`: 서버의 SSH host key
-- `OPENAI_API_KEY`: OpenAI API 키. GitHub Actions 배포에서는 필수입니다.
-
-workflow는 `OPENAI_API_KEY`를 SSH 표준 입력으로 전달하고 서버의 `/srv/wonnie/shared/.openai-api-key`에 권한 `600`으로 저장합니다. 키는 배포 명령의 인자나 소스 압축 파일에 넣지 않습니다. Secret이 비어 있으면 배포를 중단합니다.
-
-배포 시 이 파일을 `OPENAI_API_KEY` 환경변수로 읽어 Docker Compose가 API 컨테이너에 전달합니다. 실행 프로필은 `prod,google-oidc,openai`로 지정되어 채팅과 RAG 임베딩이 함께 활성화됩니다. GitHub Secret을 변경하고 다시 배포하면 서버 키도 갱신됩니다.
-
-배포 소스로 API·MCP 이미지를 빌드하고 컨테이너를 재생성하므로 새 RAG 문서와 설정도 함께 반영됩니다.
 
 ## 서버 최초 설정
 
@@ -66,9 +59,9 @@ sudo certbot --nginx \
 
 ## 선택 프로필
 
-Compose를 수동 실행할 때 기본 `SPRING_PROFILES_ACTIVE=prod`는 외부 모델 키 없이 실행됩니다. GitHub Actions는 위에서 설명한 대로 `prod,google-oidc,openai`를 지정합니다.
+기본 `SPRING_PROFILES_ACTIVE=prod`는 외부 모델 키 없이 실행됩니다.
 
-- OpenAI 수동 실행: 서버 `.env`에 `OPENAI_API_KEY`를 넣고 프로필을 `prod,openai`로 변경. GitHub Actions 배포는 GitHub Secret을 사용하므로 `.env`에 키를 중복 입력할 필요가 없습니다.
+- OpenAI: 서버 `.env`에 `OPENAI_API_KEY`를 넣고 프로필을 `prod,openai`로 변경
 - Google OIDC: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`을 넣고 프로필에 `google-oidc` 추가
 
 `.env`는 저장소에 커밋하지 않습니다.
