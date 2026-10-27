@@ -17,6 +17,7 @@ import {
   BASE_DATE, addDays, billDateOf, dueLabel, won, md, mdw, ymd, NOTIF_TYPES, PRICE_CHANGE,
 } from '../../data/subscriptions.js';
 import { apiDueLabel, mergeChatMessages, toSubscriptionCard, wonnieApi } from '../../services/wonnieApi.js';
+import { checkoutServiceFromMessage } from '../../services/subscriptionCheckout.js';
 import './WonnieChatScreen.css';
 
 /*
@@ -107,7 +108,6 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onCons
   const [cancelOpen, setCancelOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [pauseTarget, setPauseTarget] = useState(null);
-  const [checkoutOptions, setCheckoutOptions] = useState(null);
   const [issueTarget, setIssueTarget] = useState(null);
   const [paymentTarget, setPaymentTarget] = useState(null);
   const [transferTarget, setTransferTarget] = useState(WATCHA);
@@ -310,12 +310,11 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onCons
     say(mk('assistant', 'offer', { subscription }), 650);
   };
 
-  const startSubscriptionCheckout = async (text) => {
+  const startSubscriptionCheckout = async (text, serviceName) => {
     userSays(text);
     setFetchingSubscriptions(true);
     try {
-      const options = await wonnieApi.subscriptionCheckoutOptions('넷플릭스');
-      setCheckoutOptions(options);
+      const options = await wonnieApi.subscriptionCheckoutOptions(serviceName);
       say(mk('assistant', 'subscription-plans', { options }), 500);
     } catch (error) {
       showToast(error.message);
@@ -324,12 +323,11 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onCons
     }
   };
 
-  const selectSubscriptionPlan = async (plan) => {
+  const selectSubscriptionPlan = async (plan, service) => {
     userSays(`${plan.name}으로 할게요`);
     setFetchingSubscriptions(true);
     try {
-      const options = await wonnieApi.subscriptionCheckoutOptions('넷플릭스', plan.code);
-      setCheckoutOptions(options);
+      const options = await wonnieApi.subscriptionCheckoutOptions(service.serviceName, plan.code);
       say(mk('assistant', 'subscription-cards', { options }), 450);
     } catch (error) {
       showToast(error.message);
@@ -338,19 +336,18 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onCons
     }
   };
 
-  const issueRecommendedCard = async (card) => {
+  const issueRecommendedCard = async (card, service) => {
     await wonnieApi.issueCard(card.productId);
     userSays(`${card.name} 발급에 동의했어요`);
-    const updated = await wonnieApi.subscriptionCheckoutOptions('넷플릭스', checkoutOptions.selectedPlan.code);
-    setCheckoutOptions(updated);
+    const updated = await wonnieApi.subscriptionCheckoutOptions(service.serviceName, service.selectedPlan.code);
     say(mk('assistant', 'subscription-cards', { options: updated, issuedCard: card.name }), 500);
   };
 
-  const approveSubscriptionPayment = async ({ card, plan }) => {
+  const approveSubscriptionPayment = async ({ card, plan, service }) => {
     userSays(`${card.name}으로 결제를 승인할게요`);
     const result = await wonnieApi.createSubscription({
       requestId: newCheckoutRequestId(),
-      service: '넷플릭스', planCode: plan.code, cardId: card.id,
+      service: service.serviceName, planCode: plan.code, cardId: card.id,
     });
     say(mk('assistant', 'subscription-complete', { result }), 350);
     return result;
@@ -433,8 +430,9 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onCons
       if (!demoRef.current.scanned) showSubs(); else askNotif();
       return;
     }
-    if (/(넷플릭스|netflix).*(구독|가입)|(구독|가입).*(넷플릭스|netflix)/i.test(t)) {
-      void startSubscriptionCheckout(t);
+    const checkoutService = checkoutServiceFromMessage(t);
+    if (checkoutService) {
+      void startSubscriptionCheckout(t, checkoutService);
       return;
     }
     void sendToBackend(t);
@@ -656,14 +654,16 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onCons
       }
       case 'subscription-plans':
         return (
-          <Reply intro="좋아요. 먼저 넷플릭스 요금제를 골라주세요.">
-            <PlanPicker options={m.options} disabled={busy} onSelect={selectSubscriptionPlan} />
+          <Reply intro={`좋아요. 먼저 ${m.options.serviceName} 요금제를 골라주세요.`}>
+            <PlanPicker options={m.options} disabled={busy} onSelect={(plan) => selectSubscriptionPlan(plan, m.options)} />
           </Reply>
         );
       case 'subscription-cards':
         return (
           <Reply intro={m.issuedCard ? `${m.issuedCard} 발급이 끝났어요. 이제 결제 카드를 선택해 주세요.` : '혜택이 큰 순서로 결제 카드를 골라봤어요.'}>
-            <CardRecommendations options={m.options} onOwned={(card) => setPaymentTarget({ card, plan: m.options.selectedPlan })} onCandidate={setIssueTarget} />
+            <CardRecommendations options={m.options}
+              onOwned={(card) => setPaymentTarget({ card, plan: m.options.selectedPlan, service: m.options })}
+              onCandidate={(card) => setIssueTarget({ card, service: m.options })} />
           </Reply>
         );
       case 'subscription-complete':
@@ -815,7 +815,8 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onCons
       <OsPermission open={!!osAsk} onAnswer={answerOs} />
       <CancelPage open={cancelOpen} onClose={() => setCancelOpen(false)} onCancelled={onCancelled} />
       <SubscriptionPauseSheet open={!!pauseTarget} subscription={pauseTarget} onClose={() => setPauseTarget(null)} onComplete={onCalendarCancelled} />
-      <CardIssueConsentSheet card={issueTarget} onClose={() => setIssueTarget(null)} onIssue={issueRecommendedCard} />
+      <CardIssueConsentSheet card={issueTarget?.card} service={issueTarget?.service}
+        onClose={() => setIssueTarget(null)} onIssue={(card) => issueRecommendedCard(card, issueTarget.service)} />
       <PaymentConsentSheet selection={paymentTarget} onClose={() => setPaymentTarget(null)} onPay={approveSubscriptionPayment} />
       <TransferSheet open={transferOpen} amount={Number(transferTarget.price)} balance={demo.balance} onClose={() => setTransferOpen(false)} onDone={onTransferDone} />
 
