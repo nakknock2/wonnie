@@ -4,7 +4,7 @@ import PhoneFrame from '../../components/PhoneFrame.jsx';
 import splashReference from '../../assets/splash-reference.png';
 import wonnieLeaning from '../../assets/wonnie-leaning.png';
 
-const PhonePage = ({ children }) => <PhoneFrame>{children}</PhoneFrame>;
+const PhonePage = ({ children }) => <div className="stage"><PhoneFrame>{children}</PhoneFrame></div>;
 
 const Splash = () => (
   <PhonePage>
