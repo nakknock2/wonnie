@@ -9,10 +9,25 @@ spring:
     port: 5672
     username: ${RABBITMQ_USER:wonnie}
     password: ${RABBITMQ_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  session:
+    store-type: redis
+    timeout: 30d
 
 server:
   forward-headers-strategy: framework
   shutdown: graceful
+  servlet:
+    session:
+      cookie:
+        domain: .minngyuseong.com
+        http-only: true
+        secure: true
+        same-site: lax
 
 management:
   endpoint:

@@ -8,6 +8,7 @@
 - API: `https://api.wonnie.minngyuseong.com` → 서버 `127.0.0.1:8083`
 - 웹의 `/api`, `/oauth2`, `/login`, `/logout` 요청은 컨테이너 내부에서 API로 전달됩니다.
 - MCP는 컨테이너 내부 `mcp:8081`에서 API와 연결됩니다.
+- Redis는 컨테이너 내부에서 Spring Session과 인증 토큰 상태를 저장합니다.
 - MySQL, RabbitMQ, MCP는 외부 포트를 열지 않습니다.
 
 ## GitHub Actions secrets
@@ -44,6 +45,7 @@ Cloudflare DNS에 프록시를 끈 상태로 다음 A 레코드를 먼저 추가
 | 이름 | 값 |
 | --- | --- |
 | `wonnie` | Oracle 서버 IP |
+| `demo.wonnie` | Oracle 서버 IP |
 | `api.wonnie` | Oracle 서버 IP |
 
 DNS 전파 후 인증서를 발급합니다.
@@ -51,6 +53,7 @@ DNS 전파 후 인증서를 발급합니다.
 ```bash
 sudo certbot --nginx \
   -d wonnie.minngyuseong.com \
+  -d demo.wonnie.minngyuseong.com \
   -d api.wonnie.minngyuseong.com
 ```
 

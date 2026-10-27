@@ -1,4 +1,4 @@
-import type { AssistantConversation, AssistantMessageExchange, DashboardResponse, UnreadCount } from './types'
+import type { AssistantConversation, AssistantMessageExchange, AuthUser, DashboardResponse, UnreadCount } from './types'
 
 interface ApiErrorPayload {
   message?: string
@@ -23,6 +23,8 @@ const request = async <T>(path: string, options?: RequestInit): Promise<T> => {
 }
 
 export const api = {
+  getCurrentUser: () => request<AuthUser>('/api/auth/me'),
+
   getDashboard: () => request<DashboardResponse>('/api/dashboard'),
 
   getAssistantConversation: () => request<AssistantConversation>('/api/assistant/conversation'),

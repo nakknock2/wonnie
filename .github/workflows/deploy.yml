@@ -107,7 +107,7 @@ jobs:
           rm -f "$archive"
 
           cd "$release"
-          docker compose \
+          SPRING_PROFILES_ACTIVE=prod,google-oidc docker compose \
             --project-name wonnie \
             --env-file "$root/shared/.env" \
             --file infra/docker-compose.prod.yml \

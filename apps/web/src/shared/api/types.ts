@@ -53,3 +53,10 @@ export interface AssistantMessageExchange {
 export interface UnreadCount {
   unreadCount: number
 }
+
+export interface AuthUser {
+  id: string
+  name: string
+  email: string
+  picture?: string | null
+}
