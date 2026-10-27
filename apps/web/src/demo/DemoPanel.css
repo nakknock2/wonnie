@@ -44,6 +44,8 @@
 .dp-btns button.dp-alt:hover { background: #d8e8ff; }
 .dp-btns button.dp-ghost { background: #f2f4f6; color: #4e5968; }
 .dp-btns button.dp-ghost:hover { background: #e5e8eb; }
+.dp-btns button.dp-face-id { background: #151719; color: #a2f5ab; }
+.dp-btns button.dp-face-id:hover:not(:disabled) { background: #292d31; }
 .dp-notif { margin: 10px 0 0; padding: 8px 10px; border-radius: 10px; background: #f5f7f9; font-size: 11.5px; color: #4e5968; }
 .dp-notif b { color: #8b95a1; }
 .dp-notif b.on { color: #1fa463; }
@@ -56,4 +58,9 @@
   .dp-btns button { width: 40px; padding: 0; justify-content: center; }
   .dp-btns b { display: none; }
 }
-@media (max-width: 440px) { .dp { display: none; } }
+@media (max-width: 440px) {
+  .stage.stage--demo { padding: 0; }
+  .dp { top: auto; right: auto; left: 16px; bottom: 112px; padding: 0; background: none; box-shadow: none; }
+  .dp-btns > button:not(.dp-face-id) { display: none; }
+  .dp-btns button.dp-face-id { width: 44px; height: 44px; box-shadow: 0 4px 16px rgb(0 0 0 / 18%); }
+}

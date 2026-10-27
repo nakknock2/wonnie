@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import MockFaceId from './MockFaceId/MockFaceId.jsx';
 import '../styles/phone.css';
 
 // 상단 상태바 (시간 / 신호 / LTE / 배터리)
@@ -39,7 +40,7 @@ function StatusBar() {
 }
 
 // 스마트폰 외형 틀. children 으로 앱 화면을 받습니다.
-export default function PhoneFrame({ children }) {
+export default function PhoneFrame({ children, faceIdOpen = false, onFaceIdComplete, onFaceIdCancel }) {
   return (
     <div className="phone">
       <span className="phone-btn phone-btn--silent" />
@@ -48,7 +49,7 @@ export default function PhoneFrame({ children }) {
       <span className="phone-btn phone-btn--power" />
 
       <div className="phone-screen">
-        <div className="dynamic-island" />
+        <MockFaceId open={faceIdOpen} onComplete={onFaceIdComplete} onCancel={onFaceIdCancel} />
         <StatusBar />
         {children}
         <div className="home-indicator" />

@@ -1,9 +1,10 @@
 import { BASE_DATE, CUSTOMER, addDays, mdw } from '../data/subscriptions.js';
 import { STEPS } from './useDemo.js';
+import { ScanFace } from 'lucide-react';
 import './DemoPanel.css';
 
 // 폰 바깥 시연 패널: 데모 고객 · 데모 날짜 · 진행 체크리스트 · 진행 버튼
-export default function DemoPanel({ demo, canRemind, onRemind, canPrice, onPrice, onAdvance, onRestart, onScenarios }) {
+export default function DemoPanel({ demo, canRemind, onRemind, canPrice, onPrice, onAdvance, onRestart, onScenarios, onFaceId, faceIdActive }) {
   const current = STEPS.findIndex((s) => !s.done(demo));
   return (
     <aside className="dp" aria-label="데모 진행 패널">
@@ -23,6 +24,10 @@ export default function DemoPanel({ demo, canRemind, onRemind, canPrice, onPrice
       </ol>
 
       <div className="dp-btns">
+        <button type="button" className="dp-face-id" onClick={onFaceId} disabled={faceIdActive}
+          aria-label="Face ID 테스트" title="Face ID 화면 시연 · 실제 얼굴 인증이나 결제를 실행하지 않아요">
+          <ScanFace size={20} aria-hidden="true" /><b>Face ID 테스트</b>
+        </button>
         <button type="button" onClick={onRemind} disabled={!canRemind} title="결제 하루 전 알림에 동의 + 내일 결제 건이 있을 때만">
           <span>🔔</span><b>D-1 알림 보내기</b>
         </button>
