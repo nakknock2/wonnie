@@ -1,4 +1,6 @@
 spring:
+  autoconfigure:
+    exclude: org.springframework.boot.session.data.redis.autoconfigure.SessionDataRedisAutoConfiguration
   datasource:
     url: jdbc:mysql://localhost:3306/${MYSQL_DATABASE:wonnie}?useSSL=false&allowPublicKeyRetrieval=true&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
     username: ${MYSQL_USER:wonnie}

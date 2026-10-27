@@ -53,12 +53,13 @@ def main():
         version = mysql("SELECT VERSION();")
         mysql(f"CREATE DATABASE `{database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;")
         created = True
-        for name in ["V1__wonnie_schema.sql", "V2__wonnie_seed_demo.sql"]:
+        for name in ["V1__wonnie_schema.sql", "V2__wonnie_seed_demo.sql", "V3__google_customer_identity.sql"]:
             mysql((DIRECTORY / name).read_text(), database)
-        equal("32 tables", "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_type='BASE TABLE';", "32")
+        equal("33 tables", "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_type='BASE TABLE';", "33")
         equal("2 views", "SELECT COUNT(*) FROM information_schema.views WHERE table_schema=DATABASE();", "2")
         equal("no duplicate legacy stores", "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name IN ('assistant_message','finance_customer','finance_card','finance_transaction','merchant_directory');", "0")
         equal("demo identity", "SELECT id FROM customer;", "cust-kimwoori")
+        equal("OAuth identities initially empty", "SELECT COUNT(*) FROM oauth_identity;", "0")
         equal("184 transactions", "SELECT COUNT(*) FROM card_transaction;", "184")
         equal("183 approved and 1 canceled", "SELECT status,COUNT(*) FROM card_transaction GROUP BY status ORDER BY status;", "APPROVED\t183\nCANCELED\t1")
         equal("7 active and 1 trial", "SELECT status,COUNT(*) FROM subscription GROUP BY status ORDER BY status;", "ACTIVE\t7\nTRIAL\t1")

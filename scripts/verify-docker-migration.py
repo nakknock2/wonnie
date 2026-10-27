@@ -102,7 +102,7 @@ def main():
         assert request(port,'/api/assistant/unread-count')['unreadCount']==0
         assert sql(f'SELECT COUNT(*) FROM `{database}`.card_transaction;')=='184'
         versions=sql(f'SELECT version,success FROM `{database}`.flyway_schema_history WHERE version IS NOT NULL ORDER BY installed_rank;')
-        assert versions=='1\t1\n2\t1',versions
+        assert versions=='1\t1\n2\t1\n3\t1',versions
         result={'status':'PASS','profile':'docker','jpaValidation':'PASS','flyway':versions.splitlines(),
             'activeSubscriptions':7,'activeMonthlyTotal':61300,'projectedWithTrials':69190,
             'restartPreservesChatAndReadState':True,'seedNotDuplicated':True,'applicationDatabaseChanged':False}

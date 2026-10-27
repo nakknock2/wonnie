@@ -1,5 +1,6 @@
 package com.woori.wonnie.finance;
 
+import com.woori.wonnie.auth.CurrentCustomer;
 import com.woori.wonnie.dashboard.DashboardService;
 import com.woori.wonnie.subscription.*;
 import org.springframework.stereotype.Service;
@@ -28,17 +29,29 @@ public class FinanceService {
     private final FinanceCohortBenchmarkRepository cohorts;
     private final BusinessClock clock;
     private final CardProductBenefitRepository benefits;
+    private final CurrentCustomer currentCustomer;
+    private final ThreadLocal<String> customerOverride = new ThreadLocal<>();
     public FinanceService(SubscriptionRepository subscriptions,SubscriptionContextRepository contexts,
             FinanceCustomerRepository customers,FinanceCardRepository cards,FinanceTransactionRepository transactions,
             MerchantDirectoryRepository merchants,FinanceAlternativeRepository alternatives,
-            SubscriptionPriceObservationRepository observations, FinanceCohortBenchmarkRepository cohorts, BusinessClock clock, CardProductBenefitRepository benefits) {
+            SubscriptionPriceObservationRepository observations, FinanceCohortBenchmarkRepository cohorts,
+            BusinessClock clock, CardProductBenefitRepository benefits, CurrentCustomer currentCustomer) {
         this.subscriptions=subscriptions; this.contexts=contexts; this.customers=customers; this.cards=cards;
-        this.transactions=transactions; this.merchants=merchants; this.alternatives=alternatives; this.observations=observations;this.cohorts=cohorts;this.clock=clock;this.benefits=benefits;
+        this.transactions=transactions; this.merchants=merchants; this.alternatives=alternatives; this.observations=observations;this.cohorts=cohorts;this.clock=clock;this.benefits=benefits;this.currentCustomer=currentCustomer;
     }
     public record Report(String dataSource, LocalDateTime asOf, String summary, Map<String,Object> data) {}
     public record Notice(String key,String content) {}
+    public Report report(String customerId,String topic,String merchant) {
+        var previous=customerOverride.get();
+        customerOverride.set(customerId);
+        try {
+            return report(topic,merchant);
+        } finally {
+            if(previous==null)customerOverride.remove();else customerOverride.set(previous);
+        }
+    }
     public Report report(String topic,String merchant) {
-        if (!customers.existsById(CUSTOMER)) return wrap("금융 데이터가 연결되지 않았어요.", map("available",false));
+        if (!customers.existsById(customerId())) return wrap("금융 데이터가 연결되지 않았어요.", map("available",false));
         return switch(topic) {
             case "subscriptions" -> subscriptionReport();
             case "merchant" -> merchantReport(merchant);
@@ -55,15 +68,15 @@ public class FinanceService {
             default -> throw new IllegalArgumentException("지원하지 않는 금융 조회입니다.");
         };
     }
-    private List<Subscription> subs() { return subscriptions.findAllByCustomerIdOrderByNextPaymentDateAsc(CUSTOMER); }
+    private List<Subscription> subs() { return subscriptions.findAllByCustomerIdOrderByNextPaymentDateAsc(customerId()); }
     private Map<String,SubscriptionContext> ctx() {
         var ids=subs().stream().map(Subscription::getId).collect(Collectors.toSet());
         return contexts.findAll().stream().filter(c->ids.contains(c.getId()))
             .collect(Collectors.toMap(SubscriptionContext::getId,Function.identity()));
     }
-    private List<FinanceCard> customerCards() { return cards.findAllByCustomerId(CUSTOMER); }
-    private List<FinanceTransaction> txs() { return transactions.findAllByCustomerId(CUSTOMER); }
-    private FinanceCustomer customer() { return customers.findById(CUSTOMER).orElseThrow(); }
+    private List<FinanceCard> customerCards() { return cards.findAllByCustomerId(customerId()); }
+    private List<FinanceTransaction> txs() { return transactions.findAllByCustomerId(customerId()); }
+    private FinanceCustomer customer() { return customers.findById(customerId()).orElseThrow(); }
     private static boolean active(Subscription s) { return s.getStatus()==SubscriptionStatus.ACTIVE; }
     private static boolean billable(Subscription s) { return active(s) || s.getStatus()==SubscriptionStatus.TRIAL; }
     private static boolean approved(FinanceTransaction t) { return "APPROVED".equals(t.getTransactionStatus()); }
@@ -219,7 +232,8 @@ public class FinanceService {
     }
     private List<Map<String,Object>> cardEstimates() {
         var result=new ArrayList<Map<String,Object>>();
-        var age=Period.between(customer().getBirthDate(),today()).getYears();
+        var birthDate=customer().getBirthDate();
+        Integer age=birthDate==null?null:Period.between(birthDate,today()).getYears();
         for(var card:customerCards()) {
             var rules=benefits.findAllByCardProductId(card.getProductId());
             var projected=new TreeMap<YearMonth,Map<String,BigDecimal>>();
@@ -242,7 +256,9 @@ public class FinanceService {
                 .map(e->e.getValue().min(limits.get(e.getKey()))).reduce(BigDecimal.ZERO,BigDecimal::add).setScale(0,RoundingMode.DOWN)));
             var annual=byMonth.values().stream().reduce(BigDecimal.ZERO,BigDecimal::add);
             var spendMet=card.isOwned() && rules.stream().allMatch(b->card.getPreviousMonthSpend().compareTo(b.getMinPrevMonthSpend())>=0);
-            var knownAge=(card.getMinimumAge()==null || age>=card.getMinimumAge()) && (card.getMaximumAge()==null || age<=card.getMaximumAge());
+            var knownAge=card.getMinimumAge()==null && card.getMaximumAge()==null || age!=null
+                && (card.getMinimumAge()==null || age>=card.getMinimumAge())
+                && (card.getMaximumAge()==null || age<=card.getMaximumAge());
             var regionOk=card.getRequiredRegion()==null || card.getRequiredRegion().equals(customer().getRegion());
             var jobOk=card.getRequiredEmployment()==null || card.getRequiredEmployment().equals(customer().getEmployment());
             boolean eligible=knownAge && regionOk && jobOk && (!card.isOwned() || "ACTIVE".equals(card.getCardStatus()));
@@ -267,15 +283,17 @@ public class FinanceService {
             || "DIGITAL_SUBSCRIPTION".equals(benefit.getBenefitArea()) && Set.of("OTT","MUSIC","CLOUD","PRODUCTIVITY","AI").contains(subscription.getCategory());
     }
     private Report customerContext() {
-        var c=customer();var age=Period.between(c.getBirthDate(),today()).getYears();
+        var c=customer();
+        Integer age=c.getBirthDate()==null?null:Period.between(c.getBirthDate(),today()).getYears();
         var monthly=subs().stream().filter(FinanceService::active).map(this::monthly).reduce(BigDecimal.ZERO,BigDecimal::add);
-        var peer=cohorts.findAll().stream().filter(b->age>=b.getMinimumAge() && age<=b.getMaximumAge())
+        var peer=cohorts.findAll().stream().filter(b->age!=null && age>=b.getMinimumAge() && age<=b.getMaximumAge())
             .filter(b->b.getRegion().equals(c.getRegion())).map(b->map("minimumAge",b.getMinimumAge(),"maximumAge",b.getMaximumAge(),
                 "region",b.getRegion(),"monthlyAverage",b.getMonthlySubscriptionAverage(),"sampleCount",b.getSampleCount(),
                 "differenceFromAverage",monthly.subtract(b.getMonthlySubscriptionAverage()),"source","가상 집계 데이터. 실제 이용자 통계가 아닙니다.")).toList();
-        return wrap("저장된 연령·거주 지역·직업 정보로 안내 수준과 샘플 자격 조건을 맞출 수 있어요. "+(c.getMonthlyIncome()==null?"정확한 월소득은 미연동이라 소득 대비 비중은 미확인이에요.":"소득 대비 월 환산 구독 비중은 "+ratio(monthly,c.getMonthlyIncome())+"%예요."),
+        var profileComplete=age!=null && c.getRegion()!=null && c.getEmployment()!=null;
+        return wrap((profileComplete?"저장된 연령·거주 지역·직업 정보로 안내 수준과 샘플 자격 조건을 맞출 수 있어요. ":"추가 프로필 정보가 없어 연령·지역·직업 기반 안내는 아직 제공하지 않아요. ")+(c.getMonthlyIncome()==null?"정확한 월소득은 미연동이라 소득 대비 비중은 미확인이에요.":"소득 대비 월 환산 구독 비중은 "+ratio(monthly,c.getMonthlyIncome())+"%예요."),
             map("age",age,"region",c.getRegion(),"employment",c.getEmployment(),"subscriptionToIncomePercent",ratio(monthly,c.getMonthlyIncome()),
-                "preferredNoticeHour",c.getPreferredNoticeHour(),"peerComparisonAvailable",!peer.isEmpty(),"peerComparison",peer,"genderUsed",false));
+                "profileComplete",profileComplete,"preferredNoticeHour",c.getPreferredNoticeHour(),"peerComparisonAvailable",!peer.isEmpty(),"peerComparison",peer,"genderUsed",false));
     }
     private Report cardSchedule() {
         var rows=customerCards().stream().filter(FinanceCard::isOwned).map(c -> map("cardId",c.getId(),"name",c.getProductName(),
@@ -284,7 +302,7 @@ public class FinanceService {
         return wrap("보유 카드의 대금 결제일, 유효기간, 포인트 소멸일, 연회비 예정일을 조회했어요.",map("cards",rows));
     }
     public List<Notice> notices() {
-        if(!customers.existsById(CUSTOMER))return List.of();
+        if(!customers.existsById(customerId()))return List.of();
         var result=new ArrayList<Notice>();var context=ctx();
         for(var s:subs().stream().filter(FinanceService::active).toList()) {
             if(s.getNextPaymentDate().equals(today().plusDays(1)))result.add(new Notice("payment:"+s.getId()+":"+s.getNextPaymentDate(),"내일 "+s.getName()+" "+won(s.getAmount())+"원 결제 예정이에요. 카드 상태와 혜택 조건을 확인해보세요."));
@@ -309,6 +327,7 @@ public class FinanceService {
     private BigDecimal monthly(Subscription s) {return s.monthlyEquivalent();}
     private static BigDecimal ratio(BigDecimal n,BigDecimal d) {return d==null || d.signum()==0?null:n.multiply(BigDecimal.valueOf(100)).divide(d,2,RoundingMode.HALF_UP);}
     private LocalDate today(){return clock.today();}
+    private String customerId(){var overridden=customerOverride.get();return overridden==null?currentCustomer.id():overridden;}
     private static String won(BigDecimal value){return value==null?"미확인":String.format(Locale.KOREA,"%,.0f",value);}
     private Report wrap(String summary,Map<String,Object> data){data.put("businessDate",today());return new Report("DATABASE",LocalDateTime.now(KST),summary,data);}
     public static Map<String,Object> map(Object... kv){var map=new LinkedHashMap<String,Object>();for(int i=0;i<kv.length;i+=2)map.put((String)kv[i],kv[i+1]);return map;}
