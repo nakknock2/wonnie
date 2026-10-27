@@ -20,7 +20,10 @@ if (window.location.hostname.startsWith('demo.')) {
     root.render(<StrictMode><DemoApp /></StrictMode>)
   })
 } else {
-  Promise.all([import('./App'), import('./styles/app.css')]).then(([{ App }]) => {
+  // Explicitly select the authenticated service app. There is also a legacy
+  // App.jsx used by demo.wonnie.minngyuseong.com, and Vite resolves the
+  // extensionless import to that file first.
+  Promise.all([import('./App.tsx'), import('./styles/app.css')]).then(([{ App }]) => {
     root.render(
       <StrictMode>
         <QueryClientProvider client={queryClient}>
