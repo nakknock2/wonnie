@@ -32,7 +32,7 @@ public class AuthController {
                     attributes.get("picture") == null ? null : String.valueOf(attributes.get("picture"))
             ));
         }
-        return ResponseEntity.ok(new AuthUser(principal.getName(), principal.getName(), "", null));
+        return ResponseEntity.ok(new AuthUser(currentCustomer.id(), principal.getName(), "", null));
     }
 
     record AuthUser(String id, String name, String email, String picture) {}
