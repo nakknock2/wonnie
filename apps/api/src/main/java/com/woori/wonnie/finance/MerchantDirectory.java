@@ -7,11 +7,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@org.hibernate.annotations.Immutable
-@org.hibernate.annotations.Subselect("""
-    SELECT m.id,m.raw_name AS merchant_label,COALESCE(m.display_name,m.raw_name) AS display_name,
-    m.candidate_services AS possible_services,m.is_aggregator AS ambiguous,m.verification_hint FROM merchant m
-    """)
+@Table(name = "merchant_directory")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor

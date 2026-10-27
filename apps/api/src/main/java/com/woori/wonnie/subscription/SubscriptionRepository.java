@@ -9,8 +9,6 @@ import jakarta.persistence.LockModeType;
 import java.util.List;
 
 public interface SubscriptionRepository extends JpaRepository<Subscription, String> {
-    @Query(value = "SELECT today FROM demo_clock WHERE id=1", nativeQuery = true)
-    java.time.LocalDate demoToday();
     List<Subscription> findAllByCustomerIdOrderByNextPaymentDateAsc(String customerId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

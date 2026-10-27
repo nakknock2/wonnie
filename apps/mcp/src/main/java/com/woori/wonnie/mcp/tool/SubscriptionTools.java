@@ -20,7 +20,7 @@ public class SubscriptionTools {
 		this.policies = policies;
 	}
 
-	@McpTool(name = "get_subscriptions", description = "현재 고객의 구독 목록, 월 환산액, 카드 소비 대비 비중과 생활요금 합계를 조회합니다.", annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
+	@McpTool(name = "get_subscriptions", description = "현재 데모 고객의 구독 목록, 월 환산액, 카드 소비 대비 비중과 생활요금 합계를 조회합니다. 샘플 데이터입니다.", annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
 	public Map<String, Object> getSubscriptions() {
 		return api.report("subscriptions");
 	}
@@ -50,17 +50,17 @@ public class SubscriptionTools {
 		return api.report("cancellations");
 	}
 
-	@McpTool(name = "get_usage_analysis", description = "기록된 이용 횟수, 1회당 비용, 거주 지역의 대안을 조회합니다. 이용 자료가 없는 구독은 미사용으로 단정하지 않습니다.", annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
+	@McpTool(name = "get_usage_analysis", description = "기록된 이용 횟수, 1회당 비용, 거주 지역의 샘플 대안을 조회합니다. 이용 자료가 없는 구독은 미사용으로 단정하지 않습니다.", annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
 	public Map<String, Object> getUsageAnalysis() {
 		return api.report("usage");
 	}
 
-	@McpTool(name = "recommend_cards", description = "보유·후보 카드의 혜택을 전월실적, 할인한도, 연회비, 연령, 거주지, 직업 조건과 함께 계산합니다. 실제 상품 약관이나 발급 승인을 보장하지 않습니다.", annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
+	@McpTool(name = "recommend_cards", description = "보유·후보 카드의 샘플 혜택을 전월실적, 할인한도, 연회비, 연령, 거주지, 직업 조건과 함께 계산합니다. 실제 상품 약관이나 발급 승인을 보장하지 않습니다.", annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
 	public Map<String, Object> recommendCards() {
 		return api.report("card-recommendations");
 	}
 
-	@McpTool(name = "get_customer_context", description = "현재 고객의 연령, 지역, 직업, 소득 대비 구독비 비중과 선호 알림 시간을 조회합니다. 성별과 원시 소득은 반환하지 않습니다.", annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
+	@McpTool(name = "get_customer_context", description = "데모 고객의 연령, 지역, 직업, 소득 대비 구독비 비중과 선호 알림 시간을 조회합니다. 성별과 원시 소득은 반환하지 않습니다.", annotations = @McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
 	public Map<String, Object> getCustomerContext() {
 		return api.report("customer-context");
 	}

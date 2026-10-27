@@ -22,10 +22,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        jdbc:
-          time_zone: UTC
-        type:
-          java_time_use_direct_jdbc: true
   flyway:
     enabled: true
 
@@ -44,7 +40,6 @@ management:
 
 app:
   finance:
-    demo-alert-endpoint-enabled: false
     demo-data-enabled: true
   auth:
     frontend-url: http://localhost:5173

@@ -2,13 +2,10 @@ spring:
   ai:
     model:
       chat: openai
-      embedding: openai
     openai:
       api-key: ${OPENAI_API_KEY}
       timeout: 30s
       max-retries: 0
-      embedding:
-        model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
       chat:
         model: ${OPENAI_MODEL:gpt-5.6-terra}
         reasoning-effort: none
@@ -25,11 +22,5 @@ spring:
         max-calls-per-tool-default: 3
         on-limit-exceeded: THROW
 app:
-  rag:
-    enabled: ${WONNIE_RAG_ENABLED:true}
-    location: ${WONNIE_RAG_LOCATION:classpath:rag/}
-    top-k: 3
-    similarity-threshold: 0.3
-    max-context-chars: 12000
   mcp:
     base-url: ${WONNIE_MCP_BASE_URL:http://127.0.0.1:8081}

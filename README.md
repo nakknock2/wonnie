@@ -1,103 +1,117 @@
-# Wonnie 카드·구독 금융 비서
+# wonnie
 
-React 채팅 → Spring Boot API / JPA / Spring AI → 별도 MCP 서버 → 금융 조회 API 구조의 해커톤 MVP다. 카드·구독 데이터는 모의 데이터이며 실제 금융기관·서비스 계정과 연결하지 않는다. 금융 보고서의 내부 출처 메타데이터는 `dataSource: DATABASE`이며 상담 답변에 데모·샘플 머리말을 붙이지 않는다.
+React 채팅 → Spring Boot API / Spring AI → OpenAI → 별도 MCP 서버 → 금융 조회 API / JPA 구조의 해커톤 MVP입니다. 캘린더를 제외한 카드·구독 상담과 사전 안내를 구현합니다.
+
+금융기관 API는 아직 연결하지 않았습니다. 카드 상품, 고객, 가맹점, 계약 상태, 이용 로그, 또래 집계는 **가상 샘플 데이터**이며 실제 우리카드 상품·고객 통계가 아닙니다. 모든 금융 보고서에 `dataSource: DEMO`가 붙습니다.
 
 ## 실행
 
-Java 17+, Node.js, pnpm이 필요하다. 웹 5173, API 8080, MCP 8081을 사용한다. 기존 개발 서버를 종료한 뒤 실행한다.
+Java 17, Node.js와 pnpm이 필요합니다. API는 8080, MCP는 8081, 웹은 5173입니다. 이전 개발 프로세스가 해당 포트를 사용 중이면 먼저 종료하세요.
 
 ```bash
 pnpm install
-# 새 스키마의 H2 데모: 웹 + API, LLM 없이 규칙 기반 상담
+# 키 없이 화면·계산·대화 저장 확인: API(local H2) + 웹
 pnpm dev
 ```
 
-OpenAI·MCP 상담은 같은 터미널에 `OPENAI_API_KEY`를 설정한다. 키를 프론트 변수나 YAML에 직접 저장하지 않는다. IntelliJ에만 설정한 키는 터미널에 자동 전달되지 않으며 `.env`도 자동으로 읽지 않는다. 모델은 `OPENAI_MODEL`로 지정할 수 있다.
+OpenAI와 **별도 MCP 서버를 실제로 연결**해 상담하려면 같은 터미널에 키를 설정합니다.
 
 ```bash
-export OPENAI_API_KEY='실제 발급받은 키'
+export OPENAI_API_KEY='본인 API 키'
+# 선택 사항: 기본 모델은 gpt-5.6-terra
+export OPENAI_MODEL='gpt-5.6-terra'
 pnpm dev:openai
 ```
 
-## RAG 문서 연결
+`dev:openai`는 웹, API(`local,openai`), MCP를 함께 실행합니다. OpenAI 키를 YAML·프론트 `VITE_*` 변수에 넣지 마세요. IntelliJ 실행 설정에만 저장한 키는 터미널에서 실행하는 pnpm에 자동 전달되지 않습니다. `.env` 파일도 API 스크립트에서 자동으로 읽지 않습니다.
 
-`openai` 프로파일은 `apps/api/src/main/resources/rag`의 최신 문서를 함께 사용한다.
-
-- `01_system_instructions.md`, `02_moment_matrix_guide.md`, `03_tone_persona_guide.md`, `05_examples.md`: 시작 시 읽어 프롬프트 지침으로 재사용한다.
-- `04_knowledge_base.md`: `## [KEY]` 단위로 나눠 Spring AI `SimpleVectorStore`에서 검색한다. 현재 24개 섹션이며, 질문과 가까운 상위 3개에 CHAT 공통 FAQ·데이터 이용 안내를 더한다. 출처와 KB 키도 모델에 전달한다.
-- README, 샘플 컨텍스트 JSON, 응답 스키마는 실행 지침이나 고객 데이터로 자동 주입하지 않는다. 예시의 금액·이름은 현재 고객의 사실이 아니다. 현재 고객 정보와 계산값은 기존 MCP 도구에서 조회한다.
-
-임베딩 모델은 `text-embedding-3-small`이며 기존 `OPENAI_API_KEY`를 사용한다. 첫 채팅에서 지식 문서를 한 번의 배치 요청으로 임베딩한 뒤 메모리에 보관하고, 이후에는 질문만 임베딩한다. 서버 재시작 후 첫 채팅은 다시 색인하므로 시간이 더 걸리고 OpenAI 임베딩 사용료도 발생한다. 별도 벡터 DB·MySQL 테이블은 추가하지 않는다. `SimpleVectorStore`는 해커톤용 메모리 구성이다.
-
-기존 채팅 API·프론트 디자인은 유지한다. 문서의 JSON·버튼 출력 규칙에는 현재 서버의 텍스트 응답 계약을 우선 적용한다. 문서에 적힌 자동 적립·꿀머니 전환·캘린더·설정 변경은 실행하지 않으며, 선알림 생성 경로도 이번 RAG 연결 대상이 아니다.
+현재 Spring AI Chat 모델은 Chat Completions의 도구 호출을 사용합니다. 기본 모델은 공식 Function Calling 예시의 호환 모델로 설정했고 reasoning은 `none`입니다. 모델을 바꿀 때 해당 API의 도구 호출 지원을 확인하세요. 실제 모델 호출에는 본인 계정의 접근 권한과 사용량이 적용됩니다.
 
 ```bash
-# 필요할 때만 설정: 임베딩 모델 변경 / RAG 끄기
-export OPENAI_EMBEDDING_MODEL='text-embedding-3-small'
-export WONNIE_RAG_ENABLED=false
-```
-
-기본 경로는 JAR에도 포함되는 `classpath:rag/`다. MD를 수정한 뒤 API를 재시작하면 반영된다(배포 JAR은 재빌드). 외부 문서를 쓰려면 `WONNIE_RAG_LOCATION='file:/절대경로/rag/'`로 다섯 MD 파일이 있는 디렉터리를 지정한다. 원문 요청·고객 질문은 로그에 남기지 않고 `RAG documents loaded`, `RAG index ready`, `RAG context selected: keys=...`로 적용을 확인한다.
-
-## MySQL·RabbitMQ와 새 스키마
-
-`docker` 프로파일은 **`db/migration`의 새 V1/V2**를 실행한다. 기존 V1~V4는 `migration-archive`에 보관했다. 별도 `unified` 프로파일은 없다.
-
-Compose는 새 `mysql-data-v2` 볼륨을 사용한다. 이전 기본 볼륨 `infra_mysql-data`는 삭제하지 않았고 자동 이관하지 않는다. 처음 적용할 때 MySQL 컨테이너가 새 볼륨으로 재생성되므로 API를 먼저 종료한다. 기존 볼륨이나 Flyway 이력을 지우거나 `repair`로 우회하지 않는다.
-
-```bash
-docker compose -f infra/docker-compose.yml up -d --wait
-pnpm dev:infra:openai
-# LLM 없이 MySQL API와 웹 확인
-pnpm dev:infra
-```
-
-새 DB가 준비되면 API 시작 시 `V1__wonnie_schema.sql` → `V2__wonnie_seed_demo.sql`을 한 번 적용한다. 재시작 시 시드를 다시 삽입하지 않는다. 사용자 지정 MySQL DB를 사용하는 경우 새 빈 DB와 계정 권한을 준비해야 한다. 기존 V1~V4가 적용된 DB를 새 V1/V2에 직접 연결하면 Flyway가 검증 실패로 중단한다.
-
-기존 Java 데모 데이터 로더는 제거했다. JPA는 `ddl-auto: validate`로 새 엔티티와 실제 구조를 검증하며, 테이블을 임의 생성·수정하지 않는다. [최종 스키마·매핑 설명](infra/db/final/README.md)에 데이터·시간·계산 계약이 있다.
-
-## 데이터와 프론트
-
-- 고객 `cust-kimwoori`, 업무일 `demo_clock.today = 2026-10-27`.
-- 활성 구독 7개·월 61,300원, 무료체험 추정 1개 포함 예상 69,190원.
-- 거래 184건, 카드 2개, 계좌 2개. 정확한 소득·실제 서비스 이용량 등 미연동 값은 미확인으로 안내한다.
-- 최종 진입 화면은 `apps/web/src/main.jsx` → `App.jsx`다. CSS·이미지·배치는 유지한다.
-- 일반 상담·대화 기록·읽음·미확인 알림·구독 조회는 API와 연결한다. 기존 프론트의 해지·이체·캘린더·알림 동의/기기 권한 설정은 시연 동작이다.
-- H2는 API 종료 시 초기화된다. MySQL은 새 볼륨에 대화와 읽음 상태가 남는다.
-
-## 확인할 주소와 명령
-
-- 웹: http://localhost:5173
-- API 문서: http://localhost:8080/swagger-ui.html
-- MCP: http://127.0.0.1:8081/mcp
-- MCP 상태: http://127.0.0.1:8081/actuator/health
-- H2 Console(local): http://localhost:8080/h2-console (`jdbc:h2:mem:wonnie`, `sa`, 비밀번호 없음)
-
-```bash
-pnpm api:dev:infra:openai
+# MCP 프로토콜만 확인: 웹 + 로컬 API + MCP, 상담은 규칙 기반
+pnpm dev:mcp
+# 개별 실행
+pnpm api:dev:openai
 pnpm mcp:dev
 pnpm --dir apps/web dev
 ```
 
-채팅 실패 시 API 콘솔의 `ASSISTANT_UNAVAILABLE` 로그를 확인한다. `stage=MCP_TOOLS`는 초기화·도구 조회, `stage=RAG_RETRIEVAL`은 문서 임베딩·검색, `stage=OPENAI_CHAT`는 모델 요청·도구 실행·응답 처리 단계이며 `cause=`에 원인이 나온다. 모델/MCP/RAG 오류는 503으로 반환하며 고정 답변으로 바꾸지 않는다.
+- 웹: http://localhost:5173
+- API Swagger: http://localhost:8080/swagger-ui.html
+- MCP Streamable HTTP: http://127.0.0.1:8081/mcp
+- MCP Health: http://127.0.0.1:8081/actuator/health
+- H2 Console: http://localhost:8080/h2-console (`jdbc:h2:mem:wonnie`, 사용자 `sa`, 비밀번호 없음)
 
-## 주요 API와 검증
+MCP는 첫 상담 요청에서 연결합니다. 따라서 API와 MCP 시작 순서에 의존하지 않습니다. 모델·MCP 오류는 `503 ASSISTANT_UNAVAILABLE`로 표시하며 고정 응답으로 조용히 대체하지 않습니다. 기본 `pnpm dev`는 별도의 규칙 기반 모드입니다.
 
-`GET /api/dashboard`, `GET /api/finance/{topic}`, `GET /api/assistant/conversation`, `POST /api/assistant/messages`, `POST /api/assistant/conversation/read`, `GET /api/assistant/unread-count`를 제공한다. 거래 수집기는 `POST /api/internal/subscription-price-observations`로 가격 관측을 전달한다. 이 입력의 `observedAt`은 기존 API처럼 KST의 오프셋 없는 업무 시각이며 큐·DB에는 UTC로 변환한다. 같은 사건은 재처리하지 않는다.
+채팅 전송이 503으로 실패하면 API 콘솔의 `ASSISTANT_UNAVAILABLE method=POST path=/api/assistant/messages` 로그를 확인합니다. `stage=MCP_TOOLS`는 MCP 초기화·도구 목록 조회 단계이며, `stage=OPENAI_CHAT`는 OpenAI 요청·도구 실행·응답 처리 단계입니다. `cause=`에 원인 예외와 오류 내용이 표시되고 키·Bearer 토큰은 마스킹됩니다. 이 로그가 없는 이전 API 프로세스는 중지 후 다시 실행해야 합니다.
 
-Docker에서는 업무 변경과 Outbox를 함께 기록하고 RabbitMQ 워커가 처리한다. Local은 같은 로직을 동기로 실행한다. Local의 수동 안내 스캔 경로 `POST /api/internal/finance-alerts/scan`은 테스트용이며 Docker에는 노출하지 않는다.
+병합된 최종 프론트는 `apps/web/src/main.jsx` → `App.jsx`를 사용합니다. 기존 화면에서 일반 상담 전송·대화 기록·읽지 않은 알림·읽음 처리·동의 후 구독 조회를 API에 연결했습니다. 캐릭터 알림은 15초 간격과 창 포커스 시 갱신됩니다. CSS·이미지·화면 배치는 유지했습니다. 실행 중인 개발 서버는 병합 후 한 번 재시작하세요. 해지·이체·캘린더·알림 동의 설정의 시연 동작에는 아직 실행/설정 저장 API가 없어 기존 모의 동작을 유지합니다. 자세한 연결 경로는 [프론트 README](apps/web/README.md)에 있습니다.
+
+## MySQL·RabbitMQ 실행
 
 ```bash
-./apps/api/gradlew -p apps/api test bootJar
-./apps/mcp/gradlew -p apps/mcp test bootJar
-pnpm --dir apps/web test
-pnpm --dir apps/web build
-python3 scripts/verify-final-schema.py
-python3 scripts/verify-docker-migration.py
-pnpm verify:mcp-flow
+docker compose -f infra/docker-compose.yml up -d --wait
+pnpm dev:infra:openai
+# LLM 없이 MySQL·RabbitMQ를 확인하려면 pnpm dev:infra
 ```
 
-MySQL 검증 스크립트는 기존 컨테이너 안에 새 임시 DB/계정만 만들고 정리한다. MCP 흐름 검증은 로컬 모델 HTTP 스텁을 사용하며 실제 OpenAI를 호출하지 않는다. H2용 SQL은 `python3 scripts/generate-h2-migrations.py`로 MySQL 마이그레이션에서 생성한다. [기능 범위](docs/feature-matrix.md)도 참고할 수 있다.
+H2는 API 종료 시 데이터가 사라집니다. MySQL 데이터는 Compose의 `mysql-data` 볼륨에 남습니다. `docker` 프로파일의 가격 관측 이벤트는 Outbox → RabbitMQ → 가격 분석 워커가 처리합니다. `local`은 같은 분석 로직을 동기 실행합니다.
+
+## 상담 예시
+
+- “이번 달 구독 총액과 고정비를 알려줘”
+- “APPLE.COM/BILL은 어떤 앱 결제야?”
+- “구독료가 오른 내역에서 환율 영향도 구분해줘”
+- “통신 결합이나 가족 혜택과 겹치는 구독이 있어?”
+- “내 카드로 결제하기 전에 잔액·한도·실적을 확인해줘”
+- “무료체험 종료와 연간 갱신일 알려줘”
+- “결제 거절이 구독 해지인지 확인해줘”
+- “멤버십 이용 횟수로 1회권과 손익을 비교해줘”
+- “보유 카드와 청년 카드의 구독 혜택을 비교해줘”
+- “소득 대비 구독비와 샘플 또래 평균을 비교해줘”
+- “카드대금 결제일, 유효기간, 포인트 소멸일 알려줘”
+
+세부 기능·데이터 범위는 [기능 매트릭스](docs/feature-matrix.md), 서버 간 흐름은 [아키텍처](docs/architecture.md)에 있습니다.
+
+## API로 직접 확인
+
+```bash
+curl http://localhost:8080/api/finance/subscriptions
+curl http://localhost:8080/api/finance/card-recommendations
+curl http://localhost:8080/api/finance/price-changes
+# 안내 후보를 대화에 저장. 같은 사건은 중복 저장하지 않습니다.
+curl -X POST http://localhost:8080/api/internal/finance-alerts/scan
+curl http://localhost:8080/api/assistant/conversation
+```
+
+사용자별 알림 선호 시각(KST)에 무료체험·갱신·카드 대금·만료·포인트·연회비 안내 후보를 스캔합니다. 알림은 DB 채팅에 저장되고, 앱이 닫혀 있어도 다음 접속 때 조회됩니다. 기기 푸시 알림은 아직 연결하지 않았습니다.
+
+실제 거래 수집기가 구독을 식별한 후 가격 관측 API로 넘기는 예시:
+
+```bash
+observed_at=$(date '+%Y-%m-%dT%H:%M:%S')
+curl -X POST http://localhost:8080/api/internal/subscription-price-observations \
+  -H 'Content-Type: application/json' \
+  -d "{\"eventId\":\"transaction-unique-id\",\"subscriptionId\":\"sub-netflix\",\"amount\":18000,\"observedAt\":\"$observed_at\",\"currency\":\"KRW\",\"originalAmount\":18000,\"exchangeRate\":1}"
+```
+
+같은 `eventId`는 다시 처리하지 않습니다. 과거 시각의 이벤트는 현재 금액을 덮어쓰지 않습니다. 원통화 금액이 같고 원화만 증가하면 환율·수수료 변화 후보로 안내합니다. 원통화 자료가 없으면 결제액 증가를 알리되 구독료 인상으로 확정하지 않습니다.
+
+## 데이터와 실행 범위
+
+현재는 `customer-demo` 단일 데모 고객입니다. 실제 고객 인증 전달, 다른 카드사 거래 수집, 실시간 상품 약관·환율, 서비스 사용 이력, 실제 계약 상태 확인은 공급자 API에 연결해야 합니다. 읽기 MCP 도구만 제공하며 금융 거래·카드 발급·구독 해지는 실행하지 않습니다.
+
+Flyway V4는 카드·고객·거래·구독 부가 정보·가맹점·대안·샘플 집계 테이블을 추가합니다. 기존 V1/V2는 수정하지 않았습니다. 기존 V3는 이전 지갑·인증 계획·중지 Saga 테이블과 그 기록을 제거하므로 기존 DB에 적용할 때 유의하세요. `app.finance.demo-data-enabled=false`로 샘플 데이터 초기화를 끌 수 있습니다.
+
+## 검증
+
+```bash
+pnpm test
+pnpm build
+# 빌드된 API·MCP를 별도 포트에서 띄워 모의 모델과 왕복 검증
+pnpm verify:mcp-flow
+```
 
 OpenAI 통합 테스트는 로컬 HTTP 응답 서버를 사용하고 실제 외부 모델·과금을 사용하지 않습니다. MCP 테스트는 실제 Streamable HTTP 클라이언트와 MCP 서버를 연결합니다.
 

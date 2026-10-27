@@ -41,8 +41,6 @@ public class SubscriptionPriceObservation {
     @Column(nullable = false)
     private boolean priceIncreased;
 
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.CHAR)
-    @Column(length = 3)
     private String currency;
     @Column(precision = 15, scale = 2)
     private BigDecimal originalAmount;

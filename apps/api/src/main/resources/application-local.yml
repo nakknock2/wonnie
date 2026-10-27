@@ -6,10 +6,6 @@ spring:
     username: sa
     password:
     driver-class-name: org.h2.Driver
-    hikari:
-      connection-init-sql: SET TIME ZONE 'UTC'
-  flyway:
-    locations: classpath:db/migration-h2
   h2:
     console:
       enabled: true
@@ -25,7 +21,3 @@ management:
       enabled: false
     redis:
       enabled: false
-
-app:
-  finance:
-    demo-alert-endpoint-enabled: true

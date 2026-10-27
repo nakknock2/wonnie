@@ -26,14 +26,12 @@ public class FinanceService {
     private final FinanceAlternativeRepository alternatives;
     private final SubscriptionPriceObservationRepository observations;
     private final FinanceCohortBenchmarkRepository cohorts;
-    private final BusinessClock clock;
-    private final CardProductBenefitRepository benefits;
     public FinanceService(SubscriptionRepository subscriptions,SubscriptionContextRepository contexts,
             FinanceCustomerRepository customers,FinanceCardRepository cards,FinanceTransactionRepository transactions,
             MerchantDirectoryRepository merchants,FinanceAlternativeRepository alternatives,
-            SubscriptionPriceObservationRepository observations, FinanceCohortBenchmarkRepository cohorts, BusinessClock clock, CardProductBenefitRepository benefits) {
+            SubscriptionPriceObservationRepository observations, FinanceCohortBenchmarkRepository cohorts) {
         this.subscriptions=subscriptions; this.contexts=contexts; this.customers=customers; this.cards=cards;
-        this.transactions=transactions; this.merchants=merchants; this.alternatives=alternatives; this.observations=observations;this.cohorts=cohorts;this.clock=clock;this.benefits=benefits;
+        this.transactions=transactions; this.merchants=merchants; this.alternatives=alternatives; this.observations=observations;this.cohorts=cohorts;
     }
     public record Report(String dataSource, LocalDateTime asOf, String summary, Map<String,Object> data) {}
     public record Notice(String key,String content) {}
@@ -65,13 +63,13 @@ public class FinanceService {
     private List<FinanceTransaction> txs() { return transactions.findAllByCustomerId(CUSTOMER); }
     private FinanceCustomer customer() { return customers.findById(CUSTOMER).orElseThrow(); }
     private static boolean active(Subscription s) { return s.getStatus()==SubscriptionStatus.ACTIVE; }
-    private static boolean billable(Subscription s) { return active(s) || s.getStatus()==SubscriptionStatus.TRIAL; }
     private static boolean approved(FinanceTransaction t) { return "APPROVED".equals(t.getTransactionStatus()); }
     private Report subscriptionReport() {
         var context=ctx();
         var current=subs().stream().filter(FinanceService::active).toList();
-        var total=subs().stream().filter(FinanceService::billable).map(this::monthly).reduce(BigDecimal.ZERO,BigDecimal::add);
-        var confirmed=current.stream().map(this::monthly).reduce(BigDecimal.ZERO,BigDecimal::add);
+        var total=current.stream().map(this::monthly).reduce(BigDecimal.ZERO,BigDecimal::add);
+        var confirmed=current.stream().filter(s -> context.get(s.getId())==null || !"TRIAL".equals(context.get(s.getId()).getContractStatus()))
+                .map(this::monthly).reduce(BigDecimal.ZERO,BigDecimal::add);
         var rows=current.stream().map(s -> map("id",s.getId(),"name",s.getName(),"amount",s.getAmount(),
             "monthlyEquivalent",monthly(s),"billingCycle",s.getBillingCycle(),"nextPaymentDate",s.getNextPaymentDate(),
             "contractEvidence",context.get(s.getId()))).toList();
@@ -116,14 +114,14 @@ public class FinanceService {
             var foreign=txs().stream().filter(FinanceService::approved).filter(t->s.getId().equals(t.getSubscriptionId()) && !"KRW".equals(t.getCurrency()))
                 .max(Comparator.comparing(FinanceTransaction::getAuthorizedAt)).orElse(null);
             return map("subscriptionId",s.getId(),"name",s.getName(),"paymentDate",s.getNextPaymentDate(),"amount",s.getAmount(),
-                "accountBalance",person.getAccountBalance(),"accountShortfall",gap(s.getAmount(),person.getAccountBalance()),
+                "accountBalance",person.getAccountBalance(),"accountShortfall",s.getAmount().subtract(person.getAccountBalance()).max(BigDecimal.ZERO),
                 "card",card==null?null:card.getProductName(),"cardStatus",card==null?"UNKNOWN":card.getCardStatus(),
-                "availableLimit",card==null?null:card.getAvailableLimit(),"limitShortfall",card==null?null:gap(s.getAmount(),card.getAvailableLimit()),
+                "availableLimit",card==null?null:card.getAvailableLimit(),"limitShortfall",card==null?null:s.getAmount().subtract(card.getAvailableLimit()).max(BigDecimal.ZERO),
                 "minimumSpendGap",card==null?null:card.getMinimumSpend().subtract(card.getPreviousMonthSpend()).max(BigDecimal.ZERO),
-                "pointsUsableEstimate",card==null || card.getPointsBalance()==null?null:card.getPointsBalance().min(s.getAmount()),
+                "pointsUsableEstimate",card==null?null:card.getPointsBalance().min(s.getAmount()),
                 "foreignPaymentEstimate",foreign==null?null:map("originalAmount",foreign.getOriginalAmount(),"currency",foreign.getCurrency(),
                     "recordedExchangeRate",foreign.getExchangeRate(),"rateAsOf",foreign.getAuthorizedAt(),
-                    "estimatedKrwAtRecordedRate",foreign.getOriginalAmount()==null || foreign.getExchangeRate()==null?null:foreign.getOriginalAmount().multiply(foreign.getExchangeRate()).setScale(0,RoundingMode.HALF_UP),
+                    "estimatedKrwAtRecordedRate",foreign.getOriginalAmount().multiply(foreign.getExchangeRate()).setScale(0,RoundingMode.HALF_UP),
                     "note","현재 실시간 환율과 해외 이용 수수료는 미연동입니다."),
                 "pointsNote","실제 포인트 사용 가능 가맹점·사용 단위·사용 동의는 별도 확인해야 합니다.");
         }).toList();
@@ -136,23 +134,21 @@ public class FinanceService {
         var changes=new ArrayList<Map<String,Object>>();
         for(var s:subs()) {
             var charges=txs().stream().filter(FinanceService::approved).filter(t -> s.getId().equals(t.getSubscriptionId()))
-                .sorted(Comparator.comparing(FinanceTransaction::getAuthorizedAt).reversed()).toList();
-            for(int index=0;index+1<charges.size();index++) {
-            var newer=charges.get(index);var older=charges.get(index+1);var delta=newer.getAmount().subtract(older.getAmount());
+                .sorted(Comparator.comparing(FinanceTransaction::getAuthorizedAt).reversed()).limit(2).toList();
+            if(charges.size()<2)continue;
+            var newer=charges.get(0);var older=charges.get(1);var delta=newer.getAmount().subtract(older.getAmount());
             var sameCurrency=Objects.equals(newer.getCurrency(),older.getCurrency());
-            String reason=newer.getOriginalAmount()==null || older.getOriginalAmount()==null?"AMOUNT_CHANGE_UNVERIFIED":!sameCurrency?"CURRENCY_CHANGED_NEEDS_REVIEW":sameCurrency && newer.getOriginalAmount().compareTo(older.getOriginalAmount())==0 && delta.signum()>0?"FX_CHANGE":
+            String reason=!sameCurrency?"CURRENCY_CHANGED_NEEDS_REVIEW":sameCurrency && newer.getOriginalAmount().compareTo(older.getOriginalAmount())==0 && delta.signum()>0?"FX_CHANGE":
                 newer.getOriginalAmount().compareTo(older.getOriginalAmount())>0?"ORIGINAL_AMOUNT_INCREASE":"NO_INCREASE";
             changes.add(map("subscription",s.getName(),"previousKrw",older.getAmount(),"currentKrw",newer.getAmount(),"differenceKrw",delta,
                 "percentage",ratio(delta,older.getAmount()),"currency",newer.getCurrency(),"previousOriginalAmount",older.getOriginalAmount(),
                 "currentOriginalAmount",newer.getOriginalAmount(),"previousExchangeRate",older.getExchangeRate(),"currentExchangeRate",newer.getExchangeRate(),
-                "previousDate",older.getAuthorizedAt().toLocalDate(),"currentDate",newer.getAuthorizedAt().toLocalDate(),
-                "reason",reason,"note","과거 인접 승인 내역의 비교입니다. 새 알림 여부나 요금제·수수료·프로모션 종료는 별도 확인해야 합니다."));
-            }
+                "reason",reason,"note","요금제 변경·수수료·프로모션 종료는 영수증 확인 전 확정하지 않습니다."));
         }
         var summary=changes.stream().filter(c -> "ORIGINAL_AMOUNT_INCREASE".equals(c.get("reason")))
             .map(c -> c.get("subscription")+" "+won((BigDecimal)c.get("previousKrw"))+"원 → "+won((BigDecimal)c.get("currentKrw"))+"원")
             .collect(Collectors.joining(", "));
-        return wrap(summary.isEmpty()?"확인된 구독료 인상 이력이 없어요.":"샘플 거래의 과거 이력에서 "+summary+" 변화가 있어요. 해외 결제는 원화 금액과 원래 통화의 금액을 함께 봐야 해요.",
+        return wrap(summary.isEmpty()?"확인된 구독료 인상 이력이 없어요.":"샘플 거래에서 "+summary+" 변화가 있어요. 해외 결제는 원화 금액과 원래 통화의 금액을 함께 봐야 해요.",
             map("transactionComparisons",changes,"observedPriceHistory",history));
     }
     private Report overlaps() {
@@ -168,9 +164,9 @@ public class FinanceService {
     }
     private Report renewals() {
         var context=ctx();var list=new ArrayList<Map<String,Object>>();
-        for(var s:subs().stream().filter(FinanceService::billable).toList()) {
+        for(var s:subs().stream().filter(FinanceService::active).toList()) {
             var c=context.get(s.getId());if(c==null)continue;
-            if(c.getTrialEndsOn()!=null) list.add(map("subscription",s.getName(),"kind","TRIAL_END","date",c.getTrialEndsOn(),"confirmed",c.isTrialEndConfirmed(),"plannedAmount",s.getAmount()));
+            if(c.getTrialEndsOn()!=null) list.add(map("subscription",s.getName(),"kind","TRIAL_END","date",c.getTrialEndsOn(),"plannedAmount",s.getAmount()));
             if(c.getAnnualRenewalOn()!=null && s.getBillingCycle().contains("년"))list.add(map("subscription",s.getName(),"kind","ANNUAL_RENEWAL","date",c.getAnnualRenewalOn(),"plannedAmount",s.getAmount(),"amountPeriod",s.getBillingCycle()));
         }
         return wrap("무료체험 종료·연간 갱신 일정이 "+list.size()+"건 있어요. 저장된 계약 정보를 기준으로 안내하며 서비스에서 최종 조건을 확인해 주세요.",map("events",list,"cardSchedule",cardSchedule().data()));
@@ -180,7 +176,7 @@ public class FinanceService {
         for(var s:subs()) {
             var c=context.get(s.getId());if(c==null)continue;
             var declined=txs().stream().filter(t->s.getId().equals(t.getSubscriptionId()) && "DECLINED".equals(t.getTransactionStatus())).toList();
-            var confirmed=(s.getStatus()==SubscriptionStatus.CANCEL_CONFIRMED || "CANCELLED".equals(c.getContractStatus())) && c.getContractVerifiedOn()!=null && c.getCancelledOn()!=null;
+            var confirmed="CANCELLED".equals(c.getContractStatus()) && c.getContractVerifiedOn()!=null && c.getCancelledOn()!=null;
             var laterCharge=confirmed && txs().stream().anyMatch(t->s.getId().equals(t.getSubscriptionId()) && approved(t) && !t.getAuthorizedAt().toLocalDate().isBefore(c.getCancelledOn()));
             if(confirmed && !laterCharge)saved=saved.add(monthly(s));
             rows.add(map("subscription",s.getName(),"contractStatus",c.getContractStatus(),"verifiedOn",c.getContractVerifiedOn(),
@@ -188,12 +184,12 @@ public class FinanceService {
                 "monthlyExpectedReleasedBudget",confirmed && !laterCharge?monthly(s):BigDecimal.ZERO));
         }
         var revolving=customerCards().stream().filter(FinanceCard::isOwned).findFirst().orElse(null);
-        var interest=revolving==null || revolving.getRevolvingBalance()==null || revolving.getRevolvingApr()==null?null:saved.min(revolving.getRevolvingBalance()).multiply(revolving.getRevolvingApr()).multiply(BigDecimal.valueOf(30)).divide(BigDecimal.valueOf(365),0,RoundingMode.HALF_UP);
+        var interest=revolving==null?BigDecimal.ZERO:saved.min(revolving.getRevolvingBalance()).multiply(revolving.getRevolvingApr()).multiply(BigDecimal.valueOf(30)).divide(BigDecimal.valueOf(365),0,RoundingMode.HALF_UP);
         return wrap("계약 해지가 확인된 샘플 구독 기준 월 "+won(saved)+"원의 지출 감소를 예상할 수 있어요. 결제 거절만으로 해지라고 판단하지 않아요.",
             map("subscriptions",rows,"monthlyExpectedReleasedBudget",saved,"annualizedEstimate",saved.multiply(BigDecimal.valueOf(12)),
                 "interestReductionIfReleasedBudgetRepaysRevolvingFor30Days",interest,"repaymentExecuted",false,"savingsTransferExecuted",false,
                 "spendThresholdImpact",customerCards().stream().filter(FinanceCard::isOwned).map(c->map("card",c.getProductName(),
-                    "previousMonthSpend",c.getPreviousMonthSpend(),"minimumSpend",c.getMinimumSpend(),"spendAfterHypotheticalReduction",c.getPreviousMonthSpend().subtract(subs().stream().filter(s->s.getStatus()==SubscriptionStatus.CANCEL_CONFIRMED && context.containsKey(s.getId()) && c.getId().equals(context.get(s.getId()).getCardId())).map(this::monthly).reduce(BigDecimal.ZERO,BigDecimal::add)).max(BigDecimal.ZERO))).toList()));
+                    "previousMonthSpend",c.getPreviousMonthSpend(),"minimumSpend",c.getMinimumSpend(),"spendAfterHypotheticalReduction",c.getPreviousMonthSpend().subtract(subs().stream().filter(s->s.getStatus()==SubscriptionStatus.CANCELLED && context.containsKey(s.getId()) && c.getId().equals(context.get(s.getId()).getCardId())).map(this::monthly).reduce(BigDecimal.ZERO,BigDecimal::add)).max(BigDecimal.ZERO))).toList()));
     }
     private Report usage() {
         var context=ctx();var rows=new ArrayList<Map<String,Object>>();
@@ -218,53 +214,46 @@ public class FinanceService {
                 "youthPlanAlternatives",ctx().entrySet().stream().filter(e->e.getValue().getYouthPlanAmount()!=null).map(e->map("subscriptionId",e.getKey(),"demoYouthAmount",e.getValue().getYouthPlanAmount(),"eligibility","샘플 연령 조건 외 실제 서비스 자격 확인 필요")).toList()));
     }
     private List<Map<String,Object>> cardEstimates() {
-        var result=new ArrayList<Map<String,Object>>();
-        var age=Period.between(customer().getBirthDate(),today()).getYears();
+        var age=Period.between(customer().getBirthDate(),today()).getYears();var result=new ArrayList<Map<String,Object>>();var context=ctx();
         for(var card:customerCards()) {
-            var rules=benefits.findAllByCardProductId(card.getProductId());
-            var projected=new TreeMap<YearMonth,Map<String,BigDecimal>>();
-            var limits=new HashMap<String,BigDecimal>();
+            var projectedSpend=new TreeMap<YearMonth,BigDecimal>();
             for(var subscription:subs().stream().filter(FinanceService::active).toList()) {
-                var rule=rules.stream().filter(b -> matches(b,subscription)).max(Comparator.comparing(CardProductBenefit::getDiscountRate)).orElse(null);
-                if(rule==null)continue;
-                limits.merge(rule.getBenefitArea(),rule.getMonthlyCap(),BigDecimal::min);
+                var c=context.get(subscription.getId());
+                if(!"ALL".equals(card.getBenefitCategory()) && (c==null || !card.getBenefitCategory().equals(c.getServiceFamily())))continue;
+                boolean yearly=subscription.getBillingCycle().contains("년") || subscription.getBillingCycle().contains("연");
                 var due=subscription.getNextPaymentDate();
-                boolean yearly=subscription.getBillingCycle().equals("매년");
                 while(due.isBefore(today()))due=yearly?due.plusYears(1):due.plusMonths(1);
                 while(due.isBefore(today().plusYears(1))) {
-                    var discount=subscription.getAmount().multiply(rule.getDiscountRate()).divide(BigDecimal.valueOf(100));
-                    projected.computeIfAbsent(YearMonth.from(due),key->new HashMap<>()).merge(rule.getBenefitArea(),discount,BigDecimal::add);
+                    projectedSpend.merge(YearMonth.from(due),subscription.getAmount(),BigDecimal::add);
                     due=yearly?due.plusYears(1):due.plusMonths(1);
                 }
             }
-            var byMonth=new TreeMap<YearMonth,BigDecimal>();
-            projected.forEach((month,areas)->byMonth.put(month,areas.entrySet().stream()
-                .map(e->e.getValue().min(limits.get(e.getKey()))).reduce(BigDecimal.ZERO,BigDecimal::add).setScale(0,RoundingMode.DOWN)));
-            var annual=byMonth.values().stream().reduce(BigDecimal.ZERO,BigDecimal::add);
-            var spendMet=card.isOwned() && rules.stream().allMatch(b->card.getPreviousMonthSpend().compareTo(b.getMinPrevMonthSpend())>=0);
-            var knownAge=(card.getMinimumAge()==null || age>=card.getMinimumAge()) && (card.getMaximumAge()==null || age<=card.getMaximumAge());
-            var regionOk=card.getRequiredRegion()==null || card.getRequiredRegion().equals(customer().getRegion());
-            var jobOk=card.getRequiredEmployment()==null || card.getRequiredEmployment().equals(customer().getEmployment());
-            boolean eligible=knownAge && regionOk && jobOk && (!card.isOwned() || "ACTIVE".equals(card.getCardStatus()));
-            var possible=eligible?byMonth.getOrDefault(YearMonth.from(today()),BigDecimal.ZERO):BigDecimal.ZERO;
-            var used=card.getBenefitDiscountUsed();
-            var current=card.isOwned() && spendMet && eligible?possible.subtract(used).max(BigDecimal.ZERO):BigDecimal.ZERO;
-            result.add(map("cardId",card.getId(),"name",card.getProductName(),"issuer",card.getIssuer(),"owned",card.isOwned(),
-                "profileConditionsMet",card.isOwned()?eligible:null,"previousMonthSpend",card.getPreviousMonthSpend(),
-                "minimumSpend",card.getMinimumSpend(),"minimumSpendMet",spendMet,"discountRate",card.getDiscountRate(),
-                "monthlyCap",limits.values().stream().reduce(BigDecimal.ZERO,BigDecimal::add),"estimatedUsedCapThisMonth",used,
-                "annualFee",card.getAnnualFee(),"discountIfAllConditionsMet",possible,"projectedEligibleDiscountByMonth",byMonth,
-                "incrementalDiscountAvailableOnHeldCard",current,"annualNetBenefitIfConditionsMetEveryMonth",(eligible?annual:BigDecimal.ZERO).subtract(card.getAnnualFee()),
+            var conditionalAnnualDiscount=projectedSpend.values().stream().map(amount->amount.multiply(card.getDiscountRate()).min(card.getMonthlyCap()))
+                .reduce(BigDecimal.ZERO,BigDecimal::add).setScale(0,RoundingMode.DOWN);
+            var plannedCurrentMonthSpend=projectedSpend.getOrDefault(YearMonth.from(today()),BigDecimal.ZERO);
+            var used=txs().stream().filter(FinanceService::approved).filter(t->card.getId().equals(t.getCardId()))
+                .filter(t->t.getAuthorizedAt().toLocalDate().getYear()==today().getYear() && t.getAuthorizedAt().toLocalDate().getMonth()==today().getMonth())
+                .filter(t->"ALL".equals(card.getBenefitCategory()) || card.getBenefitCategory().equals(t.getCategory())).map(FinanceTransaction::getAmount).reduce(BigDecimal.ZERO,BigDecimal::add)
+                .multiply(card.getDiscountRate()).min(card.getMonthlyCap());
+            var ageOk=age>=card.getMinimumAge() && age<=card.getMaximumAge();
+            var regionOk="ALL".equals(card.getRequiredRegion()) || card.getRequiredRegion().equals(customer().getRegion());
+            var jobOk="ANY".equals(card.getRequiredEmployment()) || card.getRequiredEmployment().equals(customer().getEmployment());
+            var eligible=ageOk && regionOk && jobOk && (!card.isOwned() || "ACTIVE".equals(card.getCardStatus()));
+            var spendMet=card.getPreviousMonthSpend().compareTo(card.getMinimumSpend())>=0;
+            if(!spendMet)used=BigDecimal.ZERO;
+            var possibleDiscount=plannedCurrentMonthSpend.multiply(card.getDiscountRate()).min(card.getMonthlyCap()).setScale(0,RoundingMode.DOWN);
+            if(!eligible){conditionalAnnualDiscount=BigDecimal.ZERO;possibleDiscount=BigDecimal.ZERO;}
+            var currentDiscount=card.isOwned() && spendMet && eligible?possibleDiscount.min(card.getMonthlyCap().subtract(used).max(BigDecimal.ZERO)):BigDecimal.ZERO;
+            result.add(map("cardId",card.getId(),"name",card.getProductName(),"issuer",card.getIssuer(),"owned",card.isOwned(),"profileConditionsMet",eligible,
+                "previousMonthSpend",card.getPreviousMonthSpend(),"minimumSpend",card.getMinimumSpend(),"minimumSpendMet",spendMet,
+                "discountRate",card.getDiscountRate(),"monthlyCap",card.getMonthlyCap(),"estimatedUsedCapThisMonth",used,
+                "annualFee",card.getAnnualFee(),"discountIfAllConditionsMet",possibleDiscount,"projectedEligiblePaymentsByMonth",projectedSpend,"incrementalDiscountAvailableOnHeldCard",currentDiscount,
+                "annualNetBenefitIfConditionsMetEveryMonth",conditionalAnnualDiscount.subtract(card.getAnnualFee()),
                 "issuanceEligibility","UNKNOWN_REQUIRES_ISSUER_SCREENING","futureSpendEligibility",card.isOwned()?(spendMet?"MET_LAST_MONTH":"NOT_MET_LAST_MONTH"):"UNKNOWN",
-                "projectionScope","등록된 구독의 실제 청구 주기별 향후 1년 결제. 매월 실적 달성 및 저장된 상품 조건 충족 가정.",
-                "note","서비스별 할인율을 적용하되 같은 영역 한도는 합산 후 한 번만 적용합니다. 실제 약관·발급 자격은 미확인입니다."));
+                "projectionScope","등록된 구독의 실제 청구 주기별 향후 1년 결제. 매월 실적 달성 가정.",
+                "note","중복 할인·실적 제외·신규 발급 유예 등 실제 약관은 미연동. 계산은 샘플 약관에 한정합니다."));
         }
         return result;
-    }
-    private static boolean matches(CardProductBenefit benefit,Subscription subscription) {
-        if(benefit.getServiceId()!=null)return benefit.getServiceId().equals(subscription.getServiceId());
-        return benefit.getBenefitArea().equals(subscription.getCategory()) || "ALL".equals(benefit.getBenefitArea())
-            || "DIGITAL_SUBSCRIPTION".equals(benefit.getBenefitArea()) && Set.of("OTT","MUSIC","CLOUD","PRODUCTIVITY","AI").contains(subscription.getCategory());
     }
     private Report customerContext() {
         var c=customer();var age=Period.between(c.getBirthDate(),today()).getYears();
@@ -273,7 +262,7 @@ public class FinanceService {
             .filter(b->b.getRegion().equals(c.getRegion())).map(b->map("minimumAge",b.getMinimumAge(),"maximumAge",b.getMaximumAge(),
                 "region",b.getRegion(),"monthlyAverage",b.getMonthlySubscriptionAverage(),"sampleCount",b.getSampleCount(),
                 "differenceFromAverage",monthly.subtract(b.getMonthlySubscriptionAverage()),"source","가상 집계 데이터. 실제 이용자 통계가 아닙니다.")).toList();
-        return wrap("저장된 연령·거주 지역·직업 정보로 안내 수준과 샘플 자격 조건을 맞출 수 있어요. "+(c.getMonthlyIncome()==null?"정확한 월소득은 미연동이라 소득 대비 비중은 미확인이에요.":"소득 대비 월 환산 구독 비중은 "+ratio(monthly,c.getMonthlyIncome())+"%예요."),
+        return wrap("저장된 연령·거주 지역·직업 정보로 안내 수준과 샘플 자격 조건을 맞출 수 있어요. 소득 대비 월 환산 구독 비중은 "+ratio(monthly,c.getMonthlyIncome())+"%예요.",
             map("age",age,"region",c.getRegion(),"employment",c.getEmployment(),"subscriptionToIncomePercent",ratio(monthly,c.getMonthlyIncome()),
                 "preferredNoticeHour",c.getPreferredNoticeHour(),"peerComparisonAvailable",!peer.isEmpty(),"peerComparison",peer,"genderUsed",false));
     }
@@ -304,12 +293,11 @@ public class FinanceService {
         return map("id",t.getId(),"cardId",t.getCardId(),"subscriptionId",t.getSubscriptionId(),"merchantLabel",t.getMerchantLabel(),
             "amount",t.getAmount(),"authorizedAt",t.getAuthorizedAt(),"status",t.getTransactionStatus(),"declineReason",t.getDeclineReason());
     }
-    private boolean soon(LocalDate date,int days) {return date!=null && !date.isBefore(today()) && !date.isAfter(today().plusDays(days));}
-    private static BigDecimal gap(BigDecimal amount,BigDecimal available) {return available==null?null:amount.subtract(available).max(BigDecimal.ZERO);}
+    private static boolean soon(LocalDate date,int days) {return date!=null && !date.isBefore(today()) && !date.isAfter(today().plusDays(days));}
     private BigDecimal monthly(Subscription s) {return s.monthlyEquivalent();}
-    private static BigDecimal ratio(BigDecimal n,BigDecimal d) {return d==null || d.signum()==0?null:n.multiply(BigDecimal.valueOf(100)).divide(d,2,RoundingMode.HALF_UP);}
-    private LocalDate today(){return clock.today();}
-    private static String won(BigDecimal value){return value==null?"미확인":String.format(Locale.KOREA,"%,.0f",value);}
-    private Report wrap(String summary,Map<String,Object> data){data.put("businessDate",today());return new Report("DATABASE",LocalDateTime.now(KST),summary,data);}
+    private static BigDecimal ratio(BigDecimal n,BigDecimal d) {return d.signum()==0?null:n.multiply(BigDecimal.valueOf(100)).divide(d,2,RoundingMode.HALF_UP);}
+    private static LocalDate today(){return LocalDate.now(KST);}
+    private static String won(BigDecimal value){return String.format(Locale.KOREA,"%,.0f",value);}
+    private static Report wrap(String summary,Map<String,Object> data){return new Report("DEMO",LocalDateTime.now(KST),summary,data);}
     public static Map<String,Object> map(Object... kv){var map=new LinkedHashMap<String,Object>();for(int i=0;i<kv.length;i+=2)map.put((String)kv[i],kv[i+1]);return map;}
 }

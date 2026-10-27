@@ -9,8 +9,7 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      # New schema starts on a fresh volume; the old infra_mysql-data volume is preserved.
-      - mysql-data-v2:/var/lib/mysql
+      - mysql-data:/var/lib/mysql
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -u\"$$MYSQL_USER\" -p\"$$MYSQL_PASSWORD\""]
       interval: 5s
@@ -34,5 +33,5 @@ services:
       retries: 20
 
 volumes:
-  mysql-data-v2:
+  mysql-data:
   rabbitmq-data:

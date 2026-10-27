@@ -13,23 +13,20 @@ public class SubscriptionPriceObservationService {
     private final SubscriptionRepository subscriptionRepository;
     private final SubscriptionPriceObservationRepository observationRepository;
     private final AssistantService assistantService;
-    private final com.woori.wonnie.finance.BusinessClock clock;
 
     public SubscriptionPriceObservationService(
             SubscriptionRepository subscriptionRepository,
             SubscriptionPriceObservationRepository observationRepository,
-            AssistantService assistantService,
-            com.woori.wonnie.finance.BusinessClock clock
+            AssistantService assistantService
     ) {
         this.subscriptionRepository = subscriptionRepository;
         this.observationRepository = observationRepository;
         this.assistantService = assistantService;
-        this.clock = clock;
     }
 
     @Transactional
     public void process(SubscriptionPriceObservationEvent event) {
-        if (event.observedAt().isAfter(clock.nowUtc().plusMinutes(5))) {
+        if (event.observedAt().isAfter(LocalDateTime.now(ZoneId.of("Asia/Seoul")).plusMinutes(5))) {
             throw new IllegalArgumentException("관측 시각은 현재 시각보다 미래일 수 없습니다.");
         }
         if (observationRepository.existsByEventId(event.eventId())) return;

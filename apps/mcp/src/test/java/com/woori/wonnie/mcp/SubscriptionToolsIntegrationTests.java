@@ -47,7 +47,7 @@ class SubscriptionToolsIntegrationTests {
             Map.entry("get_renewal_alerts","renewals"),Map.entry("get_cancellation_summary","cancellations"),
             Map.entry("get_usage_analysis","usage"),Map.entry("recommend_cards","card-recommendations"),
             Map.entry("get_customer_context","customer-context"),Map.entry("get_card_schedule","card-schedule"),Map.entry("get_financial_alerts","alerts"));
-        tools.forEach((tool,path)->{var result=call(tool,Map.of());assertThat(result.isError()).isFalse();assertThat(text(result)).contains("DATABASE",path);});
+        tools.forEach((tool,path)->{var result=call(tool,Map.of());assertThat(result.isError()).isFalse();assertThat(text(result)).contains("DEMO",path);});
         assertThat(REQUESTS).hasSize(11).allMatch(r->r.startsWith("GET /api/finance/"));
     }
     @Test void passesMerchantAsEncodedParameterAndRejectsMissingInput() {
@@ -70,7 +70,7 @@ class SubscriptionToolsIntegrationTests {
             var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
             server.createContext("/",exchange->{
                 REQUESTS.add(exchange.getRequestMethod()+" "+exchange.getRequestURI().toASCIIString());
-                var body=STATUS.get()==200?"{\"dataSource\":\"DATABASE\",\"summary\":\""+exchange.getRequestURI().getPath()+"\",\"data\":{}}":"{\"secret\":\"private-upstream-data\"}";
+                var body=STATUS.get()==200?"{\"dataSource\":\"DEMO\",\"summary\":\""+exchange.getRequestURI().getPath()+"\",\"data\":{}}":"{\"secret\":\"private-upstream-data\"}";
                 var bytes=body.getBytes(StandardCharsets.UTF_8);exchange.getResponseHeaders().set("Content-Type","application/json");
                 exchange.sendResponseHeaders(STATUS.get(),bytes.length);try(var out=exchange.getResponseBody()){out.write(bytes);}
             });server.start();return server;

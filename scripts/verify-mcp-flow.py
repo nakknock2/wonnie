@@ -6,25 +6,13 @@ from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 root=Path(__file__).resolve().parents[1]
 requests=[]
-embeddings=[]
 class Model(BaseHTTPRequestHandler):
     def log_message(self,*args):pass
     def do_POST(self):
         body=json.loads(self.rfile.read(int(self.headers['Content-Length'])))
-        if self.path.endswith('/embeddings'):
-            embeddings.append(body)
-            inputs=body['input'] if isinstance(body['input'],list) else [body['input']]
-            def vector(text):
-                netflix=text.startswith('## [SVC-NETFLIX]') if text.startswith('## [') else '넷플릭스' in text
-                return [1.0,0.0,0.0] if netflix else [0.0,0.0,1.0]
-            data=json.dumps({'object':'list','model':'text-embedding-3-small',
-                'data':[{'object':'embedding','index':i,'embedding':vector(text)} for i,text in enumerate(inputs)],
-                'usage':{'prompt_tokens':1,'total_tokens':1}}).encode()
-            self.send_response(200);self.send_header('Content-Type','application/json');self.end_headers();self.wfile.write(data)
-            return
         requests.append(body)
         has_tool=any(m.get('role')=='tool' for m in body.get('messages',[]))
-        message={'role':'assistant','content':'월 환산 구독비는 69,190원입니다.'} if has_tool else {
+        message={'role':'assistant','content':'샘플 데이터를 조회했어요. 월 환산 구독비는 98,200원입니다.'} if has_tool else {
             'role':'assistant','content':None,'tool_calls':[{'id':'smoke-tool','type':'function','function':{'name':'get_subscriptions','arguments':'{}'}}]}
         data=json.dumps({'id':'chatcmpl-smoke','object':'chat.completion','created':1,'model':'gpt-5.6-terra','choices':[{'index':0,'message':message,'finish_reason':'stop' if has_tool else 'tool_calls'}]},ensure_ascii=False).encode()
         self.send_response(200);self.send_header('Content-Type','application/json');self.end_headers();self.wfile.write(data)
@@ -59,15 +47,11 @@ try:
         if any(p.poll() is not None for p in procs):raise RuntimeError('server exited during startup')
         time.sleep(.3)
     assert len(ready)==2,ready
-    result=request(apiport,'/api/assistant/messages',{'message':'이번 달 구독 총액과 넷플릭스 해지 방법 알려줘'})
-    assert '69,190' in result['assistantMessage']['content'],result
+    result=request(apiport,'/api/assistant/messages',{'message':'이번 달 구독 총액 알려줘'})
+    assert '98,200' in result['assistantMessage']['content'],result
     assert len(requests)==2,len(requests)
     assert len(requests[0]['tools'])==13
-    assert '69190' in json.dumps(requests[1],ensure_ascii=False),requests[1]
-    prompt=json.dumps(requests[0],ensure_ascii=False)
-    assert all(key in prompt for key in ['kb:SVC-NETFLIX','04_knowledge_base.md','05_examples.md','R13']),prompt
-    assert len(embeddings)==2,len(embeddings)
-    assert len(embeddings[0]['input'])==24
+    assert '98200' in json.dumps(requests[1],ensure_ascii=False),requests[1]
     names=[t['function']['name'] for t in requests[0]['tools']]
     assert not any('calendar' in n or 'pause' in n for n in names),names
     scan=request(apiport,'/api/internal/finance-alerts/scan',{})
@@ -79,10 +63,9 @@ try:
     request(apiport,'/api/assistant/conversation/read',{})
     assert request(apiport,'/api/assistant/unread-count')['unreadCount']==0
     report=request(apiport,'/api/finance/price-changes')
-    assert any(c['reason']=='ORIGINAL_AMOUNT_INCREASE' for c in report['data']['transactionComparisons'])
+    assert any(c['reason']=='FX_CHANGE' for c in report['data']['transactionComparisons'])
     print(json.dumps({'status':'PASS','realServers':['Spring API','Spring MCP'],'model':'local HTTP stub; no external OpenAI calls',
-        'toolCount':len(names),'modelHttpCalls':len(requests),'ragSections':len(embeddings[0]['input']),
-        'embeddingHttpCalls':len(embeddings),'ragContext':'PASS','monthlyProjected':69190,'chatMessages':len(second['messages']),
+        'toolCount':len(names),'modelHttpCalls':len(requests),'monthlyProjected':98200,'chatMessages':len(second['messages']),
         'noticeCandidates':scan['matchedNotices'],'duplicateNotices':False,'readState':'PASS'},ensure_ascii=False))
 except Exception:
     for module,log in logs:
