@@ -44,7 +44,6 @@ const sv = { fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap
 const Ico = {
   back: <svg viewBox="0 0 24 24" width="24" height="24" {...sv}><path d="M15 5l-7 7 7 7" /></svg>,
   plus: <svg viewBox="0 0 24 24" width="24" height="24" {...sv} strokeWidth="1.8"><path d="M12 4v16M4 12h16" /></svg>,
-  mic: <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="#2789ec" strokeWidth="1.9" strokeLinecap="round"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6" /></svg>,
   send: <svg viewBox="0 0 24 24" width="23" height="23" {...sv} strokeWidth="1.8"><path d="M21 3 10 14" /><path d="M21 3l-7 18-4-7-7-4 18-7Z" /></svg>,
   link: <svg viewBox="0 0 24 24" width="16" height="16" {...sv}><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg>,
 };
@@ -104,7 +103,6 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onCons
   const scanningRef = useRef(false);
   const scanGeneration = useRef(0);
   const [input, setInput] = useState('');
-  const [listening, setListening] = useState(false);
   const [toast, setToast] = useState(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
@@ -807,8 +805,6 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onCons
         <button type="button" className="wc-icon-btn wc-attach" aria-label="시나리오 선택" onClick={() => setSheet('list')} tabIndex={tab}>{Ico.plus}</button>
         <div className="wc-input-shell">
           <input type="text" maxLength={4000} value={input} onChange={(e) => setInput(e.target.value)} placeholder={mode === 'proposal' ? '얼마나 절약돼? · 조건 알려줘' : '질문하기 · 메시지를 입력해 주세요'} aria-label="메시지 입력" tabIndex={tab} />
-          <button type="button" className={`wc-icon-btn wc-mic ${listening ? 'is-listening' : ''}`} aria-label="음성 입력"
-            onClick={() => { setListening((v) => !v); if (!listening) showToast('음성 입력은 준비 중이에요'); }} tabIndex={tab}>{Ico.mic}</button>
           <button type="submit" className="wc-icon-btn wc-send" aria-label="보내기" tabIndex={tab}>{Ico.send}</button>
         </div>
       </form>
