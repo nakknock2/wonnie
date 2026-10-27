@@ -32,7 +32,7 @@ public class OpenAiAssistantResponder implements AssistantResponder {
     public String respond(String customerId,String message,List<com.woori.wonnie.assistant.AssistantMessage> history) {
         var stage = "MCP_TOOLS";
         try {
-            var tools = limitedTools();
+            var tools = limitedTools(customerId);
             stage = "RAG_RETRIEVAL";
             var messages = buildMessages(message, history);
             stage = "OPENAI_CHAT";
@@ -57,7 +57,7 @@ public class OpenAiAssistantResponder implements AssistantResponder {
         java.util.Objects.requireNonNull(onDelta, "onDelta");
         var stage = "MCP_TOOLS";
         try {
-            var tools = limitedTools();
+            var tools = limitedTools(customerId);
             stage = "RAG_RETRIEVAL";
             var messages = buildMessages(message, history);
             stage = "OPENAI_CHAT";
@@ -131,7 +131,7 @@ public class OpenAiAssistantResponder implements AssistantResponder {
         return messages;
     }
 
-    private ToolCallback[] limitedTools() {
+    private ToolCallback[] limitedTools(String customerId) {
         var remaining=new AtomicInteger(12);
         var deadline=System.nanoTime()+java.time.Duration.ofSeconds(60).toNanos();
         return Arrays.stream(mcp.callbacks()).map(delegate->new ToolCallback() {
@@ -141,7 +141,8 @@ public class OpenAiAssistantResponder implements AssistantResponder {
                 if(remaining.decrementAndGet()<0 || System.nanoTime()>deadline || input!=null && input.length()>8000) {
                     throw new ToolExecutionException(getToolDefinition(),new IllegalStateException("상담 도구 호출 한도 초과"));
                 }
-                return delegate.call(input,context);
+                // Streaming tool calls run on Reactor workers, outside the responder's thread.
+                return AssistantCustomerContext.callAs(customerId, () -> delegate.call(input,context));
             }
         }).toArray(ToolCallback[]::new);
     }

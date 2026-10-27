@@ -40,6 +40,7 @@ class OpenAiMcpConversationTests {
     static final HttpServer OPENAI=startServer();
     @MockitoBean WonnieMcpTools mcp;
     @Autowired FinanceService finance;
+    @Autowired AssistantResponder responder;
     @Autowired AssistantMessageRepository messages;
     @Autowired MockMvc http;
     @DynamicPropertySource static void properties(DynamicPropertyRegistry registry) {
@@ -122,6 +123,61 @@ class OpenAiMcpConversationTests {
         assertThat(REQUESTS).isEmpty();
         assertThat(messages.count()).isZero();
     }
+    @Test void streamingToolExecutionRetainsCustomerAcrossWorkerThreads() {
+        var customers = new CopyOnWriteArrayList<String>();
+        when(mcp.callbacks()).thenReturn(new ToolCallback[]{customerRecordingTool(customers)});
+        var deltas = new StringBuilder();
+
+        var answer = responder.respondStreaming("cust-stream-a", "구독 목록 알려줘", List.of(), deltas::append);
+
+        assertThat(answer).isEqualTo("구독 총액을 조회했어요.");
+        assertThat(deltas.toString()).isEqualTo(answer);
+        assertThat(customers).containsExactly("cust-stream-a");
+        assertThat(AssistantCustomerContext.currentCustomerId()).isNull();
+        assertThat(REQUESTS).allSatisfy(body -> assertThat(body).doesNotContain("cust-stream-a"));
+    }
+    @Test void concurrentStreamingToolExecutionsKeepCustomersSeparate() throws Exception {
+        var customers = new CopyOnWriteArrayList<String>();
+        when(mcp.callbacks()).thenReturn(new ToolCallback[]{customerRecordingTool(customers)});
+        var executor = java.util.concurrent.Executors.newFixedThreadPool(2);
+        try {
+            var first = executor.submit(() -> responder.respondStreaming(
+                    "cust-concurrent-a", "구독 목록 알려줘", List.of(), ignored -> {}));
+            var second = executor.submit(() -> responder.respondStreaming(
+                    "cust-concurrent-b", "구독 목록 알려줘", List.of(), ignored -> {}));
+            assertThat(first.get(15, java.util.concurrent.TimeUnit.SECONDS)).isEqualTo("구독 총액을 조회했어요.");
+            assertThat(second.get(15, java.util.concurrent.TimeUnit.SECONDS)).isEqualTo("구독 총액을 조회했어요.");
+        } finally {
+            executor.shutdownNow();
+        }
+        assertThat(customers).containsExactlyInAnyOrder("cust-concurrent-a", "cust-concurrent-b");
+        assertThat(AssistantCustomerContext.currentCustomerId()).isNull();
+    }
+    private static ToolCallback customerRecordingTool(List<String> customers) {
+        return new ToolCallback() {
+            public ToolDefinition getToolDefinition() {
+                return ToolDefinition.builder().name("get_subscriptions").description("Read subscriptions")
+                        .inputSchema("{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}").build();
+            }
+            public String call(String input) {
+                customers.add(String.valueOf(AssistantCustomerContext.currentCustomerId()));
+                return "{\"dataSource\":\"DATABASE\",\"data\":{\"subscriptions\":[]}}";
+            }
+        };
+    }
+    private static String streamingResponse(String request) {
+        boolean completed = request.contains("tool_call_id") && !LOOP.get();
+        var delta = completed ? java.util.Map.of("role", "assistant", "content", "구독 총액을 조회했어요.")
+                : java.util.Map.of("role", "assistant", "tool_calls", List.of(java.util.Map.of(
+                        "index", 0, "id", "call-demo", "type", "function", "function",
+                        java.util.Map.of("name", "get_subscriptions", "arguments", "{}"))));
+        var first = JSON.writeValueAsString(java.util.Map.of("id", "chatcmpl-stream", "object", "chat.completion.chunk",
+                "created", 1, "model", "gpt-5.6-terra", "choices", List.of(java.util.Map.of("index", 0, "delta", delta))));
+        var last = JSON.writeValueAsString(java.util.Map.of("id", "chatcmpl-stream", "object", "chat.completion.chunk",
+                "created", 1, "model", "gpt-5.6-terra", "choices", List.of(java.util.Map.of("index", 0,
+                        "delta", java.util.Map.of(), "finish_reason", completed ? "stop" : "tool_calls"))));
+        return "data: " + first + "\n\ndata: " + last + "\n\ndata: [DONE]\n\n";
+    }
     private static HttpServer startServer(){
         try {
             var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
@@ -131,6 +187,14 @@ class OpenAiMcpConversationTests {
                 (embedding?EMBEDDINGS:REQUESTS).add(request);
                 boolean fail=embedding?FAIL_EMBEDDING.get():FAIL.get();
                 int status=fail?401:200;
+                var stream = JSON.readTree(request).get("stream");
+                if (!embedding && !fail && stream != null && stream.asBoolean()) {
+                    var bytes = streamingResponse(request).getBytes(StandardCharsets.UTF_8);
+                    exchange.getResponseHeaders().set("Content-Type", "text/event-stream; charset=utf-8");
+                    exchange.sendResponseHeaders(200, bytes.length);
+                    try (var out = exchange.getResponseBody()) { out.write(bytes); }
+                    return;
+                }
                 String response;
                 if(fail)response="{\"error\":{\"message\":\"test authentication failure\",\"type\":\"invalid_request_error\",\"code\":\"invalid_api_key\"}}";
                 else if(embedding) {
