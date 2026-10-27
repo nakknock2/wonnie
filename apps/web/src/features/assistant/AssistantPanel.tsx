@@ -137,7 +137,7 @@ export const AssistantPanel = ({ open, onClose }: AssistantPanelProps) => {
                 <div className="flex items-end gap-2">
                   <span className="mb-1 flex size-8 shrink-0 items-center justify-center rounded-full bg-woori-sky text-[17px]" aria-hidden="true">🌱</span>
                   <div className="max-w-[84%] rounded-[22px] rounded-bl-md border border-woori-line/70 bg-white px-4 py-3 text-[14px] leading-6 text-woori-ink shadow-sm">
-                    안녕하세요! 샘플 데이터를 바탕으로 구독 총액, 결제명, 가격 변동, 중복 구독과 카드 혜택을 안내해드릴게요.
+                    안녕하세요! 카드·구독 내역을 바탕으로 구독 총액, 결제명, 가격 변동, 중복 구독과 카드 혜택을 안내해드릴게요.
                   </div>
                 </div>
                 <div className="ml-10 flex flex-wrap gap-2">

@@ -42,11 +42,13 @@ public class SubscriptionPriceObservationIngestionService {
         var subscription = subscriptionRepository.findById(request.subscriptionId())
                 .orElseThrow(() -> new IllegalArgumentException("구독 정보를 찾을 수 없습니다."));
         if (!subscription.getCustomerId().equals(DashboardService.DEMO_CUSTOMER_ID)) {
-            throw new IllegalArgumentException("현재 데모 고객의 구독만 처리할 수 있습니다.");
+            throw new IllegalArgumentException("현재 고객의 구독만 처리할 수 있습니다.");
         }
         var event = new SubscriptionPriceObservationEvent(
                 request.eventId(), DashboardService.DEMO_CUSTOMER_ID, subscription.getId(),
-                request.amount(), request.observedAt(), request.currency(), request.originalAmount(), request.exchangeRate());
+                request.amount(), request.observedAt().atZone(java.time.ZoneId.of("Asia/Seoul"))
+                    .withZoneSameInstant(java.time.ZoneOffset.UTC).toLocalDateTime(),
+                request.currency(), request.originalAmount(), request.exchangeRate());
 
         if (!messagingEnabled) {
             observationService.process(event);

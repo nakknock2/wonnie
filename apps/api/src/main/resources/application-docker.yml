@@ -1,9 +1,13 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/${MYSQL_DATABASE:wonnie}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+    url: jdbc:mysql://localhost:3306/${MYSQL_DATABASE:wonnie}?useSSL=false&allowPublicKeyRetrieval=true&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
     username: ${MYSQL_USER:wonnie}
     password: ${MYSQL_PASSWORD:wonnie}
     driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    locations: classpath:db/migration
+    clean-disabled: true
+    baseline-on-migrate: false
   rabbitmq:
     host: localhost
     port: 5672

@@ -1,10 +1,6 @@
 package com.woori.wonnie.subscription;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,56 +19,40 @@ public class Subscription {
     @Id
     private String id;
     private String customerId;
+    private String cardId;
+    private String merchantId;
+    @Column(name = "service_id")
+    private String serviceId;
+    @Column(name = "display_name")
     private String name;
     private String category;
+    @Column(precision = 15, scale = 2)
     private BigDecimal amount;
     private String billingCycle;
+    @Column(name = "next_charge_on")
     private LocalDate nextPaymentDate;
 
     @Enumerated(EnumType.STRING)
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.VARCHAR)
     private SubscriptionStatus status;
 
-    private String brandColor;
-    private String initialText;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "service_id", insertable = false, updatable = false)
+    private ServiceCatalog service;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public BigDecimal monthlyEquivalent() {
-        return billingCycle.contains("연") || billingCycle.contains("년")
+        return "YEARLY".equals(billingCycle)
             ? amount.divide(BigDecimal.valueOf(12), 2, java.math.RoundingMode.HALF_UP) : amount;
     }
 
     public void updateAmount(BigDecimal newAmount) {
         amount = newAmount;
-        updatedAt = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
+        updatedAt = LocalDateTime.now(java.time.ZoneOffset.UTC);
     }
 
-    public static Subscription membershipDemo(String customerId, LocalDate today) {
-        var subscription=cancelledDemo("sub-gym", customerId, today);
-        subscription.name="데모 피트니스 연간권";
-        subscription.category="운동";
-        subscription.amount=new BigDecimal("600000");
-        subscription.billingCycle="매년";
-        subscription.nextPaymentDate=today.plusDays(20);
-        subscription.status=SubscriptionStatus.ACTIVE;
-        subscription.initialText="G";
-        return subscription;
-    }
-
-    public static Subscription cancelledDemo(String id, String customerId, LocalDate today) {
-        var subscription = new Subscription();
-        subscription.id = id;
-        subscription.customerId = customerId;
-        subscription.name = "해지 확인된 데모 스트리밍";
-        subscription.category = "영상";
-        subscription.amount = new BigDecimal("9900");
-        subscription.billingCycle = "매월";
-        subscription.nextPaymentDate = today.plusMonths(1);
-        subscription.status = SubscriptionStatus.CANCELLED;
-        subscription.brandColor = "#777777";
-        subscription.initialText = "D";
-        subscription.createdAt = today.atStartOfDay();
-        subscription.updatedAt = today.atStartOfDay();
-        return subscription;
-    }
+    public String getBrandColor() { return service == null || service.getBrandColor() == null ? "#2789ec" : service.getBrandColor(); }
+    public String getInitialText() { return service == null || service.getInitialText() == null ? name.substring(0, 1) : service.getInitialText(); }
+    public String getBillingCycle() { return "YEARLY".equals(billingCycle) ? "매년" : "매월"; }
 }

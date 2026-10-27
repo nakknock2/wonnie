@@ -61,9 +61,9 @@ public class AssistantService {
         var reply = responder.respond(customerId, prompt, history);
         return transactions.execute(status -> {
             var conversation = getOrCreateConversation(customerId);
-            var userMessage = messageRepository.save(AssistantMessage.userMessage(conversation.getId(), message.strip()));
+            var userMessage = messageRepository.save(AssistantMessage.userMessage(conversation.getId(), customerId, message.strip()));
             var assistantMessage = messageRepository.save(AssistantMessage.assistantReply(
-                    conversation.getId(), reply, userMessage.getCreatedAt().plusNanos(1_000)));
+                    conversation.getId(), customerId, reply, userMessage.getCreatedAt().plusNanos(1_000)));
             conversation.touch();
             return new AssistantMessageExchange(toResponse(userMessage), toResponse(assistantMessage));
         });
@@ -73,7 +73,7 @@ public class AssistantService {
     public void markRead(String customerId) {
         conversationRepository.findByCustomerId(customerId).ifPresent(conversation ->
                 messageRepository.markAssistantMessagesRead(
-                        conversation.getId(), LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul"))));
+                        conversation.getId(), LocalDateTime.now(java.time.ZoneOffset.UTC)));
     }
 
     @Transactional(readOnly = true)
@@ -88,7 +88,7 @@ public class AssistantService {
     public void addPriceIncreaseNotice(String customerId, String content, String sourceKey) {
         if (messageRepository.existsBySourceKey(sourceKey)) return;
         var conversation=getOrCreateConversation(customerId);
-        messageRepository.save(AssistantMessage.priceIncrease(conversation.getId(),content,sourceKey));
+        messageRepository.save(AssistantMessage.priceIncrease(conversation.getId(),customerId,content,sourceKey));
         conversation.touch();
     }
 
@@ -96,7 +96,7 @@ public class AssistantService {
     public void addFinanceNotice(String customerId, String content, String sourceKey) {
         if (messageRepository.existsBySourceKey(sourceKey)) return;
         var conversation = getOrCreateConversation(customerId);
-        messageRepository.save(AssistantMessage.financeNotice(conversation.getId(), "[샘플 데이터] " + content, sourceKey));
+        messageRepository.save(AssistantMessage.financeNotice(conversation.getId(), customerId, content, sourceKey));
         conversation.touch();
     }
 
@@ -107,7 +107,8 @@ public class AssistantService {
 
     private static AssistantMessageResponse toResponse(AssistantMessage message) {
         return new AssistantMessageResponse(
-                message.getId(), message.getRole(), message.getSource(), message.getContent(), message.getCreatedAt());
+                message.getId(), message.getRole(), message.getSource(), message.getContent(),
+                message.getCreatedAt().atOffset(java.time.ZoneOffset.UTC).atZoneSameInstant(java.time.ZoneId.of("Asia/Seoul")).toLocalDateTime());
     }
 
 }

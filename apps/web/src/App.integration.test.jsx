@@ -26,7 +26,7 @@ beforeEach(() => {
       history = [...history, userMessage, assistantMessage];
       return response({ userMessage, assistantMessage });
     }
-    if (path === '/api/finance/subscriptions') return response({ dataSource: 'DEMO', data: {
+    if (path === '/api/finance/subscriptions') return response({ dataSource: 'DATABASE', data: {
       projectedMonthlyCostAfterTrials: 77000, subscriptions: [
         { id: 'sub-server-one', name: '서버 구독 A', amount: 17000, monthlyEquivalent: 17000, billingCycle: '매월', nextPaymentDate: '2026-11-02' },
         { id: 'sub-server-two', name: '서버 구독 B', amount: 720000, monthlyEquivalent: 60000, billingCycle: '매년', nextPaymentDate: '2026-11-12' },
