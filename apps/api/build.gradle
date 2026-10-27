@@ -6,7 +6,7 @@ plugins {
 
 group = 'com.woori'
 version = '0.0.1-SNAPSHOT'
-description = 'Woori subscription wallet MVP'
+description = 'Woori subscription price assistant MVP'
 
 java {
 	toolchain {
@@ -18,11 +18,15 @@ repositories {
 	mavenCentral()
 }
 
-ext {
-	set('springAiVersion', "2.0.1")
+ext { set('springAiVersion', "2.0.1") }
+
+dependencyManagement {
+	imports { mavenBom "org.springframework.ai:spring-ai-bom:${springAiVersion}" }
 }
 
 dependencies {
+	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+	implementation 'org.springframework.ai:spring-ai-starter-mcp-client'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	implementation 'org.springframework.boot:spring-boot-h2console'
@@ -35,7 +39,6 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.flywaydb:flyway-mysql'
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0'
-	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
 	runtimeOnly 'com.h2database:h2'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
@@ -46,12 +49,6 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-}
-
-dependencyManagement {
-	imports {
-		mavenBom "org.springframework.ai:spring-ai-bom:${springAiVersion}"
-	}
 }
 
 tasks.named('test') {

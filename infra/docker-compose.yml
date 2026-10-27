@@ -2,16 +2,16 @@ services:
   mysql:
     image: mysql:8.4
     environment:
-      MYSQL_DATABASE: woonie
-      MYSQL_USER: woonie
-      MYSQL_PASSWORD: woonie
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-wonnie}
+      MYSQL_USER: ${MYSQL_USER:-wonnie}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-wonnie}
       MYSQL_ROOT_PASSWORD: root
     ports:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uwoonie", "-pwoonie"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u\"$$MYSQL_USER\" -p\"$$MYSQL_PASSWORD\""]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -22,8 +22,8 @@ services:
       - "5672:5672"
       - "15672:15672"
     environment:
-      RABBITMQ_DEFAULT_USER: woonie
-      RABBITMQ_DEFAULT_PASS: woonie
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-wonnie}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-wonnie}
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     healthcheck:

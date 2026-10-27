@@ -5,7 +5,7 @@ interface BalanceHeroProps {
   totalMonthlyCost: number
   activeCount: number
   nextPaymentName: string
-  nextPaymentDate: string
+  nextPaymentDate: string | null
 }
 
 const quickActions = [
@@ -24,14 +24,14 @@ export const BalanceHero = ({
   <section className="mx-4 overflow-hidden rounded-[28px] bg-gradient-to-br from-[#087acb] via-[#0a69b6] to-[#074c88] p-5 text-white shadow-[0_20px_50px_rgb(7_76_136_/_24%)]">
     <div className="flex items-start justify-between">
       <div>
-        <p className="m-0 text-[13px] font-medium text-white/70">이번 달 구독 생활비</p>
+        <p className="m-0 text-[13px] font-medium text-white/70">월 환산 구독비 예상</p>
         <p className="mb-1 mt-2 text-[30px] font-bold tracking-[-0.04em]">
           {formatWon(totalMonthlyCost)}
         </p>
-        <p className="m-0 text-[12px] text-white/70">활성 구독 {activeCount}개</p>
+        <p className="m-0 text-[12px] text-white/70">활성 구독 {activeCount}개 · 무료체험 전환 예정분 포함</p>
       </div>
       <span className="rounded-full bg-white/14 px-3 py-1.5 text-[11px] font-semibold backdrop-blur">
-        구독지갑
+        구독 비서
       </span>
     </div>
 
@@ -42,7 +42,7 @@ export const BalanceHero = ({
         <p className="m-0 text-[11px] text-white/65">다음 결제</p>
         <p className="mb-0 mt-1 text-[14px] font-semibold">{nextPaymentName}</p>
       </div>
-      <p className="m-0 text-[13px] font-semibold">{formatShortDate(nextPaymentDate)}</p>
+      <p className="m-0 text-[13px] font-semibold">{nextPaymentDate ? formatShortDate(nextPaymentDate) : '예정 없음'}</p>
     </div>
 
     <div className="mt-5 grid grid-cols-4 gap-2">

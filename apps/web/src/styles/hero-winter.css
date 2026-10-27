@@ -1,0 +1,121 @@
+/* ===== 크리스마스 겨울 일러스트 ===== */
+
+/* 거실 장면은 조금 더 높게 (원래 112px) */
+.hero.hero--winter { height: 136px; }
+
+/* 전구 깜빡임 (3그룹이 번갈아) */
+.xr-bulb { animation: xr-twinkle 1.8s ease-in-out infinite; }
+.xr-bulb--1 { animation-delay: 0.6s; }
+.xr-bulb--2 { animation-delay: 1.2s; }
+@keyframes xr-twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* 별 */
+.xr-star, .xr-star-glow, .xr-flame, .xr-candle { transform-box: fill-box; }
+.xr-star, .xr-star-glow { transform-origin: center; }
+.xr-star { animation: xr-star 2.6s ease-in-out infinite; }
+.xr-star-glow { animation: xr-glow 2.6s ease-in-out infinite; }
+@keyframes xr-star {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.1) rotate(6deg); }
+}
+@keyframes xr-glow {
+  0%, 100% { opacity: 0.5; transform: scale(0.9); }
+  50% { opacity: 0.95; transform: scale(1.2); }
+}
+
+/* 벽난로 불 */
+.xr-flame { transform-origin: 50% 100%; }
+.xr-flame--a { animation: xr-flicker 0.9s ease-in-out infinite alternate; }
+.xr-flame--b { animation: xr-flicker 0.6s ease-in-out infinite alternate-reverse; }
+@keyframes xr-flicker {
+  from { transform: scale(1, 1) skewX(0deg); }
+  to { transform: scale(0.94, 1.08) skewX(-3deg); }
+}
+.xr-fireglow { animation: xr-fireglow 1.6s ease-in-out infinite alternate; }
+@keyframes xr-fireglow {
+  from { opacity: 0.32; }
+  to { opacity: 0.5; }
+}
+.xr-ember { animation: xr-ember 2.4s ease-out infinite; }
+@keyframes xr-ember {
+  0% { transform: translate(0, 0); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translate(3px, -12px); opacity: 0; }
+}
+.xr-candle { transform-origin: 50% 100%; animation: xr-flicker 0.7s ease-in-out infinite alternate; }
+
+/* 창밖 눈 */
+.xr-wsnow { animation: xr-wsnow linear infinite; }
+@keyframes xr-wsnow {
+  from { transform: translate(0, 0); }
+  to { transform: translate(-4px, 52px); }
+}
+
+/* ===== 함께 트리를 꾸미는 3D 워니들 (WonnieCast.jsx) =====
+   SVG 가 가운데 정렬이라 화면 가운데(50%) 기준으로 배치 */
+.xw { position: absolute; z-index: 2; pointer-events: none; }
+.xw__svg { display: block; overflow: visible; animation: xw-bob 3s ease-in-out infinite; }
+.xw::before {
+  content: '';
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: -3px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(90, 50, 20, 0.35), rgba(90, 50, 20, 0));
+}
+@keyframes xw-bob {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -3px; }
+}
+/* 트리 왼쪽(산타·오너먼트) / 오른쪽(목도리·캐럴) / 앞(방울·윙크) – 자세와 움직임을 각자 다르게 */
+.xw--left { left: calc(50% - 66px); bottom: 26px; }
+.xw--left .xw__svg { animation: xw-reach 2.6s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes xw-reach {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 1px -3px; }
+}
+.xw--right { left: calc(50% + 14px); bottom: 26px; }
+.xw--right .xw__svg { animation: xw-sway 2.2s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes xw-sway {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+.xw--front { left: calc(50% - 14px); bottom: 16px; z-index: 3; }
+/* 뒷모습: 발끝으로 서서 트리에 손을 뻗는 느낌 */
+.xw--front .xw__svg { animation: xw-tiptoe 2s ease-in-out infinite; }
+@keyframes xw-tiptoe {
+  0%, 100% { translate: 0 0; }
+  45%, 60% { translate: 0 -4px; }
+}
+/* 음표: 차례로 떠올랐다 사라짐 */
+.xw__note { animation: xw-note 2.4s ease-out infinite; opacity: 0; }
+.xw__note--2 { animation-delay: 0.8s; }
+.xw__note--3 { animation-delay: 1.6s; }
+@keyframes xw-note {
+  0% { opacity: 0; transform: translate(0, 10px) scale(0.7); }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translate(14px, -26px) scale(1) rotate(10deg); }
+}
+.xw--window { left: calc(50% + 105px); bottom: 69px; }
+.xw--window::before { display: none; }
+.xw--window .xw__svg { animation-duration: 4s; }
+/* 손에 든 오너먼트 흔들림 */
+.xw__swing { animation: xw-swing 2s ease-in-out infinite; }
+@keyframes xw-swing {
+  0%, 100% { rotate: -10deg; }
+  50% { rotate: 10deg; }
+}
+
+/* 겨울 테마에 맞춘 버튼 색 */
+.hero--winter .hero-pill { background: rgba(255, 255, 255, 0.92); box-shadow: 0 2px 8px rgba(90, 130, 180, 0.14); }
+.hero--winter .hero-pill:hover { background: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero--winter *, .hero--winter { animation: none !important; }
+}

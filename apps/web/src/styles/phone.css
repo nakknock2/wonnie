@@ -1,0 +1,126 @@
+/* ===== 스마트폰 틀 ===== */
+.phone {
+  --screen-w: 390px;
+  --screen-h: 844px;
+  --bezel: 12px;
+
+  position: relative;
+  width: calc(var(--screen-w) + var(--bezel) * 2);
+  height: calc(var(--screen-h) + var(--bezel) * 2);
+  padding: var(--bezel);
+  border-radius: 62px;
+  background: #0b0b0d;
+  box-shadow:
+    0 0 0 2px #3a3d44,           /* 메탈 테두리 */
+    0 0 0 4px #1a1c20,
+    0 40px 80px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 2px #222;
+  flex-shrink: 0;
+  transform-origin: center;
+}
+
+/* 작은 화면에서는 폰 전체를 축소 */
+@media (max-height: 940px) { .phone { transform: scale(0.88); } }
+@media (max-height: 820px) { .phone { transform: scale(0.76); } }
+@media (max-height: 700px) { .phone { transform: scale(0.64); } }
+@media (max-width: 440px) {
+  .stage { padding: 0; }
+  .phone { transform: none; width: 100vw; height: 100dvh; padding: 0; border-radius: 0; box-shadow: none; }
+  .phone-screen { border-radius: 0 !important; }
+  .phone-btn, .dynamic-island { display: none; }
+}
+
+/* 측면 버튼 */
+.phone-btn {
+  position: absolute;
+  width: 4px;
+  background: #2b2e34;
+  border-radius: 2px;
+}
+.phone-btn--silent   { left: -6px; top: 140px; height: 30px; }
+.phone-btn--vol-up   { left: -6px; top: 196px; height: 58px; }
+.phone-btn--vol-down { left: -6px; top: 268px; height: 58px; }
+.phone-btn--power    { right: -6px; top: 220px; height: 92px; }
+
+/* 실제 화면 영역 */
+.phone-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50px;
+  overflow: hidden;
+  background: #f2f3f5;
+  display: flex;
+  flex-direction: column;
+  isolation: isolate;
+}
+
+.dynamic-island {
+  position: absolute;
+  top: 11px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 122px;
+  height: 35px;
+  border-radius: 20px;
+  background: #000;
+  z-index: 50;
+}
+
+.home-indicator {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 136px;
+  height: 5px;
+  border-radius: 3px;
+  background: #111;
+  z-index: 50;
+  pointer-events: none;
+}
+
+/* ===== 상태바 ===== */
+.status-bar {
+  flex: 0 0 auto;
+  height: 50px;
+  padding: 16px 30px 0 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent; /* 폰 화면 배경(#f2f3f5)이 비침 → 상담 화면(흰색) 위에서도 자연스럽게 */
+  font-weight: 700;
+  position: relative;
+  z-index: 49; /* 상담 화면(48) 위에 표시 */
+}
+.status-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 16px;
+  letter-spacing: -0.2px;
+}
+.status-mute { margin-top: 1px; }
+.status-right { display: inline-flex; align-items: center; gap: 6px; }
+.signal { display: inline-flex; align-items: flex-end; gap: 2px; height: 11px; }
+.signal i { width: 3px; background: #111; border-radius: 1px; }
+.lte { font-size: 13px; letter-spacing: 0.2px; }
+.battery { display: inline-flex; align-items: center; }
+.battery-body {
+  width: 25px;
+  height: 13px;
+  border-radius: 4px;
+  background: #c9ccd1;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+.battery-body::before {
+  content: '';
+  position: absolute;
+  inset: 0 51% 0 0;
+  background: #ffd60a;
+}
+.battery-level { position: relative; font-size: 10.5px; font-weight: 800; color: #111; }
+.battery-cap { width: 2px; height: 5px; margin-left: 1px; border-radius: 0 2px 2px 0; background: #c9ccd1; }

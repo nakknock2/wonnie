@@ -1,17 +1,4 @@
-export type SubscriptionStatus =
-  | 'ACTIVE'
-  | 'PAYMENT_PAUSE_SCHEDULED'
-  | 'PAYMENT_PAUSED'
-  | 'RESUME_PENDING'
-  | 'PAYMENT_FAILED'
-
-export interface WalletSummary {
-  balance: number
-  autoFundingEnabled: boolean
-  walletStatus: string
-  virtualCardLast4: string
-  virtualCardStatus: string
-}
+export type SubscriptionStatus = 'ACTIVE' | 'CANCELLED'
 
 export interface SubscriptionSummary {
   id: string
@@ -23,7 +10,6 @@ export interface SubscriptionSummary {
   status: SubscriptionStatus
   brandColor: string
   initial: string
-  wallet: WalletSummary
 }
 
 export interface CalendarSignal {
@@ -39,40 +25,31 @@ export interface DashboardResponse {
   customerName: string
   totalMonthlyCost: number
   activeCount: number
-  pausedCount: number
   nextPaymentName: string
-  nextPaymentDate: string
+  nextPaymentDate: string | null
   subscriptions: SubscriptionSummary[]
   calendarSignals: CalendarSignal[]
 }
 
-export interface ActionPlan {
+export interface AssistantMessage {
   id: string
-  subscriptionId: string
-  subscriptionName: string
-  actionType: string
-  startsOn: string
-  endsOn: string
-  reason: string
-  warning: string
-  status: string
+  role: 'USER' | 'ASSISTANT'
+  source: 'USER_INPUT' | 'ASSISTANT_REPLY' | 'PRICE_INCREASE' | 'FINANCE_NOTICE'
+  content: string
+  createdAt: string
 }
 
-export interface AssistantResponse {
-  reply: string
-  actionPlan?: ActionPlan
-  highlights: string[]
+export interface AssistantConversation {
+  conversationId: string
+  messages: AssistantMessage[]
+  unreadCount: number
 }
 
-export interface AuthChallenge {
-  challengeId: string
-  challenge: string
-  expiresAt: string
+export interface AssistantMessageExchange {
+  userMessage: AssistantMessage
+  assistantMessage: AssistantMessage
 }
 
-export interface SagaResult {
-  sagaId: string
-  status: string
-  message: string
-  subscriptionStatus: SubscriptionStatus
+export interface UnreadCount {
+  unreadCount: number
 }

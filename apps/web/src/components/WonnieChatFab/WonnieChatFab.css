@@ -1,0 +1,326 @@
+/*
+ * 폰 화면(.phone-screen, position: relative)의 직계 자식으로 렌더링됨.
+ * position: fixed 를 쓰면 브라우저 기준이 되어 폰 프레임 밖으로 나가므로 absolute 사용.
+ * bottom = 하단 탭바 높이(88px, .bottom-nav) + 16px
+ * 색상은 홈 화면과 같은 톤 (흰 카드 + 파란 포인트 #2d82ef)
+ */
+.wonnie-fab {
+  position: absolute;
+  right: 16px;
+  bottom: calc(88px + 16px);
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0;
+  background: none;
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.25s ease, visibility 0s linear 0s;
+  -webkit-tap-highlight-color: transparent;
+}
+.wonnie-fab.is-hidden {
+  opacity: 0;
+  transform: scale(0.6) translateY(20px);
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.25s ease, visibility 0s linear 0.25s;
+}
+.wonnie-fab:focus-visible { outline: none; }
+.wonnie-fab:focus-visible .wonnie-fab__circle { outline: 2px solid #2d82ef; outline-offset: 2px; }
+
+/* 흰 원형 카드 위로 워니가 살짝 튀어나온 형태 */
+.wonnie-fab__body {
+  position: relative;
+  width: 70px;
+  height: 80px;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: 50% 100%;
+}
+.wonnie-fab:hover .wonnie-fab__body,
+.wonnie-fab:focus-visible .wonnie-fab__body { transform: scale(1.06) rotate(-3deg); }
+
+.wonnie-fab__circle {
+  position: absolute;
+  left: 3px;
+  bottom: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #ffffff 0%, #eef6ff 100%);
+  border: 1px solid #e5e8eb;
+  box-shadow: 0 8px 20px rgba(25, 31, 40, 0.16);
+}
+/* 은은하게 퍼지는 파란 링 */
+.wonnie-fab__circle::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  border: 2px solid rgba(45, 130, 239, 0.55);
+  animation: wonnie-ring 2.6s ease-out infinite;
+}
+@keyframes wonnie-ring {
+  0% { transform: scale(1); opacity: 0.9; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+.wonnie-fab__squash {
+  position: absolute;
+  left: 4px;
+  bottom: 3px;
+  display: block;
+  transform-origin: 50% 100%;
+}
+.wonnie-fab__squash.is-bouncing { animation: wonnie-squash 0.42s ease-out; }
+@keyframes wonnie-squash {
+  0% { transform: scale(1, 1); }
+  25% { transform: scale(1.14, 0.82); }
+  55% { transform: scale(0.92, 1.1) translateY(-8px); }
+  80% { transform: scale(1.03, 0.97); }
+  100% { transform: scale(1, 1); }
+}
+
+/* AI 상담 라벨: 홈의 파란 버튼과 같은 색 */
+.wonnie-fab__label {
+  position: relative;
+  margin-top: -11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 12px 5px 9px;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  background: #2d82ef;
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(45, 130, 239, 0.35);
+}
+.wonnie-fab:hover .wonnie-fab__label { background: #1f6fd6; }
+
+/* --- 라벨 시안 B: 헤더 AI 아이콘과 같은 파랑→보라 그라데이션 --- */
+.wonnie-fab--gradient .wonnie-fab__label {
+  background: linear-gradient(120deg, #3d7bff 0%, #7b5cff 55%, #b14dff 100%);
+  box-shadow: 0 4px 12px rgba(110, 90, 255, 0.4);
+}
+.wonnie-fab--gradient .wonnie-fab__label svg { color: #ffe86b; }
+.wonnie-fab--gradient:hover .wonnie-fab__label { background: linear-gradient(120deg, #2f6ef0 0%, #6c4cf5 55%, #a33ef5 100%); }
+
+/* --- 라벨 시안 C: 워니가 말하는 듯한 흰 말풍선 --- */
+.wonnie-fab--bubble .wonnie-fab__label {
+  margin-top: 4px;
+  border: 1.5px solid #2d82ef;
+  border-radius: 12px;
+  background: #fff;
+  color: #2d82ef;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(25, 31, 40, 0.14);
+}
+.wonnie-fab--bubble .wonnie-fab__label::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  background: #fff;
+  border-top: 1.5px solid #2d82ef;
+  border-left: 1.5px solid #2d82ef;
+  border-radius: 2px 0 0 0;
+  transform: rotate(45deg);
+}
+.wonnie-fab--bubble:hover .wonnie-fab__label { background: #f4f9ff; }
+.wonnie-fab--bubble:hover .wonnie-fab__label::before { background: #f4f9ff; }
+
+/* --- 캐릭터 왼쪽 카드형 공통 (extended / compact / auto) --- */
+.wonnie-fab--side { flex-direction: row; align-items: center; }
+.wonnie-fab--side .wonnie-fab__body { order: 2; z-index: 1; }
+.wonnie-fab--side .wonnie-fab__label {
+  order: 1;
+  margin: 14px -22px 0 0;
+  padding: 9px 30px 9px 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  border: 1px solid #e5e8eb;
+  border-radius: 18px;
+  background: #fff;
+  color: #191f28;
+  box-shadow: 0 8px 20px rgba(25, 31, 40, 0.14);
+  overflow: hidden;
+}
+.wonnie-fab--side .wonnie-fab__label small { font-size: 11.5px; font-weight: 500; color: #8b95a1; }
+.wonnie-fab--side .wonnie-fab__label strong { font-size: 15px; font-weight: 800; letter-spacing: -0.4px; }
+.wonnie-fab--side .wonnie-fab__label em { font-style: normal; color: #2d82ef; }
+.wonnie-fab--side:hover .wonnie-fab__label { background: #f9fafb; }
+
+/* compact: 1줄 작은 pill */
+.wonnie-fab--compact .wonnie-fab__label {
+  margin: 16px -24px 0 0;
+  padding: 7px 28px 7px 12px;
+  border-radius: 16px;
+}
+.wonnie-fab--compact .wonnie-fab__label strong { font-size: 13px; font-weight: 700; }
+
+/* auto: 2줄 카드가 옆으로 접혔다 펼쳐짐 */
+.wonnie-fab--auto .wonnie-fab__label {
+  max-width: 200px;
+  white-space: nowrap;
+  transition: max-width 0.35s ease, padding 0.35s ease, margin 0.35s ease, opacity 0.25s ease, border-width 0.35s;
+}
+
+/* auto: 접히면 캐릭터만 남음 */
+.wonnie-fab.is-collapsed .wonnie-fab__label {
+  max-width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  margin-right: 0;
+  border-width: 0;
+  opacity: 0;
+}
+
+/* --- mini: 캐릭터만 + 작은 AI 배지 --- */
+.wonnie-fab--mini .wonnie-fab__label {
+  position: absolute;
+  top: 12px;
+  left: -4px;
+  margin: 0;
+  padding: 2px 6px;
+  border-width: 1.5px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+/* 진입 말풍선: 홈 카드와 같은 흰 카드 */
+.wonnie-fab__bubble {
+  position: absolute;
+  right: calc(100% + 6px);
+  top: 26px;
+  padding: 10px 13px;
+  border-radius: 14px;
+  background: #fff;
+  color: #333d4b;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  animation: wonnie-bubble-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  pointer-events: none;
+}
+.wonnie-fab__bubble b { color: #2d82ef; font-weight: 800; }
+.wonnie-fab__bubble::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-right: 0;
+  border-left-color: #fff;
+}
+.wonnie-fab__bubble.is-out { opacity: 0; transform: translateX(6px); }
+@keyframes wonnie-bubble-in {
+  from { opacity: 0; transform: translateX(8px) scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ===== 구독 결제 알림 (넛지) ===== */
+.wonnie-fab__badge {
+  position: absolute;
+  top: 12px;
+  right: 0;
+  z-index: 3;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border-radius: 10px;
+  border: 2px solid #fff;
+  background: #f04452;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 15px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(240, 68, 82, 0.45);
+  animation: wonnie-badge-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes wonnie-badge-pop {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
+}
+/* 알림이 오면 워니 자세가 바뀜:
+   ① 깜짝 놀라 위로 '폴짝' (한 번) → ② 이후 2.4초마다 종을 흔들며 들썩
+   ③ 머리 위에 빨간 느낌표, 들어 올린 손에 금색 종 */
+.wonnie-fab.is-nudge .wonnie-fab__squash {
+  animation:
+    wonnie-surprise 0.7s cubic-bezier(0.34, 1.56, 0.64, 1),
+    wonnie-call 2.4s ease-in-out 0.7s infinite;
+}
+.wonnie-fab.is-nudge .wonnie .wonnie__img { animation: none; } /* 기본 둥실 대신 알림 자세 */
+@keyframes wonnie-surprise {
+  0% { transform: translateY(0) scale(1, 1); }
+  30% { transform: translateY(2px) scale(1.12, 0.86); }
+  60% { transform: translateY(-14px) scale(0.92, 1.1) rotate(-6deg); }
+  100% { transform: translateY(-4px) scale(1, 1) rotate(-8deg); }
+}
+@keyframes wonnie-call {
+  0%, 100% { transform: translateY(-4px) rotate(-8deg); }
+  10% { transform: translateY(-9px) rotate(-12deg); }
+  20% { transform: translateY(-4px) rotate(-4deg); }
+  30% { transform: translateY(-8px) rotate(-12deg); }
+  42% { transform: translateY(-4px) rotate(-8deg); }
+}
+.wonnie-fab.is-nudge .wonnie-fab__circle::after { border-color: rgba(240, 68, 82, 0.6); animation-duration: 1.6s; }
+.wonnie-fab__alert { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.wonnie-fab__mark {
+  position: absolute;
+  left: -6px;
+  top: 4px;
+  transform-origin: 50% 100%;
+  animation: wonnie-mark 0.5s cubic-bezier(0.34, 1.8, 0.64, 1) both, wonnie-mark-bob 1.2s ease-in-out 0.5s infinite;
+  filter: drop-shadow(0 1px 1px rgba(160, 20, 30, 0.35));
+}
+@keyframes wonnie-mark {
+  from { transform: scale(0) rotate(-30deg); }
+  to { transform: scale(1) rotate(-14deg); }
+}
+@keyframes wonnie-mark-bob {
+  0%, 100% { transform: rotate(-14deg) translateY(0); }
+  50% { transform: rotate(-10deg) translateY(-3px); }
+}
+.wonnie-fab__bell {
+  position: absolute;
+  right: -8px;
+  top: 30px;
+  transform-origin: 50% 8%;
+  animation: wonnie-bell-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both, wonnie-bell-ring 2.4s ease-in-out 0.7s infinite;
+  filter: drop-shadow(0 2px 2px rgba(120, 80, 0, 0.3));
+}
+@keyframes wonnie-bell-in {
+  from { transform: scale(0) rotate(30deg); }
+  to { transform: scale(1) rotate(0); }
+}
+@keyframes wonnie-bell-ring {
+  0%, 46%, 100% { rotate: 0deg; }
+  6% { rotate: 22deg; }
+  14% { rotate: -20deg; }
+  22% { rotate: 16deg; }
+  30% { rotate: -12deg; }
+  38% { rotate: 6deg; }
+}
+/* 알림 중 배지는 원 오른쪽 위 (종과 겹치지 않게 조금 위) */
+.wonnie-fab.is-nudge .wonnie-fab__badge { top: 4px; right: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wonnie-fab, .wonnie-fab *, .wonnie-fab *::after { animation: none !important; transition: none !important; }
+  .wonnie-fab__circle::after { opacity: 0; }
+  .wonnie-fab:hover .wonnie-fab__body { transform: none; }
+}

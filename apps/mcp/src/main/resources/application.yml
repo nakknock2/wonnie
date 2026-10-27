@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: wonnie-mcp
+  ai:
+    mcp:
+      server:
+        name: wonnie-mcp
+        version: 0.0.1
+        type: SYNC
+        protocol: STREAMABLE
+        instructions: >-
+          카드·구독·고객 정보의 데모 금융 상담용 읽기 도구를 제공합니다.
+          모든 상품과 고객 기록은 샘플 데이터이며 실제 상품 조건이 아닙니다.
+          금액 계산과 사실 조회는 도구 결과에 근거합니다. 정보가 없으면 미확인으로 안내합니다.
+          캘린더·결제수단 변경·해지·이체 도구는 제공하지 않습니다.
+        capabilities:
+          tool: true
+          resource: false
+          prompt: false
+          completion: false
+        streamable-http:
+          mcp-endpoint: /mcp
+
+server:
+  address: 127.0.0.1
+  port: ${MCP_PORT:8081}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+app:
+  api:
+    base-url: ${WONNIE_API_BASE_URL:http://localhost:8080}
+    connect-timeout: 3s
+    read-timeout: 10s

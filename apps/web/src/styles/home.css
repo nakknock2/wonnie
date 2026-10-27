@@ -1,0 +1,579 @@
+/* ===== 공통 색상 ===== */
+.app {
+  --blue: #2d82ef;
+  --blue-press: #1f6fd6;
+  --text: #191f28;
+  --text-2: #4e5968;
+  --text-3: #8b95a1;
+  --line: #e5e8eb;
+  --bg: #f2f3f5;
+
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+/* 눌림 효과: 모든 버튼에 공통 적용 */
+.app button {
+  transition: transform 0.12s ease, background-color 0.15s ease, filter 0.15s ease, opacity 0.15s ease;
+}
+.app button:active { transform: scale(0.96); }
+
+/* ===== 헤더 ===== */
+.app-header {
+  flex: 0 0 auto;
+  height: 56px;
+  padding: 0 14px 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg);
+  z-index: 30;
+}
+.mode-toggle {
+  display: flex;
+  padding: 3px;
+  border-radius: 999px;
+  background: #7e858e;
+}
+.mode-toggle__btn {
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.3px;
+}
+.mode-toggle__btn.is-active { background: #fff; color: var(--text); }
+.app .mode-toggle__btn:active { transform: none; }
+
+.header-icons { display: flex; align-items: center; gap: 6px; }
+.icon-btn {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: #26292e;
+}
+.icon-btn:hover { background: rgba(0, 0, 0, 0.05); }
+.icon-btn--sm { width: 28px; height: 28px; color: #6b7684; }
+.badge-dot {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f04452;
+}
+
+/* ===== 스크롤 영역 ===== */
+.app-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 228px; /* 탭바(88) + 워니 상담 버튼 영역 */
+  background: #fff;
+  scrollbar-width: none;
+}
+.app-scroll::-webkit-scrollbar { display: none; }
+
+.top-bg { background: linear-gradient(180deg, var(--bg) 0, #e8f1fa 60%, #e3effa 100%); }
+
+/* ===== 이벤트 배너 ===== */
+.promo { padding: 6px 16px 0; }
+.promo-card {
+  position: relative;
+  height: 72px;
+  border-radius: 20px;
+  background: #fff;
+  overflow: hidden;
+}
+.promo-track {
+  display: flex;
+  height: 100%;
+  transition: transform 0.45s cubic-bezier(0.22, 0.8, 0.3, 1);
+  touch-action: pan-y;
+  cursor: pointer;
+  user-select: none;
+}
+.promo-slide {
+  flex: 0 0 100%;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 0 44px 0 16px;
+}
+.promo-icon {
+  flex: 0 0 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+}
+.promo-icon svg { width: 26px; height: 26px; }
+.promo-text {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.42;
+  letter-spacing: -0.4px;
+  color: #26292e;
+  white-space: nowrap;
+}
+.close-btn {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: #6b7684;
+}
+.close-btn:hover { background: #f2f4f6; }
+.promo-close { top: 6px; right: 6px; }
+
+.dots { display: flex; justify-content: center; gap: 6px; padding: 10px 0 0; }
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: #6b7684;
+  opacity: 0.75;
+}
+.dot.is-active { width: 16px; background: #191f28; opacity: 1; }
+.app .dot:active { transform: none; }
+
+/* ===== 일러스트 영역 ===== */
+.hero {
+  position: relative;
+  height: 112px;
+  overflow: hidden;
+}
+.hero-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.leaf {
+  position: absolute;
+  top: -14px;
+  width: 9px;
+  height: 12px;
+  border-radius: 0 100% 0 100%;
+  animation: leaf-fall linear infinite;
+  z-index: 1;
+  opacity: 0;
+}
+@keyframes leaf-fall {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 1; }
+  50%  { transform: translate(14px, 60px) rotate(160deg); }
+  85%  { opacity: 1; }
+  100% { transform: translate(-6px, 120px) rotate(320deg); opacity: 0; }
+}
+
+.flame { transform-box: fill-box; transform-origin: 50% 100%; animation: flicker 0.9s ease-in-out infinite alternate; }
+.flame--2 { animation-duration: 0.6s; }
+@keyframes flicker {
+  from { transform: scale(1, 1); }
+  to   { transform: scale(0.92, 1.08) skewX(-3deg); }
+}
+
+.hero-actions {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  z-index: 2;
+}
+.hero-pill {
+  height: 32px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 16px;
+  background: rgba(255, 249, 240, 0.9);
+  font-size: 14.5px;
+  font-weight: 500;
+  color: #333d4b;
+  letter-spacing: -0.3px;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+.hero-pill:hover { background: #fff; }
+.hero-pill__gear { color: #6b7684; }
+
+/* 토글 스위치 */
+.switch-input { position: absolute; opacity: 0; pointer-events: none; }
+.switch {
+  position: relative;
+  width: 30px;
+  height: 18px;
+  border-radius: 9px;
+  background: #c4cad1;
+  transition: background 0.2s;
+}
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+}
+.switch-input:checked + .switch { background: var(--blue); }
+.switch-input:checked + .switch::after { transform: translateX(12px); }
+.switch-input:focus-visible + .switch { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* ===== 본문 ===== */
+.content {
+  padding: 0 16px;
+  background: linear-gradient(180deg, #e3effa 0, #eef4fb 260px, #f7f9fb 520px, #fff 760px);
+}
+.card {
+  position: relative;
+  background: #fff;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+
+/* 다른 은행 계좌 카드 */
+.other-bank { padding: 18px 16px 16px; text-align: center; animation: fade-in 0.3s ease; }
+.other-bank__close { top: 10px; right: 8px; }
+.bank-stack { display: flex; justify-content: center; margin-bottom: 14px; }
+.bank-chip {
+  width: 31px;
+  height: 31px;
+  margin-left: -6px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 800;
+}
+.bank-chip:first-child { margin-left: 0; }
+.bank-chip--more { background: #e5e8eb; color: #8b95a1; font-size: 10px; letter-spacing: 1px; }
+.other-bank__text {
+  font-size: 15px;
+  line-height: 1.5;
+  color: #333d4b;
+  letter-spacing: -0.4px;
+  margin-bottom: 14px;
+}
+.btn-primary {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 17px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+.btn-primary:hover { background: var(--blue-press); }
+
+/* 계좌 카드 */
+.account { display: flex; gap: 12px; padding: 18px 16px 16px; }
+.account__logo {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #d3e8fb;
+  display: grid;
+  place-items: center;
+  margin-top: 2px;
+}
+.account__logo-img { display: block; width: 24px; height: 24px; border-radius: 50%; }
+.account__body { flex: 1; min-width: 0; }
+.account__top { display: flex; justify-content: space-between; align-items: center; }
+.account__name { font-size: 17px; font-weight: 700; letter-spacing: -0.4px; }
+.account__menu-wrap { position: relative; }
+.account__number {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  font-size: 14.5px;
+  color: var(--text-3);
+  letter-spacing: -0.2px;
+}
+.account__number:hover { color: var(--text-2); }
+.account__tags { margin-top: 8px; display: flex; gap: 6px; }
+.tag {
+  padding: 4px 8px;
+  border-radius: 11px;
+  background: #f2f4f6;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+.account__bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+.app .account__balance:active { transform: none; opacity: 0.6; }
+.balance { font-size: 23px; font-weight: 800; letter-spacing: -0.6px; color: var(--text); }
+.balance small { font-size: 19px; font-weight: 700; margin-left: 1px; }
+.balance--hidden { color: #8b95a1; }
+.btn-outline {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 16px;
+  border: 1px solid #d1d6db;
+  background: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333d4b;
+}
+.btn-outline:hover { background: #f9fafb; }
+
+/* 계좌 더보기 메뉴 */
+.popover {
+  position: absolute;
+  top: 30px;
+  right: 0;
+  width: 156px;
+  padding: 6px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  z-index: 10;
+  animation: fade-in 0.15s ease;
+}
+.popover button {
+  width: 100%;
+  padding: 10px 10px;
+  border-radius: 8px;
+  text-align: left;
+  font-size: 14px;
+}
+.popover button:hover { background: #f2f4f6; }
+
+.btn-block {
+  width: 100%;
+  height: 48px;
+  border-radius: 14px;
+  border: 1px solid #dfe3e7;
+  background: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  color: #333d4b;
+  letter-spacing: -0.3px;
+}
+.btn-block:hover { background: #f9fafb; }
+
+/* 적금 프로모션 */
+.savings-promo {
+  width: 100%;
+  margin-top: 40px;
+  padding: 22px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+  border-radius: 20px;
+  background: #fdf5dc;
+}
+.savings-promo:hover { filter: brightness(0.98); }
+.savings-promo__title { font-size: 18px; font-weight: 800; letter-spacing: -0.4px; }
+.savings-promo__sub { margin-top: 4px; font-size: 14px; color: var(--text-2); }
+.savings-promo__art { font-size: 40px; line-height: 1; }
+
+/* 가로 스크롤 공통 */
+.h-scroll {
+  display: flex;
+  gap: 12px;
+  margin: 0 -16px;
+  padding: 0 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 16px;
+  scrollbar-width: none;
+}
+.h-scroll::-webkit-scrollbar { display: none; }
+
+/* 서비스 묶음 카드 */
+.service-carousel { margin-top: 28px; }
+.service-group {
+  flex: 0 0 288px;
+  scroll-snap-align: start;
+  padding: 10px 14px;
+  border-radius: 20px;
+}
+.service-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 2px;
+  text-align: left;
+  border-radius: 14px;
+}
+.service-item:hover { background: rgba(255, 255, 255, 0.45); }
+.service-item__icon {
+  flex: 0 0 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+}
+.service-item__text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.service-item__text strong { font-size: 16px; font-weight: 700; letter-spacing: -0.4px; }
+.service-item__text em {
+  font-style: normal;
+  font-size: 13px;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 금융그룹 서비스 */
+.group-services { margin-top: 36px; }
+.section-title { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 14px; }
+.group-scroll { padding-bottom: 4px; }
+.group-card {
+  position: relative;
+  flex: 0 0 136px;
+  height: 162px;
+  padding: 18px 16px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+.group-card:hover { background: #fafbfc; }
+.group-card strong { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
+.group-card span { font-size: 15px; line-height: 1.4; color: var(--text-2); letter-spacing: -0.3px; }
+.group-card__art { position: absolute; right: 14px; bottom: 12px; font-size: 32px; font-style: normal; }
+
+/* 공지 */
+.notice {
+  width: 100%;
+  margin-top: 28px;
+  height: 54px;
+  padding: 0 14px 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: #fff;
+  text-align: left;
+}
+.notice:hover { background: #fafbfc; }
+.notice__badge {
+  flex: 0 0 auto;
+  padding: 4px 9px;
+  border-radius: 11px;
+  background: #6b7684;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+.notice__text {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notice__chev { flex: 0 0 auto; color: var(--text-2); }
+
+.footer-note { margin: 22px 0 6px; text-align: center; font-size: 11.5px; color: #b0b8c1; }
+
+/* 준비 중 탭 화면 */
+.placeholder {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  padding-bottom: 40px;
+  animation: fade-in 0.25s ease;
+}
+.placeholder__title { font-size: 22px; font-weight: 800; }
+.placeholder__desc { font-size: 15px; line-height: 1.5; color: var(--text-3); }
+
+/* ===== 하단 탭 ===== */
+.bottom-nav {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 88px;
+  padding: 8px 6px 24px;
+  display: flex;
+  background: var(--bg);
+  border-top: 1px solid rgba(0, 0, 0, 0.03);
+  z-index: 20;
+}
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: #4e5968;
+}
+.tab span { font-size: 11.5px; font-weight: 600; letter-spacing: -0.2px; }
+.tab.is-active { color: var(--blue); }
+.app .tab:active { transform: scale(0.9); }
+
+/* ===== 토스트 ===== */
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: 104px;
+  transform: translate(-50%, 12px);
+  max-width: 320px;
+  padding: 11px 16px;
+  border-radius: 12px;
+  background: rgba(25, 31, 40, 0.92);
+  color: #fff;
+  font-size: 14px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 60;
+}
+.toast.is-show { opacity: 1; transform: translate(-50%, 0); }
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ===== 쉬운 홈 모드: 글자/요소를 크게 ===== */
+.app.is-easy .content,
+.app.is-easy .promo { zoom: 1.1; }
+.app.is-easy .tab span { font-size: 13px; }
+.app.is-easy .balance { font-size: 26px; }
+
