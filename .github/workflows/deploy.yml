@@ -111,7 +111,13 @@ jobs:
             --project-name wonnie \
             --env-file "$root/shared/.env" \
             --file infra/docker-compose.prod.yml \
-            up --detach --build --remove-orphans --wait --wait-timeout 300
+            build --no-cache web
+
+          SPRING_PROFILES_ACTIVE=prod,google-oidc docker compose \
+            --project-name wonnie \
+            --env-file "$root/shared/.env" \
+            --file infra/docker-compose.prod.yml \
+            up --detach --force-recreate --remove-orphans --wait --wait-timeout 300
 
           curl --fail --silent --show-error http://127.0.0.1:8083/actuator/health
           curl --fail --silent --show-error http://127.0.0.1:3003/ >/dev/null
