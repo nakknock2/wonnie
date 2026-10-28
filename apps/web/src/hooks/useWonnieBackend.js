@@ -3,8 +3,9 @@ import { mergeChatMessages, toChatMessage, wonnieApi } from '../services/wonnieA
 import { ASSISTANT_EVENT_TYPES } from '../services/assistantEvents.ts';
 
 const TYPEWRITER_INTERVAL_MS = 16;
-const REQUEST_RECOVERY_IDLE_MS = 5_000;
-const REQUEST_RECOVERY_RETRY_MS = 2_000;
+const REQUEST_RECOVERY_IDLE_MS = 15_000;
+const REQUEST_RECOVERY_RETRY_INITIAL_MS = 5_000;
+const REQUEST_RECOVERY_RETRY_MAX_MS = 30_000;
 
 const newRequestId = () => globalThis.crypto?.randomUUID?.()
   || 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (letter) => {
@@ -192,13 +193,23 @@ export default function useWonnieBackend(open) {
         if (controller.signal.aborted || activeRequest.current !== job) return;
         await recoverRequest(job.requestId);
         if (!controller.signal.aborted && activeRequest.current === job) {
-          scheduleRequestRecovery(job, REQUEST_RECOVERY_RETRY_MS);
+          const retryAttempt = job.recoveryAttempts ?? 0;
+          const retryDelay = Math.min(
+            REQUEST_RECOVERY_RETRY_INITIAL_MS * (2 ** retryAttempt),
+            REQUEST_RECOVERY_RETRY_MAX_MS,
+          );
+          job.recoveryAttempts = retryAttempt + 1;
+          scheduleRequestRecovery(job, retryDelay);
         }
       }, delay);
     };
 
     const recoveryControl = {
-      touch: (job) => scheduleRequestRecovery(job),
+      touch: (job) => {
+        // Any SSE progress means the stream is healthy, so restart the longer silence watchdog.
+        job.recoveryAttempts = 0;
+        scheduleRequestRecovery(job);
+      },
       clear: () => clearRequestRecovery(),
     };
     requestRecoveryControl.current = recoveryControl;
@@ -456,6 +467,7 @@ export default function useWonnieBackend(open) {
       time: new Intl.DateTimeFormat('ko-KR', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()),
       userMessageId: null,
       assistantMessageId: null,
+      recoveryAttempts: 0,
     };
     activeRequest.current = job;
     sendingRef.current = true;

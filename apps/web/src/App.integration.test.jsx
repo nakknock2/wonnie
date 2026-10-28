@@ -294,7 +294,7 @@ describe('merged final frontend backend connection', () => {
       partialAnswer: '', exchange: { userMessage, assistantMessage },
     });
 
-    await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(15_000); });
 
     expect(within(chat).getByText('상태 조회로 복구한 최종 답변')).toBeInTheDocument();
     expect(requestLog.filter((entry) => entry.path === `/api/assistant/requests/${request.requestId}`)).toHaveLength(1);
@@ -319,9 +319,34 @@ describe('merged final frontend backend connection', () => {
       requestId: request.requestId, status: 'COMPLETED', lastSequence: 3,
       partialAnswer: '', exchange: { userMessage, assistantMessage },
     });
-    await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(15_000); });
 
     expect(within(chat).getByText('도착한 일부 뒤의 최종 답변')).toBeInTheDocument();
+  });
+  it('waits for SSE before polling and backs off repeated running checks', async () => {
+    enableFakeEventSource();
+    render(<App />);
+    const chat = await openChat();
+    vi.useFakeTimers();
+    const request = await sendQuestion(chat, '느린 답변 질문');
+    const statusRequests = () => requestLog.filter(
+      (entry) => entry.path === `/api/assistant/requests/${request.requestId}`,
+    );
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(14_999); });
+    expect(statusRequests()).toHaveLength(0);
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(statusRequests()).toHaveLength(1);
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(4_999); });
+    expect(statusRequests()).toHaveLength(1);
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(statusRequests()).toHaveLength(2);
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(9_999); });
+    expect(statusRequests()).toHaveLength(2);
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(statusRequests()).toHaveLength(3);
   });
   it('cancels recovery polling after a normal SSE completion and accepts the next question', async () => {
     enableFakeEventSource();
@@ -338,7 +363,7 @@ describe('merged final frontend backend connection', () => {
     )));
     expect(within(chat).getByText('정상 SSE 최종 답변')).toBeInTheDocument();
 
-    await act(async () => { await vi.advanceTimersByTimeAsync(7_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(20_000); });
     expect(requestLog.filter((entry) => entry.path.startsWith('/api/assistant/requests/'))).toHaveLength(0);
     await sendQuestion(chat, '다음 질문');
     expect(requestLog.filter((entry) => entry.path === '/api/assistant/requests')).toHaveLength(2);
@@ -353,15 +378,15 @@ describe('merged final frontend backend connection', () => {
       requestId: cancelled.requestId, status: 'CANCELLED', lastSequence: 0,
       partialAnswer: '', exchange: null,
     });
-    await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(15_000); });
     expect(within(chat).getByText('답변 생성을 취소했어요. 질문을 입력창에서 다시 확인해 주세요.')).toBeInTheDocument();
     const cancelledChecks = requestLog.filter((entry) => entry.path === `/api/assistant/requests/${cancelled.requestId}`).length;
-    await act(async () => { await vi.advanceTimersByTimeAsync(7_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(35_000); });
     expect(requestLog.filter((entry) => entry.path === `/api/assistant/requests/${cancelled.requestId}`)).toHaveLength(cancelledChecks);
 
     const active = await sendQuestion(chat, '언마운트 질문');
     view.unmount();
-    await act(async () => { await vi.advanceTimersByTimeAsync(7_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(35_000); });
     expect(requestLog.filter((entry) => entry.path === `/api/assistant/requests/${active.requestId}`)).toHaveLength(0);
   });
   it('fills the original subscription card from server results after consent', async () => {
