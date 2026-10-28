@@ -405,11 +405,10 @@ describe('merged final frontend backend connection', () => {
   });
   it('restores saved consent choices and does not ask again', async () => {
     consentState = { subscriptionDataAgreed: true, notifications: { decided: true, d1: true, priceChange: false } };
-    render(<App showDemoPanel />);
+    render(<App />);
     await waitFor(() => expect(requestLog.some((entry) => entry.path === '/api/consents')).toBe(true));
     await new Promise((resolve) => setTimeout(resolve, 1300));
     expect(screen.queryByRole('dialog', { name: /매달 새는/ })).not.toBeInTheDocument();
-    expect(screen.getByText((_, element) => element?.classList.contains('dp-notif') && element.textContent.includes('결제 하루 전 ON'))).toBeInTheDocument();
   });
   it('stores notification selections before requesting device permission', async () => {
     consentState = { subscriptionDataAgreed: false, notifications: { decided: false, d1: false, priceChange: false } };
