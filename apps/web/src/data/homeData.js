@@ -1,5 +1,3 @@
-import wooriLogo from '../assets/woori-logo.png';
-
 // 화면에 들어가는 텍스트/데이터는 전부 여기서 관리합니다.
 // 브랜드명, 계좌번호, 배너 문구 등은 이 파일만 바꾸면 화면 전체에 반영됩니다.
 
@@ -28,7 +26,7 @@ export const MAIN_ACCOUNT = {
   name: 'WON 통장',
   bank: '우리',
   number: '1002-123-456789',  // 가상의 계좌번호
-  logoSrc: wooriLogo,         // 우리은행 로고 (src/assets/woori-logo.png)
+  logoSrc: '/woori-logo.png', // 우리은행 로고 (public/woori-logo.png)
   tags: ['한도제한'],
   balance: 1284500,
 };
