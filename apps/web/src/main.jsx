@@ -7,7 +7,7 @@ const root = createRoot(document.getElementById('root'));
 Promise.all([import('./App.jsx'), import('./styles/global.css')]).then(([{ default: ServiceApp }]) => {
   root.render(
     <StrictMode>
-      <AuthGate>{(user) => <ServiceApp showDemoPanel={false} user={user} />}</AuthGate>
+      <AuthGate>{(user) => <ServiceApp showDemoGuide user={user} />}</AuthGate>
     </StrictMode>,
   );
 });

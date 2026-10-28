@@ -67,16 +67,3 @@ function reducer(s, a) {
 export default function useDemo() {
   return useReducer(reducer, initialDemo);
 }
-
-// 데모 패널 체크리스트
-export const STEPS = [
-  { key: 'consent', label: '앱 진입 · 동의', done: (s) => s.consented },
-  { key: 'scan', label: '구독 현황 (7개 · 월 61,300원)', done: (s) => s.scanned },
-  { key: 'notif', label: '알림 동의 (D-1 · 인상)', done: (s) => s.notif.asked },
-  { key: 'remind', label: '결제 D-1 알림', done: (s) => s.reminderSent },
-  { key: 'cancel', label: '"아니" → 왓챠 해지', done: (s) => s.cancelled },
-  { key: 'day', label: '날짜 넘기기', done: (s) => s.day >= 1 },
-  { key: 'check', label: '결제 안 된 것 확인', done: (s) => s.resultShown },
-  { key: 'transfer', label: '적금 모의 이체', done: (s) => s.transferred },
-  { key: 'total', label: '누적 절약액', done: (s) => s.transferred },
-];
