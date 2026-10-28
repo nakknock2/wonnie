@@ -48,6 +48,11 @@ class SubscriptionCheckoutServiceTests {
         var result = checkout.subscribe(customerId, requestId, "넷플릭스", "STANDARD", issued.cardId(), true);
         assertThat(result.status()).isEqualTo("APPROVED");
         assertThat(result.created()).isTrue();
+        assertThat(result.listPrice()).isEqualByComparingTo("13500");
+        assertThat(result.cardDiscount()).isEqualByComparingTo("5000");
+        assertThat(result.discountedPrice()).isEqualByComparingTo("8500");
+        assertThat(result.monthlySaved()).isEqualByComparingTo("5000");
+        assertThat(result.recommendation().name()).isEqualTo("워니 절약 적금");
         assertThat(result.subscriptions()).singleElement().satisfies(item -> {
             assertThat(item.name()).isEqualTo("넷플릭스");
             assertThat(item.plan()).isEqualTo("스탠다드");

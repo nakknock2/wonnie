@@ -388,6 +388,18 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onCons
       service: service.serviceName, planCode: plan.code, cardId: card.id,
     });
     say(mk('assistant', 'subscription-complete', { result }), 350);
+    const saved = Number(result.monthlySaved ?? result.recommendation?.monthlyAmount ?? 0);
+    if (saved > 0) {
+      say(mk('assistant', 'offer', {
+        subscription: {
+          id: `card-saving-${result.subscriptionId}`,
+          name: result.serviceName,
+          price: saved,
+          savingReason: 'CARD_DISCOUNT',
+          cardName: result.cardName,
+        },
+      }), 650);
+    }
     return result;
   };
 
@@ -741,13 +753,16 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onCons
         );
       case 'offer': {
         const subscription = m.subscription ?? WATCHA;
+        const cardSaving = subscription.savingReason === 'CARD_DISCOUNT';
         const answered = demo.savedItems.some((item) => item.id === subscription.id)
           || declinedOffers.includes(subscription.id)
           || (transferOpen && transferTarget.id === subscription.id);
         return (
           <Reply intro="워니의 제안">
             <div className="wc-bubble wc-bubble--assistant wc-bubble--wide">
-              <b>{subscription.name} {won(Number(subscription.price))} 아꼈어요 🎉</b>{'\n'}그만큼 워니 절약 적금에 넣을까요?
+              <b>{cardSaving
+                ? `${subscription.name}를 ${subscription.cardName} 카드로 결제해 정가보다 ${won(Number(subscription.price))} 아꼈어요 🎉`
+                : `${subscription.name} ${won(Number(subscription.price))} 아꼈어요 🎉`}</b>{'\n'}그만큼 워니 절약 적금에 넣을까요?
             </div>
             <div className="wc-choices">
               <button type="button" disabled={answered} onClick={() => declineOffer(subscription)} tabIndex={tab}>다음에</button>
@@ -759,6 +774,7 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onCons
       case 'saved':
         {
           const subscription = m.subscription ?? WATCHA;
+          const cardSaving = subscription.savingReason === 'CARD_DISCOUNT';
         return (
           <Reply intro={`${SAVINGS.name}에 ${won(m.amount)}을 넣었어요 🌱`}>
             <div className="wc-card wc-saved">
@@ -767,9 +783,9 @@ export default function WonnieChatScreen({ open, request, demo, dispatch, onCons
               <div className="wc-saved__bar"><i style={{ width: `${Math.min(100, (demo.savedTotal / 100000) * 100)}%` }} /></div>
               <span className="wc-saved__goal">첫 목표 100,000원까지 {won(Math.max(0, 100000 - demo.savedTotal))}</span>
               <dl>
-                <div><dt>정리한 구독</dt><dd>{demo.savedItems.map((i) => i.name).join(', ') || '-'}</dd></div>
+                <div><dt>{cardSaving ? '절약한 항목' : '정리한 구독'}</dt><dd>{demo.savedItems.map((i) => i.name).join(', ') || '-'}</dd></div>
                 <div><dt>월 구독료</dt><dd><s>{won(MONTHLY_TOTAL)}</s> → <b>{won(activeTotal)}</b></dd></div>
-                <div><dt>이번에 정리한 구독</dt><dd>{subscription.name}</dd></div>
+                <div><dt>{cardSaving ? '이번 카드 할인' : '이번에 정리한 구독'}</dt><dd>{subscription.name}</dd></div>
                 <div><dt>1년 유지하면</dt><dd className="is-blue">{won(Number(subscription.price) * 12)} 절약</dd></div>
                 <div><dt>{SAVINGS.name}</dt><dd>{won(demo.savingsBalance)}</dd></div>
               </dl>

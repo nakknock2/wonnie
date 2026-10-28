@@ -101,7 +101,7 @@ public class SubscriptionCheckoutService {
                     || !selectedPlan.billingCycle().equals(existing.billingCycle())) {
                 throw conflict("이미 다른 결제에 사용된 요청 ID예요. 결제 내용을 다시 확인해 주세요.");
             }
-            return result(customerId, subscriptionId, cardId, service.name(), selectedPlan, false);
+            return result(customerId, subscriptionId, cardId, service.id(), service.name(), selectedPlan, false);
         }
 
         var card = jdbc.query("""
@@ -146,7 +146,7 @@ public class SubscriptionCheckoutService {
                 WHERE id=? AND customer_id=?
                 """, selectedPlan.price(), selectedPlan.price(), card.id(), customerId);
         saveConsent(customerId, "SUBSCRIPTION_PURCHASE", true);
-        return result(customerId, subscriptionId, card.id(), service.name(), selectedPlan, true);
+        return result(customerId, subscriptionId, card.id(), service.id(), service.name(), selectedPlan, true);
     }
 
     @Transactional
@@ -180,13 +180,32 @@ public class SubscriptionCheckoutService {
                         monthlySaved.multiply(BigDecimal.valueOf(12)), "해지로 아낀 금액을 매달 모을 수 있어요."));
     }
 
-    private CheckoutResult result(String customerId, String subscriptionId, String cardId, String serviceName, PlanOption selectedPlan,
-            boolean created) {
+    private CheckoutResult result(String customerId, String subscriptionId, String cardId, String serviceId,
+            String serviceName, PlanOption selectedPlan, boolean created) {
         var cardName = jdbc.queryForObject("""
                 SELECT p.name FROM card c JOIN card_product p ON p.id=c.card_product_id WHERE c.id=?
                 """, String.class, cardId);
+        var cardDiscount = cardDiscount(cardId, serviceId, selectedPlan.price());
+        var discountedPrice = selectedPlan.price().subtract(cardDiscount);
+        var monthlySaved = cardDiscount.divide(BigDecimal.valueOf(selectedPlan.billingMonths()), 0, RoundingMode.HALF_UP);
         return new CheckoutResult(subscriptionId, serviceName, selectedPlan, cardId, cardName,
-                selectedPlan.price(), clock.today(), "APPROVED", created, subscriptions(customerId));
+                selectedPlan.price(), selectedPlan.price(), cardDiscount, discountedPrice, monthlySaved,
+                clock.today(), "APPROVED", created, subscriptions(customerId),
+                new SavingsRecommendation("워니 절약 적금", "DEPOSIT", monthlySaved,
+                        monthlySaved.multiply(BigDecimal.valueOf(12)),
+                        "카드 할인으로 아낀 금액을 매달 모을 수 있어요."));
+    }
+
+    private BigDecimal cardDiscount(String cardId, String serviceId, BigDecimal price) {
+        return jdbc.query("""
+                SELECT b.discount_rate,b.monthly_cap
+                FROM card c JOIN card_product_benefit b ON b.card_product_id=c.card_product_id
+                WHERE c.id=? AND (b.service_id=? OR b.service_id IS NULL)
+                ORDER BY CASE WHEN b.service_id=? THEN 0 ELSE 1 END,b.discount_rate DESC LIMIT 1
+                """, (rs, rowNum) -> price.multiply(rs.getBigDecimal("discount_rate"))
+                        .divide(new BigDecimal("100"), 0, RoundingMode.DOWN)
+                        .min(rs.getBigDecimal("monthly_cap"))
+                        .min(price), cardId, serviceId, serviceId).stream().findFirst().orElse(BigDecimal.ZERO);
     }
 
     private List<SubscriptionItem> subscriptions(String customerId) {
@@ -314,8 +333,10 @@ public class SubscriptionCheckoutService {
                                    LocalDate nextPaymentDate, String status, String color, String letter,
                                    String cardName, String maskedNumber) {}
     public record CheckoutResult(String subscriptionId, String serviceName, PlanOption plan, String cardId,
-                                 String cardName, BigDecimal approvedAmount, LocalDate approvedOn, String status,
-                                 boolean created, List<SubscriptionItem> subscriptions) {}
+                                 String cardName, BigDecimal approvedAmount, BigDecimal listPrice,
+                                 BigDecimal cardDiscount, BigDecimal discountedPrice, BigDecimal monthlySaved,
+                                 LocalDate approvedOn, String status, boolean created,
+                                 List<SubscriptionItem> subscriptions, SavingsRecommendation recommendation) {}
     public record CancellationResult(String subscriptionId, String serviceName, String status, LocalDate cancelledOn,
                                      BigDecimal monthlySaved, List<SubscriptionItem> subscriptions,
                                      SavingsRecommendation recommendation) {}

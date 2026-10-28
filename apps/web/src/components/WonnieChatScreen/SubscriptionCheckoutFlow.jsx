@@ -186,10 +186,11 @@ export function PaymentConsentSheet({ selection, onClose, onPay, onAuthenticate 
 
 export function SubscriptionCompleteCard({ result }) {
   const total = useMemo(() => result.subscriptions.reduce((sum, item) => sum + monthlySubscriptionAmount(item), 0), [result]);
+  const discount = Number(result.cardDiscount || 0);
   return (
     <div className="sc-box sc-complete">
       <div className="sc-complete-head"><i>✓</i><div><small>정기결제 승인 완료</small><strong>{result.serviceName} {result.plan.name}</strong></div><b>{won(result.approvedAmount)}</b></div>
-      <div className="sc-receipt"><span>결제 카드</span><b>{result.cardName}</b><span>다음 결제일</span><b>{result.subscriptions.find((item) => item.id === result.subscriptionId)?.nextPaymentDate}</b></div>
+      <div className="sc-receipt"><span>결제 카드</span><b>{result.cardName}</b><span>다음 결제일</span><b>{result.subscriptions.find((item) => item.id === result.subscriptionId)?.nextPaymentDate}</b>{discount > 0 && <><span>카드 할인</span><b className="is-blue">-{won(discount)} · 혜택가 {won(result.discountedPrice)}</b></>}</div>
       <div className="sc-current"><div><strong>현재 구독 중</strong><small>{result.subscriptions.length}개 · 월 환산 {won(total)}</small></div>{result.subscriptions.map((item) => <div className="sc-current-row" key={item.id}><i style={{ background: item.color }}>{item.letter}</i><span><b>{item.name}</b><small>{item.plan || '월간 요금제'} · {item.cardName}</small></span><strong>{won(item.price)}/{billingPeriod(item)}</strong></div>)}</div>
       <p className="sc-caption">결제와 카드 발급은 서비스 체험을 위한 모의 처리입니다.</p>
     </div>

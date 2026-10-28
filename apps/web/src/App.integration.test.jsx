@@ -97,7 +97,9 @@ beforeEach(() => {
     if (path === '/api/subscription-checkout/cards') { checkoutCardIssued = true; return response({ cardId: 'card-issued', productId: 'prd-daily', name: '카드의정석2 DAILY', maskedNumber: '****4321', annualFee: 25000, newlyIssued: true }); }
     if (path === '/api/subscription-checkout/subscriptions') return response({
       subscriptionId: 'sub-checkout', serviceName: '넷플릭스', plan: { code: 'STANDARD', name: '스탠다드', price: 13500 },
-      cardId: 'card-issued', cardName: '카드의정석2 DAILY', approvedAmount: 13500, approvedOn: '2026-10-27', status: 'APPROVED', created: true,
+      cardId: 'card-issued', cardName: '카드의정석2 DAILY', approvedAmount: 13500, listPrice: 13500, cardDiscount: 5000,
+      discountedPrice: 8500, monthlySaved: 5000, approvedOn: '2026-10-27', status: 'APPROVED', created: true,
+      recommendation: { name: '워니 절약 적금', type: 'DEPOSIT', monthlyAmount: 5000, yearlyAmount: 60000 },
       subscriptions: [{ id: 'sub-checkout', name: '넷플릭스', plan: '스탠다드', price: 13500, billingCycle: 'MONTHLY', nextPaymentDate: '2026-11-27', status: 'ACTIVE', color: '#e50914', letter: 'N', cardName: '카드의정석2 DAILY', maskedNumber: '****4321' }],
     });
     throw new Error(`Unexpected endpoint: ${path}`);
@@ -433,6 +435,8 @@ describe('merged final frontend backend connection', () => {
     expect(await within(chat).findByText('결제가 완료됐어요. 현재 구독 목록도 함께 정리했어요.', {}, { timeout: 6000 })).toBeInTheDocument();
     expect(within(chat).getByText('넷플릭스 스탠다드')).toBeInTheDocument();
     expect(within(chat).getByText('1개 · 월 환산 13,500원')).toBeInTheDocument();
+    expect(await within(chat).findByText(/카드의정석2 DAILY 카드로 결제해 정가보다 5,000원 아꼈어요/, {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(within(chat).getByRole('button', { name: '응, 넣어줘' })).toBeInTheDocument();
     expect(requestLog.some((entry) => entry.path === '/api/subscription-checkout/cards')).toBe(true);
     expect(requestLog.some((entry) => entry.path === '/api/subscription-checkout/subscriptions')).toBe(true);
   }, 12000);
