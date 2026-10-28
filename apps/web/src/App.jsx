@@ -4,16 +4,15 @@ import HomeScreen from "./components/HomeScreen.jsx";
 import WonnieChatFab from "./components/WonnieChatFab";
 import WonnieChatScreen from "./components/WonnieChatScreen/WonnieChatScreen.jsx";
 import ConsentSheet from "./components/Consent/Consent.jsx";
-import DemoPanel from "./demo/DemoPanel.jsx";
+import DemoGuidePanel from "./demo/DemoGuidePanel.jsx";
 import useDemo from "./demo/useDemo.js";
 import useSubscriptionNudge from "./hooks/useSubscriptionNudge.js";
 import useWonnieBackend from "./hooks/useWonnieBackend.js";
 import { WATCHA } from "./data/subscriptions.js";
 import { wonnieApi } from "./services/wonnieApi.js";
 
-export default function App({ showDemoPanel = false, user = null }) {
+export default function App({ showDemoGuide = true, user = null }) {
   const [demo, dispatch] = useDemo();
-  const [runId, setRunId] = useState(0); // 처음부터 → 폰 화면 전체 다시 그림
   const [chatOpen, setChatOpen] = useState(false);
   const [chatRequest, setChatRequest] = useState(null); // { id, mode }
   const [nudgeMode, setNudgeMode] = useState(null); // null | 'reminder' | 'result' | 'price'
@@ -41,7 +40,7 @@ export default function App({ showDemoPanel = false, user = null }) {
     if (!consentsLoaded || demo.consented) return undefined;
     const t = setTimeout(() => setConsentOpen(true), 1200);
     return () => clearTimeout(t);
-  }, [runId, consentsLoaded, demo.consented]);
+  }, [consentsLoaded, demo.consented]);
 
   const openChat = useCallback((mode = "default") => {
     setChatRequest({ id: Date.now() + Math.random(), mode });
@@ -49,7 +48,6 @@ export default function App({ showDemoPanel = false, user = null }) {
     setConsentOpen(false);
   }, []);
   const closeChat = useCallback(() => setChatOpen(false), []);
-  const startFaceId = useCallback(() => setFaceIdOpen(true), []);
   const requestFaceId = useCallback(() => new Promise((resolve) => {
     faceIdRequestRef.current?.(false);
     faceIdRequestRef.current = resolve;
@@ -84,30 +82,6 @@ export default function App({ showDemoPanel = false, user = null }) {
     deliver("reminder");
   }, [dispatch, deliver]);
 
-  const sendPrice = () => {
-    dispatch({ type: "PRICE_SENT" });
-    deliver("price");
-  };
-
-  const advanceDay = () => {
-    const nextDay = demo.day + 1;
-    dispatch({ type: "ADVANCE_DAY" });
-    // 왓챠 결제일이 된 날: 결제 결과 알림
-    if (demo.consented && nextDay === WATCHA.due) deliver("result");
-  };
-
-  const restart = () => {
-    dispatch({ type: "RESET" });
-    setChatOpen(false);
-    setChatRequest(null);
-    setNudgeMode(null);
-    setConsentOpen(false);
-    setFaceIdOpen(false);
-    faceIdRequestRef.current?.(false);
-    faceIdRequestRef.current = null;
-    setRunId((n) => n + 1);
-  };
-
   const agree = async () => {
     setConsentSaving(true);
     setConsentError(null);
@@ -130,28 +104,12 @@ export default function App({ showDemoPanel = false, user = null }) {
     !demo.reminderSent &&
     !demo.cancelled &&
     WATCHA.due - demo.day === 1;
-  const priceEvent = demo.scanned && demo.notif.price && !demo.priceSent;
   useSubscriptionNudge(d1Event, sendReminder);
 
   return (
-    <div className={showDemoPanel ? "stage stage--demo" : "stage"}>
-      {showDemoPanel && (
-        <DemoPanel
-          demo={demo}
-          canRemind={d1Event}
-          onRemind={sendReminder}
-          canPrice={priceEvent}
-          onPrice={sendPrice}
-          onAdvance={advanceDay}
-          onRestart={restart}
-          onScenarios={() => openChat("picker")}
-          onFaceId={startFaceId}
-          faceIdActive={faceIdOpen}
-        />
-      )}
-
+    <div className="stage">
       {/* PhoneFrame 의 children 은 폰 화면 컨테이너(.phone-screen)의 직계 자식으로 렌더링됨 */}
-      <PhoneFrame key={runId} faceIdOpen={faceIdOpen}
+      <PhoneFrame faceIdOpen={faceIdOpen}
         onFaceIdComplete={() => finishFaceId(true)} onFaceIdCancel={() => finishFaceId(false)}>
         <HomeScreen
           onOpenChat={() => openChat("default")}
@@ -184,6 +142,7 @@ export default function App({ showDemoPanel = false, user = null }) {
           onClose={closeChat}
         />
       </PhoneFrame>
+      {showDemoGuide && <DemoGuidePanel />}
     </div>
   );
 }
