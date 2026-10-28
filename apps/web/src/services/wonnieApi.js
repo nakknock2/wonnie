@@ -1,5 +1,3 @@
-import { resolveServiceLogo } from './serviceLogos.js';
-
 // Same-origin requests pass through Vite's /api proxy in development.
 const request = async (path, { timeout = 15000, signal, ...options } = {}) => {
   const controller = new AbortController();
@@ -109,7 +107,6 @@ export const toSubscriptionCard = (report, dashboard) => {
     subscriptions: report.data.subscriptions.map((sub) => {
       const visual = appearance.get(sub.id);
       const evidence = sub.contractEvidence;
-      const service = { id: sub.id, name: sub.name };
       return {
         id: sub.id,
         name: sub.name,
@@ -121,7 +118,6 @@ export const toSubscriptionCard = (report, dashboard) => {
         letter: visual?.initial || sub.name.slice(0, 1),
         color: visual?.brandColor || '#2789ec',
         card: evidence?.cardId || '',
-        logoSrc: resolveServiceLogo(service),
       };
     }),
   };
