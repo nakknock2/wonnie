@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { won } from '../../data/subscriptions.js';
+import ServiceLogo from '../ServiceLogo.jsx';
 
 export default function SubscriptionPauseSheet({ open, subscription, onClose, onComplete, onCancel, onAuthenticate }) {
   const [step, setStep] = useState('confirm');
@@ -39,7 +40,7 @@ export default function SubscriptionPauseSheet({ open, subscription, onClose, on
             <h2 id="pause-sheet-title">{subscription.name} 구독을 해지할까요?</h2>
             <p className="pause-sheet__reason">{subscription.reason}</p>
             <div className="pause-sheet__service">
-              <span style={{ background: subscription.color }}>{subscription.letter}</span>
+              <ServiceLogo service={subscription} size={42} />
               <div><strong>{subscription.name}</strong><small>월 {won(Number(subscription.price))}</small></div>
             </div>
             <p className="ts-mock">모의 해지예요 · 실제 구독 상태는 바뀌지 않아요</p>

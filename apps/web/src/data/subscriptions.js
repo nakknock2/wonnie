@@ -1,3 +1,5 @@
+import { resolveServiceLogo } from '../services/serviceLogos.js';
+
 // 데모 시나리오 데이터 (실제 연동 시 API 응답으로 교체)
 // 날짜는 '데모 날짜'(오늘 + 넘긴 일수) 기준으로 계산합니다. 왓챠는 데모 시작일 기준 '내일' 결제.
 
@@ -30,7 +32,7 @@ export const SUBSCRIPTIONS = [
   { id: 'tving', name: '티빙', plan: '광고형 스탠다드', price: 5500, letter: 'T', color: '#e2263a', due: 15, card: '우리카드 ****1234', lastUsed: '2주 전' },
   { id: 'naver', name: '네이버플러스 멤버십', plan: '월간', price: 4900, letter: 'N+', color: '#1fb34f', due: 19, card: '우리카드 ****5678', lastUsed: '5일 전' },
   { id: 'icloud', name: 'iCloud+', plan: '200GB', price: 2200, letter: 'i', color: '#5aa6f0', due: 24, card: '우리카드 ****5678', lastUsed: '자동 결제' },
-];
+].map((subscription) => ({ ...subscription, logoSrc: resolveServiceLogo(subscription) }));
 
 export const WATCHA = SUBSCRIPTIONS[0];
 export const MONTHLY_TOTAL = SUBSCRIPTIONS.reduce((a, s) => a + s.price, 0); // 61,300

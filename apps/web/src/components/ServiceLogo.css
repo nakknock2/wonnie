@@ -1,0 +1,25 @@
+.service-logo {
+  position: relative;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  box-sizing: border-box;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.service-logo__fallback { font-size: 44%; }
+
+.service-logo__image {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  background: #fff;
+  object-fit: contain;
+}

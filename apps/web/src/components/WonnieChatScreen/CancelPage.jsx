@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { WATCHA, won, mdw, billDateOf } from '../../data/subscriptions.js';
+import ServiceLogo from '../ServiceLogo.jsx';
 
 /*
  * 구독 해지 페이지 (모의 화면)
@@ -51,7 +52,7 @@ export default function CancelPage({ open, onClose, onCancelled, onAuthenticate 
           <>
             <h2>구독 해지</h2>
             <div className="cp-plan">
-              <span className="cp-logo">{WATCHA.letter}</span>
+              <ServiceLogo className="cp-logo" service={WATCHA} size={44} />
               <div>
                 <strong>{WATCHA.name} {WATCHA.plan}</strong>
                 <small>월 {won(WATCHA.price)} · {WATCHA.card}</small>

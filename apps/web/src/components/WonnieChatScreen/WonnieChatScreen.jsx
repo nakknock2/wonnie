@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import wonnieImg from '../../assets/wonnie-3d.png';
 import wonnieFace from '../../assets/wonnie-3d-face.png';
+import ServiceLogo from '../ServiceLogo.jsx';
 import { ConsentForm } from '../Consent/Consent.jsx';
 import CancelPage from './CancelPage.jsx';
 import TransferSheet from './TransferSheet.jsx';
@@ -50,13 +51,7 @@ const Ico = {
 };
 
 function SubIcon({ sub, size = 36 }) {
-  return (
-    <span className="wc-sub-icon" style={{ background: sub.color, width: size, height: size }} aria-hidden="true">
-      {sub.letter === 'play'
-        ? <svg viewBox="0 0 24 24" width={size * 0.45} height={size * 0.45}><path d="M8 5.5v13l11-6.5Z" fill="#fff" /></svg>
-        : <span style={{ fontSize: sub.letter.length > 1 ? size * 0.34 : size * 0.44 }}>{sub.letter}</span>}
-    </span>
-  );
+  return <ServiceLogo className="wc-sub-icon" service={sub} size={size} />;
 }
 
 function SubRow({ sub, badge, tone = 'blue', note }) {
