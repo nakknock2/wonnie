@@ -82,7 +82,6 @@ Cloudflare DNS에 프록시를 끈 상태로 다음 A 레코드를 먼저 추가
 | 이름 | 값 |
 | --- | --- |
 | `wonnie` | Oracle 서버 IP |
-| `demo.wonnie` | Oracle 서버 IP |
 | `api.wonnie` | Oracle 서버 IP |
 
 DNS 전파 후 인증서를 발급합니다.
@@ -90,7 +89,6 @@ DNS 전파 후 인증서를 발급합니다.
 ```bash
 sudo certbot --nginx \
   -d wonnie.minngyuseong.com \
-  -d demo.wonnie.minngyuseong.com \
   -d api.wonnie.minngyuseong.com
 ```
 
