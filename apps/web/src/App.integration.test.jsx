@@ -455,7 +455,7 @@ describe('merged final frontend backend connection', () => {
       conversationId: 'conversation', requestId: null, messageId, data,
     });
     act(() => source.emit('connected', envelope('connected-1', 'connected', { connectionId: 'connection-1', unreadCount: 0 })));
-    await waitFor(() => expect(requestLog.some((entry) => entry.path === '/api/assistant/conversation')).toBe(true));
+    expect(requestLog.some((entry) => entry.path === '/api/assistant/conversation')).toBe(false);
 
     const notice = { ...stored('sse-notice', 'ASSISTANT', 'SSE로 온 구독료 알림'), source: 'PRICE_INCREASE' };
     history = [notice];
@@ -472,11 +472,21 @@ describe('merged final frontend backend connection', () => {
     expect(await within(chat).findByText('SSE로 온 구독료 알림')).toBeInTheDocument();
     expect(within(chat).getAllByText('SSE로 온 구독료 알림')).toHaveLength(1);
     await waitFor(() => expect(requestLog.some((entry) => entry.path === '/api/assistant/conversation/read')).toBe(true));
+    const conversationRequestsAfterOpen = requestLog.filter((entry) => entry.path === '/api/assistant/conversation').length;
+    const readRequestsAfterOpen = requestLog.filter((entry) => entry.path === '/api/assistant/conversation/read').length;
+    expect(conversationRequestsAfterOpen).toBe(1);
+    expect(readRequestsAfterOpen).toBe(1);
+
+    act(() => window.dispatchEvent(new Event('focus')));
+    expect(requestLog.filter((entry) => entry.path === '/api/assistant/conversation')).toHaveLength(conversationRequestsAfterOpen);
+    expect(requestLog.filter((entry) => entry.path === '/api/assistant/conversation/read')).toHaveLength(readRequestsAfterOpen);
 
     const recovered = stored('reconnected-notice', 'ASSISTANT', '재연결 후 다시 불러온 알림');
     history = [notice, recovered];
     unread = 1;
     act(() => source.emit('connected', envelope('connected-2', 'connected', { connectionId: 'connection-2', unreadCount: 1 })));
     expect(await within(chat).findByText('재연결 후 다시 불러온 알림')).toBeInTheDocument();
+    await waitFor(() => expect(requestLog.filter((entry) => entry.path === '/api/assistant/conversation')).toHaveLength(2));
+    await waitFor(() => expect(requestLog.filter((entry) => entry.path === '/api/assistant/conversation/read')).toHaveLength(2));
   });
 });

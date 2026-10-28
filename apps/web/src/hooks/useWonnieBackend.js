@@ -27,6 +27,8 @@ export default function useWonnieBackend(open) {
   const seenEventIds = useRef(new Set());
   const eventRevision = useRef(0);
   const refreshSequence = useRef(0);
+  const conversationInFlight = useRef(null);
+  const markReadInFlight = useRef(null);
   const requestRecoveryControl = useRef({ touch: () => {}, clear: () => {} });
   openRef.current = open;
 
@@ -43,7 +45,17 @@ export default function useWonnieBackend(open) {
   const refresh = useCallback(async (signal) => {
     const sequence = ++refreshSequence.current;
     const eventRevisionAtStart = eventRevision.current;
-    const conversation = await wonnieApi.conversation(signal);
+    let request = conversationInFlight.current;
+    if (!request) {
+      // Share one history request when opening the chat races with an SSE reconnection.
+      request = wonnieApi.conversation();
+      conversationInFlight.current = request;
+      const clear = () => {
+        if (conversationInFlight.current === request) conversationInFlight.current = null;
+      };
+      request.then(clear, clear);
+    }
+    const conversation = await request;
     if (!mounted.current || signal?.aborted || sequence !== refreshSequence.current) return conversation;
     if (!Array.isArray(conversation.messages)) throw new Error('저장된 대화의 응답 형식을 확인해 주세요.');
     // Validate/convert outside React's state updater so malformed responses do not poison chat state.
@@ -51,15 +63,22 @@ export default function useWonnieBackend(open) {
     setMessages((current) => mergeChatMessages(current, incoming));
     if (eventRevision.current === eventRevisionAtStart) setUnreadCount(conversation.unreadCount);
     setError(null);
-    if (openRef.current) {
-      // Only mark data read after a successful history load, and keep read errors separate.
-      try {
-        const result = await wonnieApi.markRead(signal);
-        if (mounted.current && !signal?.aborted && sequence === refreshSequence.current
-            && eventRevision.current === eventRevisionAtStart) setUnreadCount(result.unreadCount);
-      } catch { /* Retain the unread count and retry on the next refresh. */ }
-    }
     return conversation;
+  }, []);
+
+  const markRead = useCallback((signal) => {
+    if (!openRef.current) return Promise.resolve(null);
+    if (markReadInFlight.current) return markReadInFlight.current;
+    const eventRevisionAtStart = eventRevision.current;
+    const task = wonnieApi.markRead(signal).then((result) => {
+      if (mounted.current && !signal?.aborted
+          && eventRevision.current === eventRevisionAtStart) setUnreadCount(result.unreadCount);
+      return result;
+    }).finally(() => {
+      if (markReadInFlight.current === task) markReadInFlight.current = null;
+    });
+    markReadInFlight.current = task;
+    return task;
   }, []);
 
   const settleRequest = useCallback((requestId) => {
@@ -100,10 +119,10 @@ export default function useWonnieBackend(open) {
     }
     if (Number.isInteger(nextUnreadCount) && nextUnreadCount >= 0) setUnreadCount(nextUnreadCount);
     settleRequest(requestId);
-    // Reconcile notices and read state. A failed refresh must not retry a completed message.
-    void refresh().catch(() => {});
+    // The completed event already contains both stored messages; no history reload is needed.
+    if (openRef.current) void markRead().catch(() => {});
     return true;
-  }, [refresh, settleRequest]);
+  }, [markRead, settleRequest]);
 
   const recoverRequest = useCallback((requestId) => {
     const job = activeRequest.current;
@@ -156,6 +175,7 @@ export default function useWonnieBackend(open) {
     const controller = new AbortController();
     let source = null;
     let fallbackRequested = false;
+    let connectedOnce = false;
     let typingTimer = null;
     let recoveryTimer = null;
 
@@ -223,6 +243,7 @@ export default function useWonnieBackend(open) {
       if (controller.signal.aborted) return;
       try {
         await refresh(controller.signal);
+        if (openRef.current) await markRead(controller.signal);
       } catch (syncError) {
         if (!controller.signal.aborted && openRef.current) setError(syncError.message);
       }
@@ -237,23 +258,13 @@ export default function useWonnieBackend(open) {
         const result = await wonnieApi.unreadCount(controller.signal);
         if (mounted.current && !controller.signal.aborted
             && eventRevision.current === eventRevisionAtStart) setUnreadCount(result.unreadCount);
-      } catch { /* EventSource reconnects automatically; chat open/focus also retries via REST. */ }
+      } catch { /* EventSource reconnects automatically; opening the chat also loads a snapshot. */ }
     };
     const loadUnreadFallback = () => {
       if (fallbackRequested) return;
       fallbackRequested = true;
       return loadUnreadSnapshot();
     };
-
-    const syncOnFocus = () => {
-      if (openRef.current) void recover();
-      else {
-        void loadUnreadSnapshot();
-        const job = activeRequest.current;
-        if (job) void recoverRequest(job.requestId);
-      }
-    };
-    window.addEventListener('focus', syncOnFocus);
 
     const EventSourceImpl = window.EventSource;
     if (typeof EventSourceImpl !== 'function') {
@@ -262,7 +273,6 @@ export default function useWonnieBackend(open) {
       if (job) void recoverRequest(job.requestId);
       return () => {
         controller.abort();
-        window.removeEventListener('focus', syncOnFocus);
       };
     }
 
@@ -274,7 +284,6 @@ export default function useWonnieBackend(open) {
       if (job) void recoverRequest(job.requestId);
       return () => {
         controller.abort();
-        window.removeEventListener('focus', syncOnFocus);
       };
     }
 
@@ -307,7 +316,14 @@ export default function useWonnieBackend(open) {
     listen('connected', (envelope) => {
       const count = envelope.data.unreadCount;
       if (Number.isInteger(count) && count >= 0) setUnreadCount(count);
-      void recover(); // Reload history and any in-flight reply after initial connect/reconnect.
+      if (connectedOnce) {
+        // EventSource reconnects automatically. Only a real reconnection needs REST reconciliation.
+        void recover();
+      } else {
+        connectedOnce = true;
+        const job = activeRequest.current;
+        if (job) void recoverRequest(job.requestId);
+      }
     });
 
     listen('message.created', (envelope) => {
@@ -325,7 +341,8 @@ export default function useWonnieBackend(open) {
         return;
       }
       setMessages((current) => mergeChatMessages(current, [incoming]));
-      if (openRef.current) void recover(); // Refresh also marks newly received notices read.
+      // The event already carries the stored message; only acknowledge it when it is visible.
+      if (openRef.current) void markRead(controller.signal).catch(() => {});
     });
 
     listen('unread-count.changed', (envelope) => {
@@ -399,7 +416,6 @@ export default function useWonnieBackend(open) {
     });
 
     source.onerror = () => {
-      void loadUnreadFallback();
       const job = activeRequest.current;
       if (job) void recoverRequest(job.requestId);
     };
@@ -412,20 +428,21 @@ export default function useWonnieBackend(open) {
         requestRecoveryControl.current = { touch: () => {}, clear: () => {} };
       }
       source?.close();
-      window.removeEventListener('focus', syncOnFocus);
     };
-  }, [applyCompletedExchange, failRequest, recoverRequest, refresh]);
+  }, [applyCompletedExchange, failRequest, markRead, recoverRequest, refresh]);
 
   useEffect(() => {
     if (!open) return undefined;
     const controller = new AbortController();
-    void refresh(controller.signal).catch((refreshError) => {
-      if (!controller.signal.aborted && mounted.current) setError(refreshError.message);
-    });
+    void refresh(controller.signal)
+      .then(() => markRead(controller.signal))
+      .catch((refreshError) => {
+        if (!controller.signal.aborted && mounted.current) setError(refreshError.message);
+      });
     const job = activeRequest.current;
     if (job) void recoverRequest(job.requestId);
     return () => controller.abort();
-  }, [open, recoverRequest, refresh]);
+  }, [markRead, open, recoverRequest, refresh]);
 
   const send = useCallback(async (text, topic) => {
     if (sendingRef.current) return false;
