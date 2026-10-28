@@ -36,27 +36,6 @@ export default function App({ showDemoPanel = false, user = null }) {
     return () => controller.abort();
   }, [dispatch]);
 
-  useEffect(() => {
-    let reconnectingCalendar = false;
-    const syncCalendar = () => {
-      void wonnieApi.syncCalendar().catch((error) => {
-        if (error?.status !== 401 || reconnectingCalendar) return;
-        reconnectingCalendar = true;
-        const url = window.location.hostname === "wonnie.minngyuseong.com"
-          ? "https://api.wonnie.minngyuseong.com/oauth2/authorization/google"
-          : "/oauth2/authorization/google";
-        window.location.assign(url);
-      });
-    };
-    syncCalendar();
-    window.addEventListener("focus", syncCalendar);
-    const interval = setInterval(syncCalendar, 60_000);
-    return () => {
-      window.removeEventListener("focus", syncCalendar);
-      clearInterval(interval);
-    };
-  }, []);
-
   // 서버의 동의 상태를 확인한 뒤, 미동의 사용자에게만 앱 진입 1.2초 뒤 동의 시트
   useEffect(() => {
     if (!consentsLoaded || demo.consented) return undefined;
